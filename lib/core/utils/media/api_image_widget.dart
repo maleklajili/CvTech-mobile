@@ -35,6 +35,9 @@ class ApiImageWidget extends BaseApiImage {
 
   Widget _buildCachedNetworkImage(BuildContext context) {
     final imageUrl = '${imageNetworUrl ?? fileUrl}/$imageFileName';
+    
+    // Debug log pour vérifier l'URL
+    debugPrint('ApiImageWidget - Loading image from: $imageUrl');
 
     final memCacheHeight = (width * Dimensions.dpr).round();
     final memCacheWidth = (height * Dimensions.dpr).round();
@@ -57,7 +60,11 @@ class ApiImageWidget extends BaseApiImage {
         context,
         isLoading: true,
       ),
-      errorWidget: (context, url, error) => placeHolderImage(context),
+      errorWidget: (context, url, error) {
+        debugPrint('ApiImageWidget - Error loading image: $error');
+        debugPrint('ApiImageWidget - URL was: $imageUrl');
+        return placeHolderImage(context);
+      },
     );
   }
 

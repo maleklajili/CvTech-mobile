@@ -15,33 +15,38 @@ class TabBarPofile extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withOpacity(0.7),
-              borderRadius: Dimensions.smallBorderRadius,
-            ),
-            child: CustomTabBar(
-              context: context,
-              tabs: const [
-                Tab(text: 'Info'),
-                Tab(text: 'Parcours'),
-                Tab(text: 'Contenu'),
-              ],
-            ),
-          ),
-          const Expanded(
-            child: TabBarView(
-              children: [
-                InfoTab(),
-                ParcoursTab(),
-                ContenuTab(),
-              ],
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.7),
+                  borderRadius: Dimensions.smallBorderRadius,
+                ),
+                child: CustomTabBar(
+                  context: context,
+                  tabs: const [
+                    Tab(text: 'Info'),
+                    Tab(text: 'Parcours'),
+                    Tab(text: 'Contenu'),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: TabBarView(
+                  children: const [
+                    InfoTab(),
+                    ParcoursTab(),
+                    ContenuTab(),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

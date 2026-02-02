@@ -1,0 +1,237 @@
+// Package imports:
+import 'package:dio/dio.dart';
+
+// Project imports:
+import 'package:cv_tech/data/api/api_client.dart';
+import 'package:cv_tech/data/api/api_endpoints.dart';
+import 'package:cv_tech/data/models/auth/user_model.dart';
+
+/// Request model pour la mise à jour du profil
+class UpdateProfileRequest {
+  final String? firstName;
+  final String? lastName;
+  final String? userName;
+  final String? email;
+  final String? bio;
+  final String? city;
+  final String? address;
+  final String? professionalTitle;
+  final int? postalCode;
+  final String? phone;
+  final String? website;
+  final String? location;
+  final bool? removeImage;
+  final bool? removeCover;
+  final String? professionalStatus;
+  final String? previousDomain;
+  final String? currentDomain;
+  final String? professionalCategory;
+  final String? keywords;
+
+  const UpdateProfileRequest({
+    this.firstName,
+    this.lastName,
+    this.userName,
+    this.email,
+    this.bio,
+    this.city,
+    this.address,
+    this.professionalTitle,
+    this.postalCode,
+    this.phone,
+    this.website,
+    this.location,
+    this.removeImage,
+    this.removeCover,
+    this.professionalStatus,
+    this.previousDomain,
+    this.currentDomain,
+    this.professionalCategory,
+    this.keywords,
+  });
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {};
+    if (firstName != null) data['firstName'] = firstName;
+    if (lastName != null) data['lastName'] = lastName;
+    if (userName != null) data['userName'] = userName;
+    if (email != null) data['email'] = email;
+    if (bio != null) data['bio'] = bio;
+    if (city != null) data['city'] = city;
+    if (address != null) data['adress'] = address;
+    if (professionalTitle != null)
+      data['professionalTitle'] = professionalTitle;
+    if (postalCode != null) data['postalCode'] = postalCode;
+    if (phone != null) data['phone'] = phone;
+    if (website != null) data['website'] = website;
+    if (location != null) data['location'] = location;
+    if (removeImage == true) data['removeImage'] = true;
+    if (removeCover == true) data['removeCover'] = true;
+    if (professionalStatus != null)
+      data['professionalStatus'] = professionalStatus;
+    if (previousDomain != null) data['previousDomain'] = previousDomain;
+    if (currentDomain != null) data['currentDomain'] = currentDomain;
+    if (professionalCategory != null)
+      data['professionalCategory'] = professionalCategory;
+    if (keywords != null) data['keywords'] = keywords;
+    return data;
+  }
+}
+
+class UserRepository {
+  final ApiClient _apiClient;
+
+  UserRepository({ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
+
+  /// Récupérer le profil de l'utilisateur actuel
+  Future<UserModel> getCurrentUser() async {
+    try {
+      final response = await _apiClient.dio.get(ApiEndpoints.currentUser);
+
+      print('GetCurrentUser Response Status: ${response.statusCode}');
+      print('GetCurrentUser Response Data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data'] as Map<String, dynamic>
+            : response.data as Map<String, dynamic>;
+
+        return UserModel.fromJson(data);
+      }
+
+      throw Exception(
+          response.data['error'] ?? 'Échec de la récupération du profil');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Récupérer un utilisateur par son ID
+  Future<UserModel> getUserById(String userId) async {
+    try {
+      final response =
+          await _apiClient.dio.get('${ApiEndpoints.userById}$userId');
+
+      print('GetUserById Response Status: ${response.statusCode}');
+      print('GetUserById Response Data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data'] as Map<String, dynamic>
+            : response.data as Map<String, dynamic>;
+
+        return UserModel.fromJson(data);
+      }
+
+      throw Exception(response.data['error'] ?? 'Utilisateur non trouvé');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Mettre à jour le profil de l'utilisateur
+  Future<UserModel> updateProfile(
+    UpdateProfileRequest request, {
+    String? imagePath,
+    String? coverPath,
+    List<int>? imageBytes,
+    List<int>? coverBytes,
+  }) async {
+    try {
+      final Map<String, dynamic> dataMap = request.toJson();
+
+      // Support pour path (mobile/desktop) ou bytes (web)
+      if (imagePath != null) {
+        dataMap['image'] = await MultipartFile.fromFile(
+          imagePath,
+          filename: 'profile_image.jpg',
+        );
+      } else if (imageBytes != null) {
+        dataMap['image'] = MultipartFile.fromBytes(
+          imageBytes,
+          filename: 'profile_image.jpg',
+        );
+      }
+
+      if (coverPath != null) {
+        dataMap['cover'] = await MultipartFile.fromFile(
+          coverPath,
+          filename: 'cover_image.jpg',
+        );
+      } else if (coverBytes != null) {
+        dataMap['cover'] = MultipartFile.fromBytes(
+          coverBytes,
+          filename: 'cover_image.jpg',
+        );
+      }
+
+      final formData = FormData.fromMap(dataMap);
+
+      final response = await _apiClient.dio.put(
+        ApiEndpoints.updateProfile,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
+
+      print('UpdateProfile Response Status: ${response.statusCode}');
+      print('UpdateProfile Response Data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data'] as Map<String, dynamic>
+            : response.data as Map<String, dynamic>;
+
+        return UserModel.fromJson(data);
+      }
+
+      throw Exception(
+          response.data['error'] ?? 'Échec de la mise à jour du profil');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Handle Dio errors
+  Exception _handleDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return Exception(
+            'Délai de connexion dépassé. Vérifiez votre connexion internet.');
+      case DioExceptionType.badResponse:
+        String message;
+        try {
+          final responseData = e.response?.data;
+          if (responseData is Map) {
+            if (responseData['error'] is Map &&
+                responseData['error']['message'] != null) {
+              message = responseData['error']['message'].toString();
+            } else if (responseData['message'] != null) {
+              message = responseData['message'].toString();
+            } else if (responseData['error'] is String) {
+              message = responseData['error'].toString();
+            } else {
+              message = 'Erreur serveur (${e.response?.statusCode})';
+            }
+          } else if (responseData is String) {
+            message = responseData;
+          } else {
+            message = 'Erreur serveur (${e.response?.statusCode})';
+          }
+        } catch (_) {
+          message = 'Une erreur est survenue';
+        }
+        return Exception(message);
+      case DioExceptionType.cancel:
+        return Exception('Requête annulée');
+      case DioExceptionType.connectionError:
+        return Exception('Aucune connexion internet');
+      default:
+        return Exception('Une erreur inattendue est survenue');
+    }
+  }
+}

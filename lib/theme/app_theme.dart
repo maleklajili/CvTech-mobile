@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/theme/custom_app_bar_theme.dart';
 import 'package:cv_tech/theme/custom_bottom_navigation_theme.dart';
-import 'package:cv_tech/theme/custom_card_theme.dart';
 import 'package:cv_tech/theme/custom_divider_theme.dart';
 import 'package:cv_tech/theme/custom_floating_action_buttom_theme.dart';
 import 'package:cv_tech/theme/custom_icon_button_theme.dart';
@@ -30,7 +29,7 @@ class AppTheme {
 
   static ThemeData get lightTheme => ThemeData(
         brightness: Brightness.light,
-        useMaterial3: true,
+        useMaterial3: false,
         primaryColor: AppColors.primaryColor,
         colorScheme: const ColorScheme.light(
           primary: AppColors.primaryColor,
@@ -49,7 +48,6 @@ class AppTheme {
             CustomBottomNavigationTheme.lightBottomNavigationBarTheme,
         floatingActionButtonTheme:
             CustomFloatingActionButtomTheme.lightFloatingActionTheme,
-        cardTheme: CustomCardTheme.lightCardTheme,
         dividerTheme: CustomDividerTheme.lightDividerTheme,
         iconTheme: CustomIconTheme.lightIconTheme,
         iconButtonTheme: CustomIconButtonTheme.lightCustomIconButtonTheme,
@@ -57,7 +55,7 @@ class AppTheme {
 
   static ThemeData get darkTheme => ThemeData(
         brightness: Brightness.dark,
-        useMaterial3: true,
+        useMaterial3: false,
         primaryColor: AppColors.primaryColor,
         colorScheme: const ColorScheme.dark(
           primary: AppColors.primaryColor,
@@ -76,7 +74,6 @@ class AppTheme {
             CustomBottomNavigationTheme.darkBottomNavigationBarTheme,
         floatingActionButtonTheme:
             CustomFloatingActionButtomTheme.darkFloatingActionTheme,
-        cardTheme: CustomCardTheme.darkCardTheme,
         dividerTheme: CustomDividerTheme.darkDividerTheme,
         iconTheme: CustomIconTheme.darkIconTheme,
         iconButtonTheme: CustomIconButtonTheme.darkCustomIconButtonTheme,

@@ -1,0 +1,145 @@
+// Dart imports:
+import 'dart:io';
+
+// Package imports:
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+// Project imports:
+import 'package:cv_tech/core/config/network_config.dart';
+
+class ApiClient {
+  static ApiClient? _instance;
+  late final Dio _dio;
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  static const String _accessTokenKey = 'access_token';
+  static const String _refreshTokenKey = 'refresh_token';
+  static const String _userIdKey = 'user_id';
+
+  ApiClient._internal() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: 'http://localhost:9000', // Sera mis à jour dynamiquement
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          HttpHeaders.contentTypeHeader: 'application/json',
+          HttpHeaders.acceptHeader: 'application/json',
+        },
+      ),
+    );
+    
+    // Mettre à jour l'URL dynamiquement
+    _updateBaseUrl();
+
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await getAccessToken();
+          if (token != null) {
+            options.headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            // Try to refresh token
+            final refreshed = await _refreshToken();
+            if (refreshed) {
+              // Retry the request
+              final opts = error.requestOptions;
+              final token = await getAccessToken();
+              opts.headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
+              try {
+                final response = await _dio.fetch(opts);
+                return handler.resolve(response);
+              } catch (e) {
+                return handler.next(error);
+              }
+            }
+          }
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+
+  factory ApiClient() {
+    _instance ??= ApiClient._internal();
+    return _instance!;
+  }
+
+  Dio get dio => _dio;
+  
+  /// Mettre à jour l'URL de base du client API
+  Future<void> _updateBaseUrl() async {
+    final url = await NetworkConfig.getBackendUrl();
+    _dio.options.baseUrl = url;
+  }
+  
+  /// Forcer la mise à jour de l'URL (utile après changement de config)
+  Future<void> refreshBaseUrl() async {
+    await _updateBaseUrl();
+  }
+
+  Future<bool> _refreshToken() async {
+    try {
+      final refreshToken = await getRefreshToken();
+      if (refreshToken == null) return false;
+
+      final response = await _dio.post(
+        '/auth/refreshToken',
+        data: {'refreshToken': refreshToken},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        await saveTokens(
+          accessToken: data['accessToken'],
+          refreshToken: data['refreshToken'],
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Token management
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+    String? userId,
+  }) async {
+    await _storage.write(key: _accessTokenKey, value: accessToken);
+    await _storage.write(key: _refreshTokenKey, value: refreshToken);
+    if (userId != null) {
+      await _storage.write(key: _userIdKey, value: userId);
+    }
+  }
+
+  Future<String?> getAccessToken() async {
+    return await _storage.read(key: _accessTokenKey);
+  }
+
+  Future<String?> getRefreshToken() async {
+    return await _storage.read(key: _refreshTokenKey);
+  }
+
+  Future<String?> getUserId() async {
+    return await _storage.read(key: _userIdKey);
+  }
+
+  Future<void> clearTokens() async {
+    await _storage.delete(key: _accessTokenKey);
+    await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _userIdKey);
+  }
+
+  Future<bool> hasValidToken() async {
+    final token = await getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
+}
