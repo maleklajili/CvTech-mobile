@@ -81,8 +81,8 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
       _endDate = widget.experience!.endDate;
       _currentPost = widget.experience!.currentPost;
       _keyAchievements = List.from(widget.experience!.keyAchievements);
-      _skills = widget.experience!.skills.map((s) => {
-        return {
+      _skills = widget.experience!.skills.map((s) {
+        return <String, dynamic>{
           'name': s.name,
           'category': s.category,
           '_id': s.id,

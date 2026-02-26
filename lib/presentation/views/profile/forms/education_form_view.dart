@@ -100,7 +100,7 @@ class _EducationFormViewState extends State<EducationFormView> {
       _endDate = widget.education!.endDate;
       _currentlyStudying = widget.education!.current;
       _skills = widget.education!.skills.map((s) {
-        return {
+        return <String, dynamic>{
           'name': s.name,
           'category': s.category,
           '_id': s.id,
