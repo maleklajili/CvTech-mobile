@@ -81,7 +81,14 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
       _endDate = widget.experience!.endDate;
       _currentPost = widget.experience!.currentPost;
       _keyAchievements = List.from(widget.experience!.keyAchievements);
-      _skills = widget.experience!.skills.map((s) => {'name': s, 'category': 'Other'}).toList();
+      _skills = widget.experience!.skills.map((s) => {
+        return {
+          'name': s.name,
+          'category': s.category,
+          '_id': s.id,
+          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        };
+      }).toList();
     }
   }
 
@@ -220,11 +227,24 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
       )).toList(),
     );
 
+    // Préparer les fichiers de certificats
+    final List<List<int>>? certFiles = _certificates.isNotEmpty
+        ? _certificates
+            .where((c) => c['bytes'] != null)
+            .map((c) => (c['bytes'] as List<int>))
+            .toList()
+        : null;
+
     bool success;
     if (widget.experience == null) {
-      success = await viewModel.addExperience(experience);
+      success = await viewModel.addExperienceV2(experience, certFiles);
     } else {
-      success = await viewModel.updateExperience(widget.experience!.id!, experience);
+      success = await viewModel.updateExperienceV2(
+        widget.experience!.id!,
+        experience,
+        certFiles,
+        null,
+      );
     }
 
     setState(() => _isLoading = false);

@@ -85,6 +85,12 @@ class ExperienceRepository {
       formData.fields
           .add(MapEntry('currentPost', experience.currentPost.toString()));
 
+      // KeyAchievements
+      if (experience.keyAchievements.isNotEmpty) {
+        formData.fields.add(MapEntry(
+            'KeyAchievements', jsonEncode(experience.keyAchievements)));
+      }
+
       // Skills - comme des objets avec structure complète
       for (var i = 0; i < experience.skills.length; i++) {
         final skill = experience.skills[i];
@@ -159,6 +165,12 @@ class ExperienceRepository {
       // Boolean comme JSON string
       formData.fields
           .add(MapEntry('currentPost', experience.currentPost.toString()));
+
+      // KeyAchievements
+      if (experience.keyAchievements.isNotEmpty) {
+        formData.fields.add(MapEntry(
+            'KeyAchievements', jsonEncode(experience.keyAchievements)));
+      }
 
       // Skills - comme des objets avec structure complète
       for (var i = 0; i < experience.skills.length; i++) {

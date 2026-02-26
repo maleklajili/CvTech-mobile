@@ -99,7 +99,14 @@ class _EducationFormViewState extends State<EducationFormView> {
       _startDate = widget.education!.startDate;
       _endDate = widget.education!.endDate;
       _currentlyStudying = widget.education!.current;
-      _skills = widget.education!.skills.map((s) => {'name': s, 'id': DateTime.now().millisecondsSinceEpoch.toString()}).toList();
+      _skills = widget.education!.skills.map((s) {
+        return {
+          'name': s.name,
+          'category': s.category,
+          '_id': s.id,
+          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        };
+      }).toList();
     }
   }
 
@@ -223,11 +230,24 @@ class _EducationFormViewState extends State<EducationFormView> {
       )).toList(),
     );
 
+    // Préparer les fichiers de certificats
+    final List<List<int>>? certFiles = _certificates.isNotEmpty
+        ? _certificates
+            .where((c) => c['bytes'] != null)
+            .map((c) => (c['bytes'] as List<int>))
+            .toList()
+        : null;
+
     bool success;
     if (widget.education == null) {
-      success = await viewModel.addEducation(education);
+      success = await viewModel.addEducationV2(education, certFiles);
     } else {
-      success = await viewModel.updateEducation(widget.education!.id!, education);
+      success = await viewModel.updateEducationV2(
+        widget.education!.id!,
+        education,
+        certFiles,
+        null,
+      );
     }
 
     setState(() => _isLoading = false);

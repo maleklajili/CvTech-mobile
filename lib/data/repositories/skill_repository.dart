@@ -66,6 +66,9 @@ class SkillRepository {
     try {
       final map = <String, dynamic>{};
 
+      // userId - requis par le backend
+      map['userId'] = skill.userId;
+
       // Champs de base
       map['name'] = skill.name;
       map['categorie'] = skill.categorie;
@@ -122,6 +125,9 @@ class SkillRepository {
   Future<SkillModel> update(String id, SkillModel skill) async {
     try {
       final map = <String, dynamic>{};
+
+      // userId - requis par le backend
+      map['userId'] = skill.userId;
 
       // Champs de base
       map['name'] = skill.name;

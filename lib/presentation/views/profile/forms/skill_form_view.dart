@@ -12,6 +12,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/profile/skill_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
+import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class SkillFormView extends StatefulWidget {
@@ -183,10 +184,12 @@ class _SkillFormViewState extends State<SkillFormView> {
     setState(() => _isLoading = true);
 
     final viewModel = context.read<ProfessionalProfileViewModel>();
+    final profileViewModel = context.read<ProfileViewModel>();
+    final userId = profileViewModel.user?.id ?? '';
 
     final skill = SkillModel(
       id: widget.skill?.id,
-      userId: widget.skill?.userId ?? '',
+      userId: widget.skill?.userId ?? userId,
       name: _nameController.text.trim(),
       categorie: _selectedCategory!,
       sousCategorie: _selectedSubCategory ?? '',

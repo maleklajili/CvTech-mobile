@@ -345,7 +345,7 @@ class _ProjectFormViewState extends State<ProjectFormView> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: _selectedProjectType,
+          value: _selectedProjectType,
           decoration: InputDecoration(
             hintText: 'Sélectionner un type de projet',
             border: OutlineInputBorder(
@@ -410,7 +410,7 @@ class _ProjectFormViewState extends State<ProjectFormView> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: _selectedCategory,
+          value: _selectedCategory,
           decoration: InputDecoration(
             hintText: 'Sélectionner une catégorie',
             border: OutlineInputBorder(
