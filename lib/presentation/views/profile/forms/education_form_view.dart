@@ -12,13 +12,13 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/profile/education_model.dart';
 import 'package:cv_tech/data/models/profile/skill_reference_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
-import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class EducationFormView extends StatefulWidget {
   final EducationModel? education;
+  final String? userId;
 
-  const EducationFormView({super.key, this.education});
+  const EducationFormView({super.key, this.education, this.userId});
 
   @override
   State<EducationFormView> createState() => _EducationFormViewState();
@@ -34,10 +34,12 @@ class _EducationFormViewState extends State<EducationFormView> {
   late TextEditingController _descriptionController;
   late TextEditingController _gradeController;
   late TextEditingController _skillSearchController;
+  late TextEditingController _urlController;
 
   // State
   EducationType _selectedType = EducationType.diploma;
   EducationLevel? _selectedLevel;
+  String? _selectedGrade;
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
   bool _currentlyStudying = false;
@@ -45,6 +47,16 @@ class _EducationFormViewState extends State<EducationFormView> {
   List<Map<String, dynamic>> _skills = [];
   List<Map<String, dynamic>> _certificates = [];
   Map<String, bool> _expandedSkills = {};
+
+  // Grade options matching web
+  final List<String> _gradeOptions = [
+    'Passable',
+    'Assez Bien',
+    'Bien',
+    'Très Bien',
+    'Excellent',
+    'Félicitations du Jury',
+  ];
 
   // Education types matching Next.js
   final List<Map<String, dynamic>> _educationTypes = [
@@ -85,6 +97,7 @@ class _EducationFormViewState extends State<EducationFormView> {
     _descriptionController = TextEditingController();
     _gradeController = TextEditingController();
     _skillSearchController = TextEditingController();
+    _urlController = TextEditingController();
   }
 
   void _loadExistingData() {
@@ -94,8 +107,10 @@ class _EducationFormViewState extends State<EducationFormView> {
       _locationController.text = widget.education!.location;
       _descriptionController.text = widget.education!.description;
       _gradeController.text = widget.education!.grade ?? '';
+      _urlController.text = widget.education!.url ?? '';
       _selectedType = widget.education!.type;
       _selectedLevel = widget.education!.level;
+      _selectedGrade = widget.education!.grade;
       _startDate = widget.education!.startDate;
       _endDate = widget.education!.endDate;
       _currentlyStudying = widget.education!.current;
@@ -118,6 +133,7 @@ class _EducationFormViewState extends State<EducationFormView> {
     _descriptionController.dispose();
     _gradeController.dispose();
     _skillSearchController.dispose();
+    _urlController.dispose();
     super.dispose();
   }
 
@@ -207,8 +223,7 @@ class _EducationFormViewState extends State<EducationFormView> {
     setState(() => _isLoading = true);
 
     final viewModel = context.read<ProfessionalProfileViewModel>();
-    final profileViewModel = context.read<ProfileViewModel>();
-    final userId = profileViewModel.user?.id ?? '';
+    final userId = widget.userId ?? '';
 
     final education = EducationModel(
       id: widget.education?.id,
@@ -222,7 +237,8 @@ class _EducationFormViewState extends State<EducationFormView> {
       startDate: _startDate,
       endDate: _currentlyStudying ? null : _endDate,
       current: _currentlyStudying,
-      grade: _gradeController.text.trim().isEmpty ? null : _gradeController.text.trim(),
+      grade: _selectedGrade ?? (_gradeController.text.trim().isEmpty ? null : _gradeController.text.trim()),
+      url: _urlController.text.trim().isEmpty ? null : _urlController.text.trim(),
       skills: _skills.map((s) => SkillReference(
         name: s['name'] as String,
         category: s['category'] as String? ?? 'Other',
@@ -340,6 +356,8 @@ class _EducationFormViewState extends State<EducationFormView> {
                   _buildDateFields(),
                   const SizedBox(height: 24),
                   _buildGradeField(),
+                  const SizedBox(height: 24),
+                  _buildUrlField(),
                   const SizedBox(height: 24),
                   _buildDescriptionField(),
                   const SizedBox(height: 24),
@@ -673,10 +691,79 @@ class _EducationFormViewState extends State<EducationFormView> {
   }
 
   Widget _buildGradeField() {
-    return _buildTextFormField(
-      controller: _gradeController,
-      label: 'Mention / Note',
-      hintText: 'Ex: Mention Très Bien, 16/20...',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Mention / Note',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: Colors.black87),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _selectedGrade,
+          decoration: InputDecoration(
+            hintText: 'Sélectionnez une mention',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          items: [
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text('Aucune mention', style: TextStyle(color: Colors.grey)),
+            ),
+            ..._gradeOptions.map((grade) => DropdownMenuItem<String>(
+              value: grade,
+              child: Text(grade),
+            )),
+          ],
+          onChanged: (value) => setState(() => _selectedGrade = value),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUrlField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'URL du diplôme (optionnel)',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: Colors.black87),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _urlController,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            hintText: 'https://...',
+            prefixIcon: const Icon(Icons.link, size: 20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
     );
   }
 

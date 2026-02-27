@@ -12,13 +12,13 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/profile/experience_model.dart';
 import 'package:cv_tech/data/models/profile/skill_reference_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
-import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class ExperienceFormView extends StatefulWidget {
   final ExperienceModel? experience;
+  final String? userId;
 
-  const ExperienceFormView({super.key, this.experience});
+  const ExperienceFormView({super.key, this.experience, this.userId});
 
   @override
   State<ExperienceFormView> createState() => _ExperienceFormViewState();
@@ -206,8 +206,7 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
     setState(() => _isLoading = true);
 
     final viewModel = context.read<ProfessionalProfileViewModel>();
-    final profileViewModel = context.read<ProfileViewModel>();
-    final userId = profileViewModel.user?.id ?? '';
+    final userId = widget.userId ?? '';
 
     final experience = ExperienceModel(
       id: widget.experience?.id,

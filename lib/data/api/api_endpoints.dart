@@ -25,6 +25,7 @@ class ApiEndpoints {
   static const String educationCreate = '$education/add-education';
   static const String educationUpdate = '$education/update-education/'; // + :id
   static const String educationDelete = '$education/delete/'; // + :id
+  static const String educationByUser = '$education/user/'; // + :userId
   
   // Experience endpoints
   static const String experience = '/experience';
@@ -39,6 +40,8 @@ class ApiEndpoints {
   static const String skillGetAll = '$skill/getAll';
   static const String skillById = '$skill/'; // + :id
   static const String skillCreate = '$skill/add-skill';
+  static const String skillAddMany = '$skill/add-many-skill';
+  static const String skillUpdateMany = '$skill/update-many-skill';
   static const String skillUpdate = '$skill/update/'; // + :id
   static const String skillDelete = '$skill/delete/'; // + :id
   
@@ -49,6 +52,7 @@ class ApiEndpoints {
   static const String projectCreate = '$project/add-project';
   static const String projectUpdate = '$project/update-project/'; // + :id
   static const String projectDelete = '$project/delete/'; // + :id
+  static const String projectByUser = '$project/user/'; // + :userId
   
   // Company endpoints
   static const String company = '/companies';
@@ -67,6 +71,7 @@ class ApiEndpoints {
   static const String jobUpdate = '$job/update-job/'; // + :id
   static const String jobDelete = '$job/delete/'; // + :id
   static const String jobByCompany = '$job/company/'; // + :companyId
+  static const String jobByUser = '$job/user/'; // + :userId
   static const String jobMyJobs = '$job/my-jobs';
   static const String jobToggleStatus = '$job/toggle-status/'; // + :id
   static const String jobFeature = '$job/feature/'; // + :id
@@ -103,14 +108,40 @@ class ApiEndpoints {
   static const String personalSkillDelete = '$personalSkill/delete-personal-skill/'; // + :id
   
   // Post endpoints
-  static const String post = '/post';
-  static const String postGetAll = '$post/getAll';
-  static const String postById = '$post/'; // + :id
-  static const String postCreate = '$post/add';
-  static const String postUpdate = '$post/update/'; // + :id
-  static const String postDelete = '$post/delete/'; // + :id
+  static const String post = '/posts';
+  static const String postFeed = '$post/feed';
+  static const String postById = '$post/'; // + :id (GET, PUT, DELETE)
+  static const String postCreate = '$post/create';
+  static const String postTrending = '$post/trending';
+  static const String postVote = '$post/'; // + :id/vote (POST)
+  static const String postComments = '$post/'; // + :id/comments (GET, POST)
+  static const String postSave = '$post/'; // + :id/save (POST, DELETE)
+  static const String postCommunity = '$post/community/'; // + :communityId
   
   // Profile endpoint
   static const String profile = '/profile';
   static const String profileById = '$profile/'; // + :userId
+  
+  // Community endpoints
+  static const String community = '/community';
+  static const String communityGetAll = '$community/getAll';
+  static const String communityPopular = '$community/popular';
+  static const String communityById = '$community/id/'; // + :id
+  static const String communityByName = '$community/'; // + :name
+  static const String communitySearch = '$community/search';
+  static const String communityMembers = '$community/'; // + :id/members
+  static const String communityCheckMembership = '$community/'; // + :id/check-membership
+  static const String communityMyCommunities = '$community/user/my-communities';
+  static const String communityCreate = '$community/create';
+  static const String communityJoin = '$community/'; // + :id/join
+  static const String communityLeave = '$community/'; // + :id/leave
+  
+  // Message endpoints
+  static const String message = '/messages';
+  static const String messageConversation = '$message/conversation/'; // + :userId
+  static const String messageSend = '$message/';
+  static const String messageMedia = '$message/media/'; // + :receiverId
+  static const String messageChats = '$message/chats';
+  static const String messageSearch = '$message/search';
+  static const String messageDelete = '$message/'; // + :messageId
 }

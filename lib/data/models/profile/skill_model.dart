@@ -5,19 +5,19 @@ enum SkillLevel { debutant, intermediaire, avance, expert, natif }
 
 class SkillModel extends BaseModel {
   final String userId;
-  final String categorie;
-  final String sousCategorie;
+  final String category;      // Backend: "category" 
+  final String subcategory;   // Backend: "subcategory"
   final String name;
   final SkillLevel? level;
   final String? description;
   final String? color;
-  final int? experienceNumber;
-  final int? projectNumber;
+  final int? yearsOfExperience;  // Backend: "yearsOfExperience"
+  final int? projectsCount;       // Backend: "projectsCount"
   final int? percentage;
   final List<String> certifications;
-  final bool? certifed;
-  final bool? favorite;
-  final bool? apprenticeship;
+  final bool? certified;     // Backend: "certified"
+  final bool? isFavorite;    // Backend: "isFavorite"
+  final bool? isInLearning;  // Backend: "isInLearning"
 
   static List<String> _parseStringOrList(dynamic value) {
     if (value == null) return [];
@@ -39,58 +39,86 @@ class SkillModel extends BaseModel {
   const SkillModel({
     super.id,
     required this.userId,
-    required this.categorie,
-    required this.sousCategorie,
+    required this.category,
+    required this.subcategory,
     required this.name,
     this.level,
     this.description,
     this.color,
-    this.experienceNumber,
-    this.projectNumber,
+    this.yearsOfExperience,
+    this.projectsCount,
     this.percentage,
     this.certifications = const [],
-    this.certifed,
-    this.favorite,
-    this.apprenticeship,
+    this.certified,
+    this.isFavorite,
+    this.isInLearning,
   });
 
   factory SkillModel.fromJson(Map<String, dynamic> json) {
+    // Le backend technical-skills envoie level comme un nombre (0-100)
+    // Le backend skill (ancien) envoie level comme string (debutant, intermediaire, etc.)
+    final rawLevel = json['level'];
+    int? percentage;
+    SkillLevel? skillLevel;
+
+    if (rawLevel is num) {
+      percentage = rawLevel.toInt();
+      skillLevel = _levelFromPercentage(percentage);
+    } else if (rawLevel is String) {
+      skillLevel = _parseSkillLevel(rawLevel);
+      percentage = json['percentage'] is num
+          ? (json['percentage'] as num).toInt()
+          : null;
+    } else {
+      percentage = json['percentage'] is num
+          ? (json['percentage'] as num).toInt()
+          : null;
+    }
+
     return SkillModel(
       id: json['_id']?.toString(),
       userId: json['userId']?.toString() ?? '',
-      categorie: json['categorie'] ?? '',
-      sousCategorie: json['sousCategorie'] ?? '',
+      category: json['category'] ?? json['categorie'] ?? '',
+      subcategory: json['subcategory'] ?? json['sousCategorie'] ?? '',
       name: json['name'] ?? '',
-      level: _parseSkillLevel(json['level']),
+      level: skillLevel,
       description: json['description'],
       color: json['color'],
-      experienceNumber: json['experienceNumber'],
-      projectNumber: json['projectNumber'],
-      percentage: json['percentage'],
+      yearsOfExperience: _parseInt(json['yearsOfExperience'] ?? json['experienceNumber']),
+      projectsCount: _parseInt(json['projectsCount'] ?? json['projectNumber']),
+      percentage: percentage,
       certifications: _parseStringOrList(json['certifications']),
-      certifed: json['certifed'],
-      favorite: json['favorite'],
-      apprenticeship: json['apprenticeship'],
+      certified: json['certified'] ?? json['certifed'],
+      isFavorite: json['isFavorite'] ?? json['favorite'],
+      isInLearning: json['isInLearning'] ?? json['apprenticeship'],
     );
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   @override
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
       'userId': userId,
-      'categorie': categorie,
-      'sousCategorie': sousCategorie,
+      'category': category,
+      'subcategory': subcategory,
       'name': name,
       'level': level?.name,
       'description': description,
       'color': color,
-      'experienceNumber': experienceNumber,
-      'projectNumber': projectNumber,
+      'yearsOfExperience': yearsOfExperience,
+      'projectsCount': projectsCount,
       'percentage': percentage,
       'certifications': certifications,
-      'certifed': certifed,
-      'favorite': favorite,
-      'apprenticeship': apprenticeship,
+      'certified': certified,
+      'isFavorite': isFavorite,
+      'isInLearning': isInLearning,
     };
     // Ne pas envoyer _id si null ou vide (pour création)
     if (id != null && id!.isNotEmpty) {
@@ -114,6 +142,15 @@ class SkillModel extends BaseModel {
       default:
         return null;
     }
+  }
+
+  /// Convertir un pourcentage (0-100) en niveau
+  static SkillLevel _levelFromPercentage(int pct) {
+    if (pct >= 90) return SkillLevel.natif;
+    if (pct >= 75) return SkillLevel.expert;
+    if (pct >= 60) return SkillLevel.avance;
+    if (pct >= 40) return SkillLevel.intermediaire;
+    return SkillLevel.debutant;
   }
 
   String get levelDisplay {

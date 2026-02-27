@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 // Project imports:
 import 'package:cv_tech/data/models/profile/experience_model.dart';
+import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 
 /// Card d'expérience style LinkedIn/Timeline comme le frontend Next.js
 class ExperienceCard extends StatefulWidget {
@@ -405,38 +406,10 @@ class _ExperienceCardState extends State<ExperienceCard> {
   }
 
   void _showDeleteDialog(BuildContext context) {
-    showDialog(
+    ModernDialog.showDelete(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange[600]),
-            const SizedBox(width: 8),
-            const Text('Supprimer'),
-          ],
-        ),
-        content: const Text(
-          'Êtes-vous sûr de vouloir supprimer cette expérience ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              widget.onDelete();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      itemName: 'cette expérience',
+      onConfirm: widget.onDelete,
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 // Project imports:
 import 'package:cv_tech/data/models/profile/project_model.dart';
+import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 
 /// Widget de projets avec carousel comme le frontend Next.js
 class ProjectsCarousel extends StatefulWidget {
@@ -38,6 +39,7 @@ class _ProjectsCarouselState extends State<ProjectsCarousel> {
 
   void _nextProject() {
     if (widget.projects.isEmpty) return;
+    if (!_pageController.hasClients) return;
     final nextIndex = (_activeIndex + 1) % widget.projects.length;
     _pageController.animateToPage(
       nextIndex,
@@ -48,6 +50,7 @@ class _ProjectsCarouselState extends State<ProjectsCarousel> {
 
   void _prevProject() {
     if (widget.projects.isEmpty) return;
+    if (!_pageController.hasClients) return;
     final prevIndex =
         (_activeIndex - 1 + widget.projects.length) % widget.projects.length;
     _pageController.animateToPage(
@@ -351,6 +354,7 @@ class _ProjectsCarouselState extends State<ProjectsCarousel> {
 
                 return GestureDetector(
                   onTap: () {
+                    if (!_pageController.hasClients) return;
                     _pageController.animateToPage(
                       index,
                       duration: const Duration(milliseconds: 300),
@@ -497,38 +501,10 @@ class _ProjectsCarouselState extends State<ProjectsCarousel> {
   }
 
   void _showDeleteDialog(BuildContext context, ProjectModel project) {
-    showDialog(
+    ModernDialog.showDelete(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange[600]),
-            const SizedBox(width: 8),
-            const Text('Supprimer'),
-          ],
-        ),
-        content: Text(
-          'Êtes-vous sûr de vouloir supprimer le projet "${project.title}" ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              widget.onDelete(project.id!);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      itemName: 'le projet "${project.title}"',
+      onConfirm: () => widget.onDelete(project.id!),
     );
   }
 }

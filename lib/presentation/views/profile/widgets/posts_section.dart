@@ -10,6 +10,7 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/profile/post_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/post_view_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
+import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class PostsSection extends StatelessWidget {
@@ -258,37 +259,20 @@ class _PostsSectionContent extends StatelessWidget {
 
   void _confirmDelete(
       BuildContext context, PostViewModel viewModel, PostModel post) {
-    showDialog(
+    ModernDialog.showDelete(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Supprimer la publication'),
-        content: const Text('Êtes-vous sûr de vouloir supprimer cette publication ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await viewModel.deletePost(post.id!);
-              if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Publication supprimée'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+      itemName: 'cette publication',
+      onConfirm: () async {
+        final success = await viewModel.deletePost(post.id!);
+        if (success && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Publication supprimée'),
+              backgroundColor: Colors.green,
             ),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 }

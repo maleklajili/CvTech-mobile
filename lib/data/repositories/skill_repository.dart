@@ -1,6 +1,3 @@
-// Dart imports:
-import 'dart:convert';
-
 // Package imports:
 import 'package:dio/dio.dart';
 
@@ -20,7 +17,7 @@ class SkillRepository {
     try {
       final queryParams = category != null ? {'category': category} : null;
       final response = await _apiClient.dio.get(
-        ApiEndpoints.skillGetAll,
+        ApiEndpoints.technicalSkillGetAll,
         queryParameters: queryParams,
       );
 
@@ -44,7 +41,7 @@ class SkillRepository {
   Future<SkillModel> getById(String id) async {
     try {
       final response = await _apiClient.dio.get(
-        '${ApiEndpoints.skillById}$id',
+        '${ApiEndpoints.technicalSkillById}$id',
       );
 
       if (response.statusCode == 200) {
@@ -61,50 +58,31 @@ class SkillRepository {
     }
   }
 
-  /// Créer une nouvelle compétence
+  /// Créer une nouvelle compétence (JSON, noms anglais, comme le web)
   Future<SkillModel> create(SkillModel skill) async {
     try {
-      final map = <String, dynamic>{};
+      final payload = <String, dynamic>{
+        'name': skill.name,
+        'category': skill.category,
+        'subcategory': skill.subcategory,
+        'level': skill.percentage ?? 50,
+        'certified': skill.certified ?? false,
+        'isFavorite': skill.isFavorite ?? false,
+        'isInLearning': skill.isInLearning ?? false,
+        'yearsOfExperience': skill.yearsOfExperience ?? 0,
+        'projectsCount': skill.projectsCount ?? 0,
+      };
 
-      // userId - requis par le backend
-      map['userId'] = skill.userId;
-
-      // Champs de base
-      map['name'] = skill.name;
-      map['categorie'] = skill.categorie;
-      map['sousCategorie'] = skill.sousCategorie;
-
-      // Champs optionnels
-      if (skill.level != null) {
-        map['level'] = skill.level!.name;
-      }
       if (skill.description != null && skill.description!.isNotEmpty) {
-        map['description'] = skill.description;
+        payload['description'] = skill.description;
       }
       if (skill.color != null) {
-        map['color'] = skill.color;
+        payload['color'] = skill.color;
       }
-      if (skill.percentage != null) {
-        map['percentage'] = skill.percentage.toString();
-      }
-      if (skill.certifed != null) {
-        map['certifed'] = skill.certifed.toString();
-      }
-      if (skill.favorite != null) {
-        map['favorite'] = skill.favorite.toString();
-      }
-      if (skill.apprenticeship != null) {
-        map['apprenticeship'] = skill.apprenticeship.toString();
-      }
-
-      // Certifications en JSON string
-      map['certifications'] = jsonEncode(skill.certifications);
-
-      final formData = FormData.fromMap(map);
 
       final response = await _apiClient.dio.post(
-        ApiEndpoints.skillCreate,
-        data: formData,
+        ApiEndpoints.technicalSkillCreate,
+        data: payload,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -121,50 +99,31 @@ class SkillRepository {
     }
   }
 
-  /// Mettre à jour une compétence
+  /// Mettre à jour une compétence (JSON, noms anglais, comme le web)
   Future<SkillModel> update(String id, SkillModel skill) async {
     try {
-      final map = <String, dynamic>{};
+      final payload = <String, dynamic>{
+        'name': skill.name,
+        'category': skill.category,
+        'subcategory': skill.subcategory,
+        'level': skill.percentage ?? 50,
+        'certified': skill.certified ?? false,
+        'isFavorite': skill.isFavorite ?? false,
+        'isInLearning': skill.isInLearning ?? false,
+        'yearsOfExperience': skill.yearsOfExperience ?? 0,
+        'projectsCount': skill.projectsCount ?? 0,
+      };
 
-      // userId - requis par le backend
-      map['userId'] = skill.userId;
-
-      // Champs de base
-      map['name'] = skill.name;
-      map['categorie'] = skill.categorie;
-      map['sousCategorie'] = skill.sousCategorie;
-
-      // Champs optionnels
-      if (skill.level != null) {
-        map['level'] = skill.level!.name;
-      }
       if (skill.description != null && skill.description!.isNotEmpty) {
-        map['description'] = skill.description;
+        payload['description'] = skill.description;
       }
       if (skill.color != null) {
-        map['color'] = skill.color;
+        payload['color'] = skill.color;
       }
-      if (skill.percentage != null) {
-        map['percentage'] = skill.percentage.toString();
-      }
-      if (skill.certifed != null) {
-        map['certifed'] = skill.certifed.toString();
-      }
-      if (skill.favorite != null) {
-        map['favorite'] = skill.favorite.toString();
-      }
-      if (skill.apprenticeship != null) {
-        map['apprenticeship'] = skill.apprenticeship.toString();
-      }
-
-      // Certifications en JSON string
-      map['certifications'] = jsonEncode(skill.certifications);
-
-      final formData = FormData.fromMap(map);
 
       final response = await _apiClient.dio.put(
-        '${ApiEndpoints.skillUpdate}$id',
-        data: formData,
+        '${ApiEndpoints.technicalSkillUpdate}$id',
+        data: payload,
       );
 
       if (response.statusCode == 200) {
@@ -185,7 +144,7 @@ class SkillRepository {
   Future<void> delete(String id) async {
     try {
       final response = await _apiClient.dio.delete(
-        '${ApiEndpoints.skillDelete}$id',
+        '${ApiEndpoints.technicalSkillDelete}$id',
       );
 
       if (response.statusCode != 200 && response.statusCode != 204) {

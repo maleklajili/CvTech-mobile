@@ -12,13 +12,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/profile/skill_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
-import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class SkillFormView extends StatefulWidget {
   final SkillModel? skill;
+  final String? userId;
 
-  const SkillFormView({super.key, this.skill});
+  const SkillFormView({super.key, this.skill, this.userId});
 
   @override
   State<SkillFormView> createState() => _SkillFormViewState();
@@ -37,6 +37,12 @@ class _SkillFormViewState extends State<SkillFormView> {
   SkillLevel _selectedLevel = SkillLevel.debutant;
   double _percentageValue = 50;
   bool _isLoading = false;
+  bool _isCertified = false;
+  bool _isFavorite = false;
+  bool _isLearning = false;
+  int _experienceYears = 0;
+  int _projectCount = 0;
+  String? _selectedColor;
   List<Map<String, dynamic>> _certifications = [];
 
   // Categories with icons - matching Next.js skillCategories
@@ -120,10 +126,16 @@ class _SkillFormViewState extends State<SkillFormView> {
     if (widget.skill != null) {
       _nameController.text = widget.skill!.name;
       _descriptionController.text = widget.skill!.description ?? '';
-      _selectedCategory = widget.skill!.categorie;
-      _selectedSubCategory = widget.skill!.sousCategorie;
+      _selectedCategory = widget.skill!.category;
+      _selectedSubCategory = widget.skill!.subcategory;
       _selectedLevel = widget.skill!.level ?? SkillLevel.debutant;
       _percentageValue = (widget.skill!.percentage ?? 50).toDouble();
+      _isCertified = widget.skill!.certified ?? false;
+      _isFavorite = widget.skill!.isFavorite ?? false;
+      _isLearning = widget.skill!.isInLearning ?? false;
+      _experienceYears = widget.skill!.yearsOfExperience ?? 0;
+      _projectCount = widget.skill!.projectsCount ?? 0;
+      _selectedColor = widget.skill!.color;
       _certifications = widget.skill!.certifications.map((c) => {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'name': c,
@@ -184,21 +196,26 @@ class _SkillFormViewState extends State<SkillFormView> {
     setState(() => _isLoading = true);
 
     final viewModel = context.read<ProfessionalProfileViewModel>();
-    final profileViewModel = context.read<ProfileViewModel>();
-    final userId = profileViewModel.user?.id ?? '';
+    final userId = widget.userId ?? '';
 
     final skill = SkillModel(
       id: widget.skill?.id,
       userId: widget.skill?.userId ?? userId,
       name: _nameController.text.trim(),
-      categorie: _selectedCategory!,
-      sousCategorie: _selectedSubCategory ?? '',
+      category: _selectedCategory!,
+      subcategory: _selectedSubCategory ?? '',
       level: _selectedLevel,
       description: _descriptionController.text.trim().isEmpty
           ? null
           : _descriptionController.text.trim(),
       percentage: _percentageValue.toInt(),
       certifications: _certifications.map((c) => c['name'] as String).toList(),
+      certified: _isCertified,
+      isFavorite: _isFavorite,
+      isInLearning: _isLearning,
+      yearsOfExperience: _experienceYears,
+      projectsCount: _projectCount,
+      color: _selectedColor,
     );
 
     bool success;
@@ -294,6 +311,12 @@ class _SkillFormViewState extends State<SkillFormView> {
                   _buildLevelSelector(),
                   const SizedBox(height: 24),
                   _buildPercentageSlider(),
+                  const SizedBox(height: 24),
+                  _buildToggles(),
+                  const SizedBox(height: 24),
+                  _buildExperienceFields(),
+                  const SizedBox(height: 24),
+                  _buildColorPicker(),
                   const SizedBox(height: 24),
                   _buildDescriptionField(),
                   const SizedBox(height: 24),
@@ -614,6 +637,173 @@ class _SkillFormViewState extends State<SkillFormView> {
             Text('50%', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
             Text('100%', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToggles() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Options',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: Colors.black87),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              SwitchListTile(
+                title: const Text('Certifié'),
+                subtitle: const Text('Vous avez une certification pour cette compétence'),
+                value: _isCertified,
+                onChanged: (value) => setState(() => _isCertified = value),
+                activeColor: AppColors.primaryColor,
+                secondary: const Icon(Icons.verified_user, color: AppColors.primaryColor),
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                title: const Text('Favori'),
+                subtitle: const Text('Afficher cette compétence en priorité'),
+                value: _isFavorite,
+                onChanged: (value) => setState(() => _isFavorite = value),
+                activeColor: AppColors.primaryColor,
+                secondary: const Icon(Icons.star, color: Colors.amber),
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                title: const Text('En apprentissage'),
+                subtitle: const Text('Vous êtes en train d\'apprendre cette compétence'),
+                value: _isLearning,
+                onChanged: (value) => setState(() => _isLearning = value),
+                activeColor: AppColors.primaryColor,
+                secondary: const Icon(Icons.school, color: Colors.blue),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExperienceFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Métriques',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: Colors.black87),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Années d\'expérience',
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: _experienceYears.toString(),
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.work_history, size: 20),
+                      hintText: '0',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) => _experienceYears = int.tryParse(value) ?? 0,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Nombre de projets',
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: _projectCount.toString(),
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.folder_copy, size: 20),
+                      hintText: '0',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) => _projectCount = int.tryParse(value) ?? 0,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildColorPicker() {
+    final colors = [
+      '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+      '#EC4899', '#06B6D4', '#6366F1', '#84CC16', '#F97316',
+    ];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Couleur (optionnel)',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: Colors.black87),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: colors.map((colorHex) {
+            final isSelected = _selectedColor == colorHex;
+            final color = Color(int.parse(colorHex.substring(1), radix: 16) + 0xFF000000);
+            return GestureDetector(
+              onTap: () {
+                setState(() => _selectedColor = _selectedColor == colorHex ? null : colorHex);
+              },
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: isSelected 
+                      ? Border.all(color: Colors.black87, width: 3)
+                      : null,
+                  boxShadow: isSelected
+                      ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)]
+                      : null,
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, color: Colors.white, size: 20)
+                    : null,
+              ),
+            );
+          }).toList(),
         ),
       ],
     );

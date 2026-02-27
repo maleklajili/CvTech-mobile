@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 // Project imports:
 import 'package:cv_tech/data/models/profile/experience_model.dart';
+import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 
 /// Section d'expérience avec design timeline comme le frontend Next.js
 class ExperienceSection extends StatelessWidget {
@@ -476,38 +477,10 @@ class _TimelineExperienceCardState extends State<_TimelineExperienceCard> {
   }
 
   void _showDeleteDialog(BuildContext context) {
-    showDialog(
+    ModernDialog.showDelete(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange[600]),
-            const SizedBox(width: 8),
-            const Text('Supprimer'),
-          ],
-        ),
-        content: Text(
-          'Êtes-vous sûr de vouloir supprimer l\'expérience "${widget.experience.post}" ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              widget.onDelete();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      itemName: 'l\'expérience "${widget.experience.post}"',
+      onConfirm: widget.onDelete,
     );
   }
 }

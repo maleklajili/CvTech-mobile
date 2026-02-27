@@ -13,6 +13,7 @@ import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/views/profile/profile_view.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
+import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class DrawerWiget extends StatefulWidget {
@@ -269,31 +270,18 @@ class _DrawerWigetState extends State<DrawerWiget> {
                 style: TextStyle(color: Colors.red),
               ),
               onTap: () {
-                showDialog(
+                ModernDialog.show(
                   context: context,
-                  builder: (dialogContext) => AlertDialog(
-                    title: const Text('Déconnexion'),
-                    content: const Text(
-                        'Êtes-vous sûr de vouloir vous déconnecter ?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: const Text('Annuler'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(dialogContext);
-                          context
-                              .read<AuthBloc>()
-                              .add(const AuthLogoutRequested());
-                        },
-                        child: const Text(
-                          'Déconnexion',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
+                  title: 'Déconnexion',
+                  message: 'Êtes-vous sûr de vouloir vous déconnecter ?',
+                  type: DialogType.warning,
+                  confirmText: 'Déconnexion',
+                  cancelText: 'Annuler',
+                  onConfirm: () {
+                    context
+                        .read<AuthBloc>()
+                        .add(const AuthLogoutRequested());
+                  },
                 );
               },
             ),

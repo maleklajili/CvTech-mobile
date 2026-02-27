@@ -130,10 +130,10 @@ class _ProfileViewState extends State<ProfileView>
               body: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildExperienceTab(context, professionalViewModel),
-                  _buildEducationTab(context, professionalViewModel),
-                  _buildSkillsTab(context, professionalViewModel),
-                  _buildProjectsTab(context, professionalViewModel),
+                  _buildExperienceTab(context, professionalViewModel, profileViewModel),
+                  _buildEducationTab(context, professionalViewModel, profileViewModel),
+                  _buildSkillsTab(context, professionalViewModel, profileViewModel),
+                  _buildProjectsTab(context, professionalViewModel, profileViewModel),
                   _buildPostsTab(context),
                   _buildSavedTab(context),
                 ],
@@ -791,43 +791,43 @@ class _ProfileViewState extends State<ProfileView>
   }
 
   /// ------------------ TABS CONTENT ------------------
-  Widget _buildExperienceTab(BuildContext context, ProfessionalProfileViewModel vm) {
+  Widget _buildExperienceTab(BuildContext context, ProfessionalProfileViewModel vm, ProfileViewModel profileVm) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: ExperienceSection(
         experiences: vm.experiences,
-        onAdd: () => _navigateToExperienceForm(context, vm, null),
-        onEdit: (exp) => _navigateToExperienceForm(context, vm, exp),
+        onAdd: () => _navigateToExperienceForm(context, vm, null, profileVm.user?.id),
+        onEdit: (exp) => _navigateToExperienceForm(context, vm, exp, profileVm.user?.id),
         onDelete: (id) => _deleteExperience(context, vm, id),
       ),
     );
   }
 
-  Widget _buildEducationTab(BuildContext context, ProfessionalProfileViewModel vm) {
+  Widget _buildEducationTab(BuildContext context, ProfessionalProfileViewModel vm, ProfileViewModel profileVm) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: EducationSection(
         educations: vm.educations,
-        onAdd: () => _navigateToEducationForm(context, vm, null),
-        onEdit: (edu) => _navigateToEducationForm(context, vm, edu),
+        onAdd: () => _navigateToEducationForm(context, vm, null, profileVm.user?.id),
+        onEdit: (edu) => _navigateToEducationForm(context, vm, edu, profileVm.user?.id),
         onDelete: (id) => _deleteEducation(context, vm, id),
       ),
     );
   }
 
-  Widget _buildSkillsTab(BuildContext context, ProfessionalProfileViewModel vm) {
+  Widget _buildSkillsTab(BuildContext context, ProfessionalProfileViewModel vm, ProfileViewModel profileVm) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: SkillsSection(
         skills: vm.skills,
-        onAdd: () => _navigateToSkillForm(context, vm, null),
-        onEdit: (skill) => _navigateToSkillForm(context, vm, skill),
+        onAdd: () => _navigateToSkillForm(context, vm, null, profileVm.user?.id),
+        onEdit: (skill) => _navigateToSkillForm(context, vm, skill, profileVm.user?.id),
         onDelete: (id) => _deleteSkill(context, vm, id),
       ),
     );
   }
 
-  Widget _buildProjectsTab(BuildContext context, ProfessionalProfileViewModel vm) {
+  Widget _buildProjectsTab(BuildContext context, ProfessionalProfileViewModel vm, ProfileViewModel profileVm) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: ProjectsSection(
@@ -871,45 +871,45 @@ class _ProfileViewState extends State<ProfileView>
   }
 
   void _navigateToExperienceForm(BuildContext context,
-      ProfessionalProfileViewModel viewModel, dynamic experience) {
+      ProfessionalProfileViewModel viewModel, dynamic experience, String? userId) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider.value(
           value: viewModel,
           child: experience != null
-              ? ExperienceFormView(experience: experience)
-              : const ExperienceFormView(),
+              ? ExperienceFormView(experience: experience, userId: userId)
+              : ExperienceFormView(userId: userId),
         ),
       ),
     );
   }
 
   void _navigateToEducationForm(BuildContext context,
-      ProfessionalProfileViewModel viewModel, dynamic education) {
+      ProfessionalProfileViewModel viewModel, dynamic education, String? userId) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider.value(
           value: viewModel,
           child: education != null
-              ? EducationFormView(education: education)
-              : const EducationFormView(),
+              ? EducationFormView(education: education, userId: userId)
+              : EducationFormView(userId: userId),
         ),
       ),
     );
   }
 
   void _navigateToSkillForm(BuildContext context,
-      ProfessionalProfileViewModel viewModel, dynamic skill) {
+      ProfessionalProfileViewModel viewModel, dynamic skill, String? userId) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider.value(
           value: viewModel,
           child: skill != null
-              ? SkillFormView(skill: skill)
-              : const SkillFormView(),
+              ? SkillFormView(skill: skill, userId: userId)
+              : SkillFormView(userId: userId),
         ),
       ),
     );

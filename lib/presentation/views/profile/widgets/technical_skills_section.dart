@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 // Project imports:
 import 'package:cv_tech/data/models/profile/skill_model.dart';
+import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 
 /// Widget de compétences techniques avec design amélioré comme le frontend Next.js
 class TechnicalSkillsSection extends StatefulWidget {
@@ -35,11 +36,11 @@ class _TechnicalSkillsSectionState extends State<TechnicalSkillsSection> {
     final filteredSkills = widget.skills.where((skill) {
       if (_searchQuery.isEmpty) return true;
       return skill.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          skill.categorie.toLowerCase().contains(_searchQuery.toLowerCase());
+          skill.category.toLowerCase().contains(_searchQuery.toLowerCase());
     });
 
     for (final skill in filteredSkills) {
-      final category = skill.categorie.isNotEmpty ? skill.categorie : 'Autres';
+      final category = skill.category.isNotEmpty ? skill.category : 'Autres';
       if (!grouped.containsKey(category)) {
         grouped[category] = [];
       }
@@ -411,38 +412,10 @@ class _CategoryCard extends StatelessWidget {
   }
 
   void _showDeleteDialog(BuildContext context, SkillModel skill) {
-    showDialog(
+    ModernDialog.showDelete(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange[600]),
-            const SizedBox(width: 8),
-            const Text('Supprimer'),
-          ],
-        ),
-        content: Text(
-          'Êtes-vous sûr de vouloir supprimer la compétence "${skill.name}" ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onDelete(skill.id!);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      itemName: 'la compétence "${skill.name}"',
+      onConfirm: () => onDelete(skill.id!),
     );
   }
 }
@@ -513,12 +486,12 @@ class _SkillItem extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (skill.favorite == true) ...[
+                        if (skill.isFavorite == true) ...[
                           const SizedBox(width: 8),
                           Icon(Icons.favorite,
                               size: 16, color: Colors.red[400]),
                         ],
-                        if (skill.certifed == true) ...[
+                        if (skill.certified == true) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -541,12 +514,12 @@ class _SkillItem extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (skill.sousCategorie.isNotEmpty) ...[
+                    if (skill.subcategory.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
-                            skill.categorie,
+                            skill.category,
                             style: TextStyle(
                               fontSize: 12,
                               color: color,
@@ -555,7 +528,7 @@ class _SkillItem extends StatelessWidget {
                           Icon(Icons.chevron_right,
                               size: 14, color: Colors.grey[400]),
                           Text(
-                            skill.sousCategorie,
+                            skill.subcategory,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[500],
@@ -631,20 +604,20 @@ class _SkillItem extends StatelessWidget {
               ),
               Row(
                 children: [
-                  if (skill.experienceNumber != null) ...[
+                  if (skill.yearsOfExperience != null) ...[
                     Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
                     const SizedBox(width: 4),
                     Text(
-                      '${skill.experienceNumber} ans',
+                      '${skill.yearsOfExperience} ans',
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                     const SizedBox(width: 12),
                   ],
-                  if (skill.projectNumber != null) ...[
+                  if (skill.projectsCount != null) ...[
                     Icon(Icons.folder, size: 14, color: Colors.grey[500]),
                     const SizedBox(width: 4),
                     Text(
-                      '${skill.projectNumber} projets',
+                      '${skill.projectsCount} projets',
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
