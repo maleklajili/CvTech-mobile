@@ -52,9 +52,9 @@ class FeedPostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = !AppTheme.isLight;
-    final cardBg = isDark ? const Color(0xFF1A1A2E) : Colors.white;
+    final cardBg = isDark ? const Color(0xFFFFFFFF ) : Colors.white;
     final borderColor =
-        isDark ? Colors.white.withOpacity(0.10) : const Color(0xFFE2E8F0);
+        isDark ? Colors.white.withOpacity(0.10) : const Color(0xFFFFFFFF);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -72,27 +72,26 @@ class FeedPostCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── LEFT: vote column (bg-muted/30) ──
-                  _VoteColumn(
-                    score: _voteScore,
-                    userReaction: post.userReaction,
-                    backgroundColor: cardBg,
-                    onUpvote: onLike,
-                    onDownvote: () =>
-                        onReaction?.call(ReactionType.dislike),
-                  ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── LEFT: vote column (outside InkWell so taps work) ──
+              _VoteColumn(
+                score: _voteScore,
+                userReaction: post.userReaction,
+                backgroundColor: cardBg,
+                onUpvote: onLike,
+                onDownvote: () =>
+                    onReaction?.call(ReactionType.dislike),
+              ),
 
-                  // ── RIGHT: content ──
-                  Expanded(
+              // ── RIGHT: content (wrapped in InkWell for navigation) ──
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onTap,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -106,9 +105,9 @@ class FeedPostCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
