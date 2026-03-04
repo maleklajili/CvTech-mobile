@@ -15,7 +15,7 @@ class PostRepository {
   /// Récupérer tous les posts
   Future<List<PostModel>> getAllPosts() async {
     try {
-      final response = await _apiClient.dio.get(ApiEndpoints.postGetAll);
+      final response = await _apiClient.dio.get(ApiEndpoints.postFeed);
 
       if (response.statusCode == 200) {
         final data = response.data is Map && response.data.containsKey('data')
@@ -107,7 +107,7 @@ class PostRepository {
       final formData = FormData.fromMap(dataMap);
 
       final response = await _apiClient.dio.put(
-        '${ApiEndpoints.postUpdate}${post.id}',
+        '${ApiEndpoints.postById}${post.id}',
         data: formData,
         options: Options(
           contentType: 'multipart/form-data',
@@ -133,7 +133,7 @@ class PostRepository {
   Future<bool> deletePost(String postId) async {
     try {
       final response =
-          await _apiClient.dio.delete('${ApiEndpoints.postDelete}$postId');
+          await _apiClient.dio.delete('${ApiEndpoints.postById}$postId');
 
       return response.statusCode == 200;
     } on DioException catch (e) {
