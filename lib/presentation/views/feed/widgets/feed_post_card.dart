@@ -267,7 +267,7 @@ class FeedPostCard extends StatelessWidget {
         : const Color(0xFFF1F5F9);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(4, 10, 12, 10),
       child: Row(
         children: [
           // Comments pill
@@ -393,6 +393,7 @@ class _VoteColumn extends StatelessWidget {
           const SizedBox(height: 12),
           // ThumbsUp button
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onUpvote,
             child: Container(
               width: 36,
@@ -426,6 +427,7 @@ class _VoteColumn extends StatelessWidget {
 
           // ThumbsDown button
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onDownvote,
             child: Container(
               width: 36,
