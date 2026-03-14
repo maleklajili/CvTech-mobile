@@ -9,7 +9,7 @@ class BottomNavigationBarViewModel extends ScrollListener
   }
   int currentIndex = 0;
 
-  int get bottomnavItemLenght => 5;
+  int get bottomnavItemLenght => 6;
   @override
   void changeCurrentIndex(int index) {
     currentIndex = index;

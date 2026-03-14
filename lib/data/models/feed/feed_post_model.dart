@@ -295,7 +295,7 @@ class FeedPostModel extends BaseModel {
       views: views ?? this.views,
       shares: shares ?? this.shares,
       saves: saves ?? this.saves,
-      userVote: userVote,
+      userVote: userVote ?? this.userVote,
       isSaved: isSaved ?? this.isSaved,
       reactionCounts: reactionCounts ?? this.reactionCounts,
       userReaction: clearUserReaction ? null : (userReaction ?? this.userReaction),

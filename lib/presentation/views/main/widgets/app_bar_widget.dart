@@ -7,6 +7,7 @@ import 'package:cv_tech/core/constants/app_strings.dart';
 import 'package:cv_tech/core/constants/dimension.dart';
 import 'package:cv_tech/core/utils/navigator_utils.dart';
 import 'package:cv_tech/presentation/views/profile/profile_view.dart';
+import 'package:cv_tech/presentation/views/profile/user_search_view.dart';
 import 'package:cv_tech/presentation/views_models/main/app_bar_view_model.dart';
 
 class AppBarWidget extends StatelessWidget {
@@ -37,7 +38,10 @@ class AppBarWidget extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.search),
           onPressed: () {
-            // Ouvrir la recherche
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const UserSearchView()),
+            );
           },
         ),
         Dimensions.widthMedium,

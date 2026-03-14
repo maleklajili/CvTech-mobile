@@ -23,20 +23,24 @@ class BottomNavigationBarWidget extends StatelessWidget {
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.domain_outlined),
-          label: 'Emplois',
+          icon: Icon(Icons.people_outline_rounded),
+          label: 'Réseau',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.explore),
+          icon: Icon(Icons.description_outlined),
           label: 'CV',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.menu_book_outlined),
-          label: 'cours',
+          label: 'Cours',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.explore),
-          label: 'Explore',
+          icon: Icon(Icons.chat_bubble_outline_rounded),
+          label: 'Chat',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profil',
         ),
       ],
       onTap: viewModel.changeCurrentIndex,

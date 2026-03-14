@@ -40,6 +40,9 @@ class AuthRepository {
   /// Login with email/username and password
   Future<AuthResponse> login(LoginRequest request) async {
     try {
+      // Nettoyer les tokens existants avant le login pour éviter les interférences
+      await _apiClient.clearTokens();
+      
       final response = await _apiClient.dio.post(
         ApiEndpoints.login,
         data: request.toJson(),

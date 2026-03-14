@@ -27,6 +27,12 @@ class AppTheme {
   static Color get dividerColor =>
       isLight ? AppColors.dividerColor : AppColors.darkDividerColor;
 
+  static Color get cardColor =>
+      isLight ? AppColors.surfaceColor : AppColors.darkSurfaceColor;
+
+  static Color get surfaceColor =>
+      isLight ? AppColors.backgroundColor : AppColors.darkBackgroundColor;
+
   static ThemeData get lightTheme => ThemeData(
         brightness: Brightness.light,
         useMaterial3: false,

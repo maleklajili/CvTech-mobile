@@ -59,20 +59,23 @@ class UpdateProfileRequest {
     if (bio != null) data['bio'] = bio;
     if (city != null) data['city'] = city;
     if (address != null) data['adress'] = address;
-    if (professionalTitle != null)
+    if (professionalTitle != null) {
       data['professionalTitle'] = professionalTitle;
+    }
     if (postalCode != null) data['postalCode'] = postalCode;
     if (phone != null) data['phone'] = phone;
     if (website != null) data['website'] = website;
     if (location != null) data['location'] = location;
     if (removeImage == true) data['removeImage'] = true;
     if (removeCover == true) data['removeCover'] = true;
-    if (professionalStatus != null)
+    if (professionalStatus != null) {
       data['professionalStatus'] = professionalStatus;
+    }
     if (previousDomain != null) data['previousDomain'] = previousDomain;
     if (currentDomain != null) data['currentDomain'] = currentDomain;
-    if (professionalCategory != null)
+    if (professionalCategory != null) {
       data['professionalCategory'] = professionalCategory;
+    }
     if (keywords != null) data['keywords'] = keywords;
     return data;
   }
@@ -125,6 +128,82 @@ class UserRepository {
       }
 
       throw Exception(response.data['error'] ?? 'Utilisateur non trouvé');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Récupérer les statistiques de l'utilisateur courant
+  Future<Map<String, dynamic>> getUserStats() async {
+    return _getUserStatsFallback();
+  }
+
+  Future<Map<String, dynamic>> _getUserStatsFallback() async {
+    try {
+      final currentUserResponse = await _apiClient.dio.get(ApiEndpoints.currentUser);
+      final currentUserData = currentUserResponse.data is Map &&
+              currentUserResponse.data.containsKey('data')
+          ? currentUserResponse.data['data'] as Map<String, dynamic>
+          : currentUserResponse.data as Map<String, dynamic>;
+
+      final followers = (currentUserData['followers'] as List?)?.length ??
+          (currentUserData['followerCount'] as num?)?.toInt() ??
+          0;
+      final following = (currentUserData['following'] as List?)?.length ??
+          (currentUserData['followingCount'] as num?)?.toInt() ??
+          0;
+
+      int posts = 0;
+      try {
+        final myPostsResponse = await _apiClient.dio.get(
+          ApiEndpoints.postFeed,
+          queryParameters: {
+            'filter': 'new',
+            'page': 1,
+            'limit': 200,
+          },
+        );
+        final feedData = myPostsResponse.data is Map &&
+                myPostsResponse.data.containsKey('data')
+            ? myPostsResponse.data['data']
+            : myPostsResponse.data;
+
+        if (feedData is Map && feedData['posts'] is List) {
+          posts = (feedData['posts'] as List).length;
+        } else if (myPostsResponse.data is Map &&
+            myPostsResponse.data['posts'] is List) {
+          posts = (myPostsResponse.data['posts'] as List).length;
+        }
+      } catch (_) {
+        posts = 0;
+      }
+
+      return {
+        'followers': followers,
+        'following': following,
+        'posts': posts,
+        'createdAt': currentUserData['createdAt'],
+      };
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Rechercher des utilisateurs (recherche globale)
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.userSearch,
+        queryParameters: {'q': query},
+      );
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        final results = data['results'] ?? data ?? [];
+        return List<Map<String, dynamic>>.from(results);
+      }
+      return [];
     } on DioException catch (e) {
       throw _handleDioError(e);
     }

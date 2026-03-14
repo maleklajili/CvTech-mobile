@@ -31,7 +31,7 @@ class VotedPostWidget extends StatelessWidget {
         children: [
           IconButton(
             icon: Icon(
-              Icons.arrow_upward,
+              viewModel.voteType.isUp ? Icons.thumb_up : Icons.thumb_up_outlined,
               color: viewModel.voteType.isUp
                   ? AppColors.primaryColor
                   : AppColors.textMutedColor,
@@ -45,15 +45,20 @@ class VotedPostWidget extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               '${viewModel.votes}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
                 fontSize: 13,
+                color: viewModel.voteType.isUp
+                    ? AppColors.primaryColor
+                    : viewModel.voteType.isDown
+                        ? Colors.blue
+                        : AppColors.textMutedColor,
               ),
             ),
           ),
           IconButton(
             icon: Icon(
-              Icons.arrow_downward,
+              viewModel.voteType.isDown ? Icons.thumb_down : Icons.thumb_down_outlined,
               color: viewModel.voteType.isDown
                   ? Colors.blue
                   : AppColors.textMutedColor,

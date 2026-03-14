@@ -29,35 +29,26 @@ class ProjectsCarousel extends StatefulWidget {
 
 class _ProjectsCarouselState extends State<ProjectsCarousel> {
   int _activeIndex = 0;
-  final PageController _pageController = PageController();
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  void didUpdateWidget(covariant ProjectsCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_activeIndex >= widget.projects.length) {
+      _activeIndex = widget.projects.isEmpty ? 0 : widget.projects.length - 1;
+    }
   }
 
   void _nextProject() {
     if (widget.projects.isEmpty) return;
-    if (!_pageController.hasClients) return;
     final nextIndex = (_activeIndex + 1) % widget.projects.length;
-    _pageController.animateToPage(
-      nextIndex,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    setState(() => _activeIndex = nextIndex);
   }
 
   void _prevProject() {
     if (widget.projects.isEmpty) return;
-    if (!_pageController.hasClients) return;
     final prevIndex =
         (_activeIndex - 1 + widget.projects.length) % widget.projects.length;
-    _pageController.animateToPage(
-      prevIndex,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    setState(() => _activeIndex = prevIndex);
   }
 
   Color _parseColor(String? hexColor) {
@@ -354,12 +345,6 @@ class _ProjectsCarouselState extends State<ProjectsCarousel> {
 
                 return GestureDetector(
                   onTap: () {
-                    if (!_pageController.hasClients) return;
-                    _pageController.animateToPage(
-                      index,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
                     setState(() => _activeIndex = index);
                   },
                   child: AnimatedContainer(

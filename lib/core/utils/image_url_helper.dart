@@ -33,27 +33,61 @@ class ImageUrlHelper {
   
   /// Version synchrone pour compatibilité (utilise le cache)
   static String? getImageUrlSync(String? imageName, String? userId) {
-    print('🔍 ImageUrlHelper.getImageUrlSync - imageName: $imageName, userId: $userId');
-    
     if (imageName == null || imageName.isEmpty || userId == null || userId.isEmpty) {
-      print('🔍 ImageUrlHelper.getImageUrlSync - Returning null (empty params)');
       return null;
     }
 
     // Si c'est déjà une URL complète, la retourner telle quelle
     if (imageName.startsWith('http://') || imageName.startsWith('https://')) {
-      print('🔍 ImageUrlHelper.getImageUrlSync - Returning full URL: $imageName');
       return imageName;
     }
 
     // Utiliser l'URL en cache ou une URL par défaut
-    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9000';
+    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
     String cleanUserId = userId.trim();
     String cleanImageName = imageName.trim();
     
-    final fullUrl = '$baseUrl/uploads/images-$cleanUserId/$cleanImageName';
-    print('🔍 ImageUrlHelper.getImageUrlSync - Constructed URL: $fullUrl');
-    return fullUrl;
+    return '$baseUrl/uploads/images-$cleanUserId/$cleanImageName';
+  }
+
+  /// Resolve any potentially relative URL to an absolute backend URL.
+  static String? resolveMaybeUrlSync(String? url) {
+    if (url == null || url.isEmpty) return null;
+    final trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+
+    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
+    if (trimmed.startsWith('/')) {
+      return '$baseUrl$trimmed';
+    }
+    return '$baseUrl/$trimmed';
+  }
+
+  /// Build message media URL when backend returns only a file name.
+  static String? getMessageMediaUrlSync(
+    String? mediaUrlOrName,
+    String? senderId,
+  ) {
+    if (mediaUrlOrName == null || mediaUrlOrName.isEmpty) return null;
+
+    final resolved = resolveMaybeUrlSync(mediaUrlOrName);
+    if (resolved != null &&
+        (mediaUrlOrName.startsWith('http://') ||
+            mediaUrlOrName.startsWith('https://') ||
+            mediaUrlOrName.startsWith('/'))) {
+      return resolved;
+    }
+
+    if (senderId == null || senderId.isEmpty) {
+      return resolved;
+    }
+
+    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
+    final cleanSenderId = senderId.trim();
+    final cleanName = mediaUrlOrName.trim();
+    return '$baseUrl/uploads/images-$cleanSenderId/messages/$cleanName';
   }
 
   /// Construire l'URL complète d'une image de couverture
@@ -100,6 +134,26 @@ class ImageUrlHelper {
     return '$baseUrl/uploads/images-$cleanUserId/projects/$cleanImageName';
   }
   
+  /// Construire l'URL complète d'un média de post
+  static String? getPostMediaUrlSync(String? fileName, String? authorId) {
+    if (fileName == null || fileName.isEmpty) return null;
+    
+    // Si c'est déjà une URL complète, la retourner telle quelle
+    if (fileName.startsWith('http://') || fileName.startsWith('https://')) {
+      return fileName;
+    }
+    
+    if (authorId == null || authorId.isEmpty) return null;
+    
+    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
+    return '$baseUrl/uploads/images-$authorId/posts/$fileName';
+  }
+
+  /// Obtenir l'URL de base (publique)
+  static String getBaseUrl() {
+    return _cachedBaseUrl ?? 'http://localhost:9001';
+  }
+
   /// Effacer le cache de l'URL
   static void clearCache() {
     _cachedBaseUrl = null;

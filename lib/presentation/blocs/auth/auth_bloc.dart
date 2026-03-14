@@ -2,6 +2,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Project imports:
+import 'package:cv_tech/data/models/auth/auth_response.dart';
 import 'package:cv_tech/data/models/auth/user_model.dart';
 import 'package:cv_tech/data/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -57,15 +58,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     
     try {
       print('🔵 AuthBloc: Calling login API...');
-      await _authRepository.login(event.request);
+      final authResponse = await _authRepository.login(event.request);
       print('🔵 AuthBloc: Login API success - tokens saved');
       
-      // Émettre immédiatement AuthAuthenticated sans appeler getCurrentUser()
-      // car l'endpoint /user/{id} peut ne pas être implémenté
-      print('🟢 AuthBloc: Emitting AuthAuthenticated with basic user');
+      // Essayer de récupérer le profil utilisateur
+      UserModel? user;
+      try {
+        user = await _authRepository.getCurrentUser();
+      } catch (_) {
+        // Si getCurrentUser échoue, utiliser les données basiques
+      }
+      
+      print('🟢 AuthBloc: Emitting AuthAuthenticated');
       emit(AuthAuthenticated(
-        user: UserModel(
-          id: '',
+        user: user ?? UserModel(
+          id: authResponse.userId,
           firstName: '',
           lastName: '',
           userName: '',

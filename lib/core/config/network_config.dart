@@ -9,10 +9,11 @@ class NetworkConfig {
   static const String _useCustomUrlKey = 'use_custom_url';
   
   // URLs par défaut selon la plateforme
-  static const String defaultWebUrl = 'http://localhost:9000';
-  static const String defaultAndroidEmulatorUrl = 'http://10.0.2.2:9000';
-  static const String defaultRealDeviceUrl = 'http://192.168.1.120:9000';
-  static const String defaultIOSUrl = 'http://127.0.0.1:9000';
+  static const String defaultWebUrl = 'http://localhost:9001';
+  static const String defaultAndroidEmulatorUrl = 'http://10.0.2.2:9001';
+  static const String defaultRealDeviceUrl = 'http://192.168.1.120:9001';
+  static const String defaultIOSUrl = 'http://127.0.0.1:9001';
+  static const String defaultSocketPort = '6000';
   
   static String? _cachedUrl;
   static bool? _cachedUseCustom;
@@ -101,7 +102,7 @@ class NetworkConfig {
   /// Obtenir l'IP locale du PC (pour affichage dans les paramètres)
   static String getLocalIPHint() {
     if (kIsWeb || Platform.isAndroid) {
-      return 'Exemple: http://192.168.1.120:9000';
+      return 'Exemple: http://192.168.1.120:9001';
     }
     return 'Utilisez l\'adresse IP de votre PC';
   }

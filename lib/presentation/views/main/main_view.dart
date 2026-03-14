@@ -7,7 +7,9 @@ import 'package:scroll_to_hide/scroll_to_hide.dart';
 
 // Project imports:
 import 'package:cv_tech/core/constants/dimension.dart';
+import 'package:cv_tech/presentation/views/feed/create_post_view.dart';
 import 'package:cv_tech/presentation/views/main/widgets/body_widget.dart';
+import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/presentation/views_models/main/app_bar_view_model.dart';
 import 'package:cv_tech/presentation/views_models/main/bottom_navigation_bar_view_model.dart';
 import '../../../core/constants/app_colors.dart';
@@ -54,19 +56,27 @@ class MainView extends StatelessWidget {
             ),
           ),
           floatingActionButton:
-              _buildPostButton(visible: bottomNavViewModel.isNavVisibile),
+              _buildPostButton(context, visible: bottomNavViewModel.isNavVisibile),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         ),
       ),
     );
   }
 
-  Widget _buildPostButton({required bool visible}) {
+  Widget _buildPostButton(BuildContext context, {required bool visible}) {
     return Visibility(
       visible: visible,
       child: GestureDetector(
         onTap: () {
-          print('hello world');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChangeNotifierProvider(
+                create: (_) => FeedViewModel()..loadFeed(),
+                child: const CreatePostView(),
+              ),
+            ),
+          );
         },
         child: Container(
           height: 40,

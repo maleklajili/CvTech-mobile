@@ -140,12 +140,6 @@ class _ProfileViewState extends State<ProfileView>
               ),
             ),
           ),
-          // Bouton de test temporaire pour upload d'image
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _testImageUpload(context, profileViewModel),
-            backgroundColor: Colors.blue,
-            child: const Icon(Icons.add_a_photo, color: Colors.white),
-          ),
         ),
       ),
     );
@@ -293,7 +287,7 @@ class _ProfileViewState extends State<ProfileView>
                     child: Column(
                       children: [
                         Text(
-                          '221',
+                          '${viewModel.followersCount}',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -319,7 +313,7 @@ class _ProfileViewState extends State<ProfileView>
                     child: Column(
                       children: [
                         Text(
-                          '32',
+                          '${viewModel.followingCount}',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -628,53 +622,44 @@ class _ProfileViewState extends State<ProfileView>
 
   /// ------------------ ACTION BUTTONS ------------------
   Widget _buildActionButtons(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.message_outlined, size: 18),
-            label: const Text('Message'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25),
+    return Consumer<ProfileViewModel>(
+      builder: (context, viewModel, _) {
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _navigateToEditProfile(context, viewModel),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Modifier le profil'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Container(
-          decoration: BoxDecoration(
-            color:
-                AppTheme.isLight ? Colors.grey.shade100 : Colors.grey.shade800,
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.share_outlined),
-            color:
-                AppTheme.isLight ? Colors.grey.shade700 : Colors.grey.shade300,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.person_add_outlined, size: 18),
-            label: const Text('Suivre'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25),
+            const SizedBox(width: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.isLight
+                    ? Colors.grey.shade100
+                    : Colors.grey.shade800,
+                shape: BoxShape.circle,
               ),
-              side: BorderSide(color: Colors.grey.shade300),
+              child: IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.share_outlined),
+                color: AppTheme.isLight
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade300,
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -697,8 +682,16 @@ class _ProfileViewState extends State<ProfileView>
       ),
       if (viewModel.user?.website != null && viewModel.user!.website!.isNotEmpty)
         _ContactInfo(icon: Icons.link_outlined, value: viewModel.user!.website!),
-      _ContactInfo(icon: Icons.calendar_today_outlined, value: 'Membre depuis Janvier 2022'),
-      _ContactInfo(icon: Icons.language_outlined, value: 'Français, Anglais'),
+      if (viewModel.memberSince != null)
+        _ContactInfo(
+          icon: Icons.calendar_today_outlined,
+          value: 'Membre depuis ${_formatMemberSince(viewModel.memberSince!)}',
+        ),
+      if (viewModel.languages.isNotEmpty)
+        _ContactInfo(
+          icon: Icons.language_outlined,
+          value: viewModel.languages.map((l) => l.name).join(', '),
+        ),
     ];
 
     return Column(
@@ -735,10 +728,9 @@ class _ProfileViewState extends State<ProfileView>
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildStatCard('1.2k', 'Posts'),
-            _buildStatCard('8.5k', 'Comm.'),
-            _buildStatCard('256', 'Abonnés'),
-            _buildStatCard('128', 'Abonne.'),
+            _buildStatCard('${viewModel.postsCount}', 'Posts'),
+            _buildStatCard('${viewModel.followersCount}', 'Abonnés'),
+            _buildStatCard('${viewModel.followingCount}', 'Abonne.'),
           ],
         ),
       ],
@@ -788,6 +780,15 @@ class _ProfileViewState extends State<ProfileView>
         ],
       ),
     );
+  }
+
+  static const List<String> _monthsFr = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  ];
+
+  String _formatMemberSince(DateTime date) {
+    return '${_monthsFr[date.month - 1]} ${date.year}';
   }
 
   /// ------------------ TABS CONTENT ------------------
@@ -840,10 +841,8 @@ class _ProfileViewState extends State<ProfileView>
   }
 
   Widget _buildPostsTab(BuildContext context) {
-    return const SingleChildScrollView(
-      padding: EdgeInsets.all(16),
-      child: PostsSection(),
-    );
+    // La section Posts utilise maintenant un CustomScrollView interne
+    return const PostsSection();
   }
 
   Widget _buildSavedTab(BuildContext context) {

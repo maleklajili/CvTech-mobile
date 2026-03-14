@@ -1,19 +1,45 @@
 // Project imports:
 import 'package:cv_tech/data/models/auth/user_model.dart';
+import 'package:cv_tech/data/models/language_model.dart';
+import 'package:cv_tech/data/repositories/language_repository.dart';
 import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/presentation/views_models/main/scroll_listener.dart';
 
 enum ProfileState { initial, loading, loaded, error }
 
 class ProfileViewModel extends ScrollListener {
+  bool _disposed = false;
+
+  void _safeNotify() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
   final UserRepository _userRepository;
+  final LanguageRepository _languageRepository;
 
   UserModel? _user;
   ProfileState _state = ProfileState.initial;
   String? _errorMessage;
 
+  // Stats
+  int _followersCount = 0;
+  int _followingCount = 0;
+  int _postsCount = 0;
+  DateTime? _memberSince;
+
+  // Languages
+  List<LanguageModel> _languages = [];
+
   ProfileViewModel(super.context, {UserRepository? userRepository})
-      : _userRepository = userRepository ?? UserRepository() {
+      : _userRepository = userRepository ?? UserRepository(),
+        _languageRepository = LanguageRepository() {
     initScrollListener();
     loadUserProfile();
   }
@@ -25,6 +51,15 @@ class ProfileViewModel extends ScrollListener {
   bool get isLoading => _state == ProfileState.loading;
   bool get hasError => _state == ProfileState.error;
   bool get isLoaded => _state == ProfileState.loaded;
+
+  // Stats getters
+  int get followersCount => _followersCount;
+  int get followingCount => _followingCount;
+  int get postsCount => _postsCount;
+  DateTime? get memberSince => _memberSince;
+
+  // Languages
+  List<LanguageModel> get languages => _languages;
 
   // Informations de l'utilisateur
   String get fullName => _user?.fullName ?? 'Utilisateur';
@@ -55,12 +90,37 @@ class ProfileViewModel extends ScrollListener {
       print('🔍 ProfileViewModel - ImageUrl getter: ${_user?.imageUrl}');
       print('🔍 ProfileViewModel - CoverUrl getter: ${_user?.coverUrl}');
       _state = ProfileState.loaded;
+      // Load stats in background (non-blocking)
+      _loadStats();
     } catch (e) {
       _state = ProfileState.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     }
 
     update();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final results = await Future.wait([
+        _userRepository.getUserStats(),
+        _languageRepository.getAll(page: 1, limit: 50),
+      ]);
+
+      final stats = results[0] as Map<String, dynamic>;
+      _followersCount = (stats['followers'] as num?)?.toInt() ?? 0;
+      _followingCount = (stats['following'] as num?)?.toInt() ?? 0;
+      _postsCount = (stats['posts'] as num?)?.toInt() ?? 0;
+      final createdAtStr = stats['createdAt'];
+      if (createdAtStr != null) {
+        _memberSince = DateTime.tryParse(createdAtStr.toString());
+      }
+
+      _languages = results[1] as List<LanguageModel>;
+      update();
+    } catch (_) {
+      // Silently ignore stats errors — profile still shows
+    }
   }
 
   /// Rafraîchir le profil
@@ -163,3 +223,6 @@ class ProfileViewModel extends ScrollListener {
     );
   }
 }
+
+
+

@@ -2,19 +2,27 @@
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/data/models/feed/reaction_model.dart';
+import 'package:cv_tech/data/repositories/feed_repository.dart';
+import 'package:cv_tech/presentation/views/profile/user_profile_view.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
-/// Post card matching the Next.js web frontend (EnhancedPostCard) exactly.
+/// Reddit-style post card for the feed.
 ///
 /// Layout:
 ///  ┌──────────────────────────────────────────────┐
-///  │ [Vote Col]  │  Header: avatar · author · community · time  │
-///  │  👍  score  │  Title                                       │
-///  │  👎         │  Content (line-clamp)                        │
-///  │             │  [Media / Image]                             │
-///  │             │  Footer: (💬 N) (↗ Share)   🔖  👁 N  ⋯     │
+///  │  [Avatar]  community (bold) · timeAgo   [⋮]  │
+///  │            Posted by u/author                 │
+///  │                                               │
+///  │  Title (bold, 18px)                           │
+///  │  Content (line-clamp 3)                       │
+///  │                                               │
+///  │  ┌────────────────────────────────────┐       │
+///  │  │         Image (borderRadius 12)    │       │
+///  │  └────────────────────────────────────┘       │
+///  │                                               │
+///  │  ↑ 23  ↓   💬 23   ↗ Share   🔖 Save         │
 ///  └──────────────────────────────────────────────┘
-class FeedPostCard extends StatelessWidget {
+class FeedPostCard extends StatefulWidget {
   final FeedPostModel post;
   final String? currentUserId;
   final VoidCallback? onLike;
@@ -40,93 +48,153 @@ class FeedPostCard extends StatelessWidget {
     this.onTap,
   });
 
+  @override
+  State<FeedPostCard> createState() => _FeedPostCardState();
+}
+
+class _FeedPostCardState extends State<FeedPostCard> {
+  final FeedRepository _repository = FeedRepository();
+  bool _viewTracked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Track the view when the card is first rendered
+    _trackView();
+  }
+
+  void _trackView() {
+    if (!_viewTracked && widget.post.id != null) {
+      _viewTracked = true;
+      _repository.trackPostView(widget.post.id!).catchError((e) {
+        // Silently ignore errors - view tracking is not critical
+      });
+    }
+  }
+
   bool get isOwner =>
-      currentUserId != null && currentUserId == post.author.id;
+      widget.currentUserId != null && widget.currentUserId == widget.post.author.id;
 
   int get _voteScore {
-    final counts = post.reactionCounts;
-    return (counts?.like ?? 0) - (counts?.dislike ?? 0);
+    final counts = widget.post.reactionCounts;
+    if (counts != null) {
+      return (counts.like) - (counts.dislike);
+    }
+    return widget.post.votes;
   }
 
   // ═══════════════════════ BUILD ═══════════════════════
   @override
   Widget build(BuildContext context) {
     final isDark = !AppTheme.isLight;
-    final cardBg = isDark ? const Color(0xFFFFFFFF ) : Colors.white;
-    final borderColor =
-        isDark ? Colors.white.withOpacity(0.10) : const Color(0xFFFFFFFF);
+    final cardBg = isDark ? const Color(0xFF1A1A2E) : Colors.white;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: cardBg,
-        border: Border.all(color: borderColor, width: 1),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 4,
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── LEFT: vote column (outside InkWell so taps work) ──
-              _VoteColumn(
-                score: _voteScore,
-                userReaction: post.userReaction,
-                backgroundColor: cardBg,
-                onUpvote: onLike,
-                onDownvote: () =>
-                    onReaction?.call(ReactionType.dislike),
-              ),
-
-              // ── RIGHT: content (wrapped in InkWell for navigation) ──
-              Expanded(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onTap,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(context),
-                        if (post.title.isNotEmpty) _buildTitle(context),
-                        if (post.content.isNotEmpty &&
-                            post.content != post.title)
-                          _buildContent(context),
-                        if (post.hasMedia) _buildMedia(context),
-                        _buildFooter(context),
-                      ],
-                    ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Header ──
+                  _PostHeader(
+                    post: widget.post,
+                    isOwner: isOwner,
+                    onEdit: widget.onEdit,
+                    onDelete: widget.onDelete,
                   ),
-                ),
+                  const SizedBox(height: 10),
+
+                  // ── Title ──
+                  if (widget.post.title.isNotEmpty)
+                    _PostTitle(title: widget.post.title),
+
+                  // ── Content ──
+                  if (widget.post.content.isNotEmpty && widget.post.content != widget.post.title)
+                    _PostContent(content: widget.post.content),
+
+                  // ── Image ──
+                  if (widget.post.hasMedia)
+                    _PostImage(url: widget.post.media.first.url),
+
+                  const SizedBox(height: 10),
+
+                  // ── Actions ──
+                  _PostActions(
+                    voteScore: _voteScore,
+                    userReaction: widget.post.userReaction,
+                    commentsCount: widget.post.commentsCount,
+                    isSaved: widget.post.isSaved,
+                    onUpvote: widget.onLike,
+                    onDownvote: () => widget.onReaction?.call(ReactionType.dislike),
+                    onComment: widget.onComment,
+                    onShare: widget.onShare,
+                    onSave: widget.onSave,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  // ═══════════════════ HEADER ═══════════════════
-  // Avatar · author name · "in" community · timeAgo
-  Widget _buildHeader(BuildContext context) {
+// ═══════════════════════════════════════════════════════════════════
+//  PostHeader – Avatar · community · "Posted by u/author" · menu
+// ═══════════════════════════════════════════════════════════════════
+class _PostHeader extends StatelessWidget {
+  final FeedPostModel post;
+  final bool isOwner;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  const _PostHeader({
+    required this.post,
+    required this.isOwner,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final muted = AppTheme.textMutedColor;
     final community = post.tags.isNotEmpty ? post.tags.first : null;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
-      child: Row(
-        children: [
-          // Author avatar
-          CircleAvatar(
-            radius: 12,
+    return Row(
+      children: [
+        // Avatar — tappable for profile
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => UserProfileView(
+                userId: post.author.id,
+                userName: post.authorName,
+                userImage: post.author.image,
+              ),
+            ),
+          ),
+          child: CircleAvatar(
+            radius: 16,
             backgroundColor: AppColors.primaryColor.withOpacity(0.15),
             backgroundImage: post.author.image != null
                 ? NetworkImage(post.author.image!)
@@ -135,77 +203,116 @@ class FeedPostCard extends StatelessWidget {
                 ? Text(
                     _initials(post.authorName),
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryColor,
                     ),
                   )
                 : null,
           ),
-          const SizedBox(width: 8),
+        ),
+        const SizedBox(width: 10),
 
-          // Author name + community + time
-          Expanded(
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 4,
-              children: [
-                Text(
-                  post.authorName,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: muted,
-                  ),
-                ),
-                if (community != null) ...[
-                  Text('in', style: TextStyle(fontSize: 13, color: muted)),
-                  Text(
-                    'c/$community',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryColor,
+        // Community + author info
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (community != null)
+                    Text(
+                      'c/$community',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textColor,
+                      ),
+                    )
+                  else
+                    Text(
+                      post.authorName,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textColor,
+                      ),
                     ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '· ${post.timeAgo}',
+                    style: TextStyle(fontSize: 12, color: muted),
                   ),
                 ],
-                Text(
-                  post.timeAgo,
-                  style: TextStyle(fontSize: 13, color: muted),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                'Posted by u/${post.authorName}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: muted,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
 
-          // More menu (owner only)
-          if (isOwner)
-            _MoreMenu(onEdit: onEdit, onDelete: onDelete),
-        ],
-      ),
+        // Three-dots menu
+        _PostMenu(
+          isOwner: isOwner,
+          onEdit: onEdit,
+          onDelete: onDelete,
+        ),
+      ],
     );
   }
 
-  // ═══════════════════ TITLE ═══════════════════
-  Widget _buildTitle(BuildContext context) {
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PostTitle
+// ═══════════════════════════════════════════════════════════════════
+class _PostTitle extends StatelessWidget {
+  final String title;
+  const _PostTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Text(
-        post.title,
+        title,
         style: TextStyle(
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.bold,
           color: AppTheme.textColor,
           height: 1.3,
         ),
       ),
     );
   }
+}
 
-  // ═══════════════════ CONTENT ═══════════════════
-  Widget _buildContent(BuildContext context) {
+// ═══════════════════════════════════════════════════════════════════
+//  PostContent – text preview (max 3 lines)
+// ═══════════════════════════════════════════════════════════════════
+class _PostContent extends StatelessWidget {
+  final String content;
+  const _PostContent({required this.content});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Text(
-        post.content,
+        content,
         style: TextStyle(
           fontSize: 14,
           color: AppTheme.textMutedColor,
@@ -216,16 +323,26 @@ class FeedPostCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  // ═══════════════════ MEDIA ═══════════════════
-  Widget _buildMedia(BuildContext context) {
-    final url = post.media.first.url;
+// ═══════════════════════════════════════════════════════════════════
+//  PostImage – rounded image with loading/error states
+// ═══════════════════════════════════════════════════════════════════
+class _PostImage extends StatelessWidget {
+  final String url;
+  const _PostImage({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 10, left: 16, right: 16),
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 350),
+          constraints: const BoxConstraints(
+            maxHeight: 260,
+            minHeight: 120,
+          ),
           child: Image.network(
             url,
             width: double.infinity,
@@ -255,110 +372,32 @@ class FeedPostCard extends StatelessWidget {
       ),
     );
   }
-
-  // ═══════════════════ FOOTER ═══════════════════
-  // (💬 N)  (↗ Share)   🔖   👁 N
-  Widget _buildFooter(BuildContext context) {
-    final muted = AppTheme.textMutedColor;
-    final isDark = !AppTheme.isLight;
-    final pillBg = isDark
-        ? Colors.white.withOpacity(0.08)
-        : const Color(0xFFF1F5F9);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 10, 12, 10),
-      child: Row(
-        children: [
-          // Comments pill
-          _PillButton(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: '(${_fmt(post.commentsCount)})',
-            bgColor: pillBg,
-            textColor: muted,
-            onTap: onComment,
-          ),
-          const SizedBox(width: 8),
-
-          // Share pill
-          _PillButton(
-            icon: Icons.share_outlined,
-            label: 'Share',
-            bgColor: pillBg,
-            textColor: muted,
-            onTap: onShare,
-          ),
-
-          const Spacer(),
-
-          // Bookmark
-          GestureDetector(
-            onTap: onSave,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Icon(
-                post.isSaved
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                size: 22,
-                color: post.isSaved
-                    ? const Color(0xFFF97316)
-                    : muted,
-              ),
-            ),
-          ),
-
-          // Views
-          if (post.views > 0) ...[
-            const SizedBox(width: 8),
-            Icon(Icons.visibility_outlined, size: 18, color: muted),
-            const SizedBox(width: 3),
-            Text(
-              _fmt(post.views),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: muted,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════ HELPERS ═══════════════════
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.isNotEmpty ? name[0].toUpperCase() : '?';
-  }
-
-  String _fmt(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
-    return n.toString();
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  Vote column – left side with ThumbsUp / score / ThumbsDown
-//  Matches web: bg-muted/30 dark:bg-muted/10
+//  PostActions – Upvote · score · Downvote │ Comments │ Share │ Save
 // ═══════════════════════════════════════════════════════════════════
-class _VoteColumn extends StatelessWidget {
-  final int score;
+class _PostActions extends StatelessWidget {
+  final int voteScore;
   final ReactionType? userReaction;
-  final Color backgroundColor;
+  final int commentsCount;
+  final bool isSaved;
   final VoidCallback? onUpvote;
   final VoidCallback? onDownvote;
+  final VoidCallback? onComment;
+  final VoidCallback? onShare;
+  final VoidCallback? onSave;
 
-  const _VoteColumn({
-    required this.score,
+  const _PostActions({
+    required this.voteScore,
     required this.userReaction,
-    required this.backgroundColor,
+    required this.commentsCount,
+    required this.isSaved,
     this.onUpvote,
     this.onDownvote,
+    this.onComment,
+    this.onShare,
+    this.onSave,
   });
 
   @override
@@ -366,81 +405,132 @@ class _VoteColumn extends StatelessWidget {
     final isUp = userReaction == ReactionType.like;
     final isDown = userReaction == ReactionType.dislike;
     final isDark = !AppTheme.isLight;
+    final muted = AppTheme.textMutedColor;
+    final pillBg = isDark
+        ? Colors.white.withOpacity(0.06)
+        : const Color(0xFFF1F5F9);
 
-    final upColor =
-        isUp ? AppColors.primaryColor : (isDark ? Colors.white.withOpacity(0.6) : Colors.black.withOpacity(0.6));
-    final downColor =
-        isDown ? const Color(0xFF3B82F6) : (isDark ? Colors.white.withOpacity(0.6) : Colors.black.withOpacity(0.6));
+    final upColor = isUp
+        ? AppColors.primaryColor
+        : muted;
+    final downColor = isDown
+        ? const Color(0xFF3B82F6)
+        : muted;
     final scoreColor = isUp
         ? AppColors.primaryColor
         : isDown
             ? const Color(0xFF3B82F6)
-            : (isDark ? Colors.white : Colors.black);
+            : AppTheme.textColor;
 
-    return Container(
-      width: 48,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          bottomLeft: Radius.circular(12),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 12),
-          // ThumbsUp button
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onUpvote,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isUp
-                    ? AppColors.primaryColor.withOpacity(0.10)
-                    : Colors.transparent,
-              ),
-              child: Icon(
-                Icons.thumb_up_outlined,
-                size: 20,
-                color: upColor,
-              ),
+          // ── Vote pill ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: pillBg,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onUpvote,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      isUp ? Icons.arrow_upward_rounded : Icons.arrow_upward_rounded,
+                      size: 18,
+                      color: upColor,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    _fmt(voteScore),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: scoreColor,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onDownvote,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      isDown ? Icons.arrow_downward_rounded : Icons.arrow_downward_rounded,
+                      size: 18,
+                      color: downColor,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(width: 8),
 
-          // Score
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              _fmt(score),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: scoreColor,
-              ),
-            ),
+          // ── Comment ──
+          _ActionChip(
+            icon: Icons.chat_bubble_outline_rounded,
+            label: _fmt(commentsCount),
+            bgColor: pillBg,
+            color: muted,
+            onTap: onComment,
           ),
+          const SizedBox(width: 8),
 
-          // ThumbsDown button
+          // ── Share ──
+          _ActionChip(
+            icon: Icons.share_outlined,
+            label: 'Share',
+            bgColor: pillBg,
+            color: muted,
+            onTap: onShare,
+          ),
+          const SizedBox(width: 8),
+
+          // ── Save ──
           GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onDownvote,
+            onTap: onSave,
             child: Container(
-              width: 36,
-              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isDown
-                    ? const Color(0xFF3B82F6).withOpacity(0.10)
-                    : Colors.transparent,
+                color: pillBg,
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                Icons.thumb_down_outlined,
-                size: 20,
-                color: downColor,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isSaved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    size: 18,
+                    color: isSaved
+                        ? const Color(0xFFF97316)
+                        : muted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Save',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSaved
+                          ? const Color(0xFFF97316)
+                          : muted,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -457,48 +547,47 @@ class _VoteColumn extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  Pill button – rounded-full bg-muted (Comment / Share)
+//  ActionChip – pill-shaped button for comments & share
 // ═══════════════════════════════════════════════════════════════════
-class _PillButton extends StatelessWidget {
+class _ActionChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color bgColor;
-  final Color textColor;
+  final Color color;
   final VoidCallback? onTap;
 
-  const _PillButton({
+  const _ActionChip({
     required this.icon,
     required this.label,
     required this.bgColor,
-    required this.textColor,
+    required this.color,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: textColor),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: textColor,
-                ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -506,18 +595,27 @@ class _PillButton extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  More menu (owner only – Edit / Delete)
+//  PostMenu – vertical three-dots with Edit / Delete options
 // ═══════════════════════════════════════════════════════════════════
-class _MoreMenu extends StatelessWidget {
+class _PostMenu extends StatelessWidget {
+  final bool isOwner;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
-  const _MoreMenu({this.onEdit, this.onDelete});
+  const _PostMenu({
+    required this.isOwner,
+    this.onEdit,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_horiz, size: 22, color: AppTheme.textMutedColor),
+      icon: Icon(
+        Icons.more_vert,
+        size: 22,
+        color: AppTheme.textMutedColor,
+      ),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -526,23 +624,35 @@ class _MoreMenu extends StatelessWidget {
         if (v == 'delete') onDelete?.call();
       },
       itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'edit',
-          child: Row(
-            children: [
-              Icon(Icons.edit_outlined, size: 18, color: AppTheme.textColor),
-              const SizedBox(width: 8),
-              const Text('Modifier'),
-            ],
+        if (isOwner)
+          PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit_outlined, size: 18, color: AppTheme.textColor),
+                const SizedBox(width: 8),
+                const Text('Modifier'),
+              ],
+            ),
           ),
-        ),
+        if (isOwner)
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Supprimer', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
         const PopupMenuItem(
-          value: 'delete',
+          value: 'report',
           child: Row(
             children: [
-              Icon(Icons.delete_outline, size: 18, color: Colors.red),
+              Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
               SizedBox(width: 8),
-              Text('Supprimer', style: TextStyle(color: Colors.red)),
+              Text('Signaler'),
             ],
           ),
         ),

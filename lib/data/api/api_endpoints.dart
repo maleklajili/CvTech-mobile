@@ -117,6 +117,7 @@ class ApiEndpoints {
   static const String postComments = '$post/'; // + :id/comments (GET, POST)
   static const String postSave = '$post/'; // + :id/save (POST, DELETE)
   static const String postCommunity = '$post/community/'; // + :communityId
+  static const String postByUser = '$post/user/'; // + :userId (GET user posts)
   
   // Profile endpoint
   static const String profile = '/profile';
@@ -144,4 +145,43 @@ class ApiEndpoints {
   static const String messageChats = '$message/chats';
   static const String messageSearch = '$message/search';
   static const String messageDelete = '$message/'; // + :messageId
+  
+  // Comment endpoints
+  static const String comment = '/comments';
+  static const String commentCreate = '$comment/'; // POST
+  static const String commentPost = '$comment/post/'; // + :postId (GET all comments)
+  static const String commentReplies = '$comment/'; // + :commentId/replies (GET replies)
+  static const String commentUpdate = '$comment/'; // + :commentId (PUT)
+  static const String commentDelete = '$comment/'; // + :commentId (DELETE)
+  
+  // Reaction endpoints
+  static const String reaction = '/reactions';
+  static const String reactionToggle = '$reaction/'; // + :postId/toggle (POST)
+  static const String reactionDelete = '$reaction/'; // + :postId (DELETE)
+  static const String reactionCounts = '$reaction/'; // + :postId/counts (GET)
+  static const String reactionData = '$reaction/'; // + :postId/data (GET)
+  static const String reactionUsers = '$reaction/'; // + :postId/users/:type (GET)
+  // Comment reactions
+  static const String reactionCommentToggle = '$reaction/comments/'; // + :commentId/toggle (POST)
+  static const String reactionCommentDelete = '$reaction/comments/'; // + :commentId (DELETE)
+  static const String reactionCommentData = '$reaction/comments/'; // + :commentId/data (GET)
+  
+  // Share endpoints
+  static const String shareCreate = '$post/'; // + :id/share (POST)
+  static const String sharePost = '$post/'; // + :id/shares (GET all shares)
+  static const String shareUser = '$post/shared'; // GET user's shares
+  static const String shareDelete = '$post/'; // + :id/unshare (DELETE) - not yet implemented
+  
+  // Network / Follow endpoints (follow-based connection system)
+  static const String follow = '$users/follow/'; // + :userId (POST)
+  static const String unfollow = '$users/unfollow/'; // + :userId (DELETE)
+  static const String followers = '$users/followers'; // GET (current user) or + /:userId
+  static const String following = '$users/following'; // GET (current user) or + /:userId
+  static const String followStatus = '$users/follow-status/'; // + :userId (GET)
+  static const String friends = '$users/friends'; // GET mutual friends
+  static const String friendsSuggestions = '$users/friends/suggestions'; // GET ?page&limit&search
+  static const String friendsSearch = '$users/friends/search'; // GET ?q=
+  static const String userSearch = '$users/search'; // GET ?q= (global user search)
+  static const String userStats = '$users/stats'; // GET current user stats
+  static const String mutualFriends = '$users/mutual-friends/'; // + :userId (GET)
 }

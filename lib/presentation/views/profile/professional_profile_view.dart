@@ -15,6 +15,7 @@ import 'package:cv_tech/presentation/views/profile/forms/skill_form_view.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/education_section.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/experience_section.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/projects_section.dart';
+import 'package:cv_tech/presentation/views/profile/widgets/posts_section.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/skills_section.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 
@@ -28,44 +29,72 @@ class ProfessionalProfileView extends StatefulWidget {
 
 class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProfessionalProfileViewModel>().loadAllData();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
     final userId = authState is AuthAuthenticated ? authState.user.id : null;
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil Professionnel'),
-      ),
-      body: Consumer<ProfessionalProfileViewModel>(
-        builder: (context, viewModel, child) {
-          final isLoading = viewModel.isLoadingEducation ||
-              viewModel.isLoadingExperience ||
-              viewModel.isLoadingSkills ||
-              viewModel.isLoadingProjects;
+    return ChangeNotifierProvider(
+      create: (_) => ProfessionalProfileViewModel()..loadAllData(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Profil Professionnel'),
+          automaticallyImplyLeading: false,
+        ),
+        body: Consumer<ProfessionalProfileViewModel>(
+          builder: (context, viewModel, child) {
+            final isLoading = viewModel.isLoadingEducation ||
+                viewModel.isLoadingExperience ||
+                viewModel.isLoadingSkills ||
+                viewModel.isLoadingProjects;
 
-          if (isLoading &&
-              viewModel.educations.isEmpty &&
-              viewModel.experiences.isEmpty &&
-              viewModel.skills.isEmpty &&
-              viewModel.projects.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
+            if (isLoading &&
+                viewModel.educations.isEmpty &&
+                viewModel.experiences.isEmpty &&
+                viewModel.skills.isEmpty &&
+                viewModel.projects.isEmpty) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            // Show errors if all sections failed
+            final hasError = viewModel.educationError != null &&
+                viewModel.experienceError != null &&
+                viewModel.skillsError != null &&
+                viewModel.projectsError != null;
+            
+            if (hasError &&
+                viewModel.educations.isEmpty &&
+                viewModel.experiences.isEmpty &&
+                viewModel.skills.isEmpty &&
+                viewModel.projects.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      viewModel.projectsError ?? 'Erreur de chargement',
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => viewModel.loadAllData(),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () => viewModel.loadAllData(),
+              child: _buildContent(context, viewModel, userId),
             );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => viewModel.loadAllData(),
-            child: _buildContent(context, viewModel, userId),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -290,6 +319,11 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
                 style: const TextStyle(color: Colors.red),
               ),
             ),
+          const SizedBox(height: 32),
+
+          // Posts Section
+          const PostsSection(),
+
           const SizedBox(height: 16),
         ],
       ),

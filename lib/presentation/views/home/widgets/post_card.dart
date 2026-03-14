@@ -63,30 +63,25 @@ class PostCard extends StatelessWidget {
   Widget _buildDisplayOwnerPost() {
     return Row(
       children: [
-        Flexible(
-          child: Text(
-            post.community,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 12,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        Text(
-          ' • ',
-          style: TextStyle(
-            color: AppTheme.textMutedColor,
-            fontSize: 12,
-          ),
-        ),
         Expanded(
-          child: Text(
-            'Posted by u/${post.author} ${post.timeAgo} ago',
-            style: TextStyle(
-              color: AppTheme.textMutedColor,
-              fontSize: 12,
-            ),
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(
+                text: post.author,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: AppTheme.textColor,
+                ),
+              ),
+              TextSpan(
+                text: ' • ${post.timeAgo}',
+                style: TextStyle(
+                  color: AppTheme.textMutedColor,
+                  fontSize: 12,
+                ),
+              ),
+            ]),
             overflow: TextOverflow.ellipsis,
           ),
         ),

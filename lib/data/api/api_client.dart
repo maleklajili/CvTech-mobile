@@ -20,9 +20,10 @@ class ApiClient {
   ApiClient._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:9000', // Sera mis à jour dynamiquement
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        baseUrl: 'http://localhost:9001', // Backend port from .env
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 90),
+        sendTimeout: const Duration(seconds: 60),
         headers: {
           HttpHeaders.contentTypeHeader: 'application/json',
           HttpHeaders.acceptHeader: 'application/json',
@@ -36,14 +37,28 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await getAccessToken();
-          if (token != null) {
-            options.headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
+          // Ne pas ajouter le token pour les endpoints d'authentification
+          final path = options.path;
+          final isAuthEndpoint = path.startsWith('/auth/login') ||
+              path.startsWith('/auth/send-otp') ||
+              path.startsWith('/auth/verify-otp') ||
+              path.startsWith('/auth/refreshToken') ||
+              path.startsWith('/auth/forget-password');
+          
+          if (!isAuthEndpoint) {
+            final token = await getAccessToken();
+            if (token != null) {
+              options.headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
+            }
           }
           return handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
+          final path = error.requestOptions.path;
+          // Ne PAS essayer de refresh pour les endpoints d'auth (login, register, etc.)
+          final isAuthEndpoint = path.startsWith('/auth/');
+          
+          if (error.response?.statusCode == 401 && !isAuthEndpoint) {
             // Try to refresh token
             final refreshed = await _refreshToken();
             if (refreshed) {
