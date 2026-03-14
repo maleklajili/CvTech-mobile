@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/data/models/feed/comment_model.dart';
 import 'package:cv_tech/data/models/feed/reaction_model.dart';
@@ -97,20 +98,23 @@ class FeedViewModel extends ChangeNotifier {
   }
 
   /// Load only the current user's posts (for Profile Posts tab)
-  /// Uses filter='new' which returns only the authenticated user's posts
+  /// Includes authored posts + posts shared by the current user.
   Future<void> loadMyPosts() async {
     _state = FeedState.loading;
-    _currentFilter = 'new';
     _currentPage = 1;
     _errorMessage = null;
     _safeNotify();
 
     try {
-      final response = await _repository.getFeed(
-        page: 1,
-        limit: 50,
-        filter: 'new',
-      );
+      final currentUserId = await ApiClient().getUserId();
+      if (currentUserId == null || currentUserId.isEmpty) {
+        throw Exception('Utilisateur non authentifie');
+      }
+
+      _currentFilter = 'user';
+      _targetUserId = currentUserId;
+
+      final response = await _repository.getUserPosts(currentUserId, page: 1, limit: 50);
       _posts = response.posts;
       _hasMore = false; // All posts loaded at once
       _state = FeedState.loaded;

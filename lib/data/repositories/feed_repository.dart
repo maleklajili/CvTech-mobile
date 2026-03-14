@@ -81,6 +81,11 @@ class FeedRepository {
     return DateTime.tryParse(value ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
   }
 
+  String? _extractPostId(dynamic rawPost) {
+    if (rawPost is! Map<String, dynamic>) return null;
+    return _normalizeId(rawPost['_id'] ?? rawPost['id']);
+  }
+
   int _asInt(dynamic value, int fallback) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -234,27 +239,68 @@ class FeedRepository {
     try {
       final response = await _apiClient.dio.get(
         '${ApiEndpoints.postByUser}$userId',
-        queryParameters: {'page': page, 'limit': limit},
+        queryParameters: {'page': 1, 'limit': 200},
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        final postsData = _extractPostsData(data);
+        final ownData = response.data;
+        final ownPostsData = _extractPostsData(ownData);
 
-        final posts = <FeedPostModel>[];
-        if (postsData is List) {
-          for (final p in postsData) {
-            if (p is Map<String, dynamic>) {
-              posts.add(FeedPostModel.fromJson(p));
+        // Fetch feed "all" to extract posts this user has shared.
+        final allResponse = await _apiClient.dio.get(
+          ApiEndpoints.postFeed,
+          queryParameters: {
+            'filter': 'all',
+            'page': 1,
+            'limit': 200,
+          },
+        );
+
+        final allPostsData = _extractPostsData(allResponse.data);
+        final mergedById = <String, Map<String, dynamic>>{};
+
+        for (final p in ownPostsData) {
+          if (p is Map<String, dynamic>) {
+            final id = _extractPostId(p);
+            if (id != null && id.isNotEmpty) {
+              mergedById[id] = p;
             }
           }
         }
 
+        for (final p in allPostsData) {
+          if (p is Map<String, dynamic>) {
+            final sharedByIds = _extractSharedByIds(p);
+            if (sharedByIds.contains(userId)) {
+              final id = _extractPostId(p);
+              if (id != null && id.isNotEmpty) {
+                mergedById[id] = p;
+              }
+            }
+          }
+        }
+
+        final mergedRawPosts = mergedById.values.toList()
+          ..sort((a, b) => _extractCreatedAt(b).compareTo(_extractCreatedAt(a)));
+
+        final start = (page - 1) * limit;
+        final end = (start + limit) > mergedRawPosts.length
+            ? mergedRawPosts.length
+            : (start + limit);
+        final pagedRawPosts = start < mergedRawPosts.length
+            ? mergedRawPosts.sublist(start, end)
+            : <Map<String, dynamic>>[];
+
+        final posts = <FeedPostModel>[];
+        for (final p in pagedRawPosts) {
+          posts.add(FeedPostModel.fromJson(p));
+        }
+
         return FeedResponse(
           posts: posts,
-          page: _asInt(data is Map ? data['page'] : null, page),
-          limit: _asInt(data is Map ? data['limit'] : null, limit),
-          total: _asInt(data is Map ? data['total'] : null, posts.length),
+          page: page,
+          limit: limit,
+          total: mergedRawPosts.length,
         );
       }
 
