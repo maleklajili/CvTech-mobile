@@ -230,7 +230,16 @@ class _UserSearchViewState extends State<UserSearchView> {
     final mutualCount = (user['mutualFriendsCount'] as num?)?.toInt() ?? 0;
     final isMutual = user['isMutual'] == true;
     final isFollowing = _followingMap[userId] ?? (user['isFollowing'] == true);
+    final isFollowedBy = user['isFollowedBy'] == true;
     final isLoadingFollow = _loadingMap[userId] == true;
+
+    final relationLabel = isMutual
+      ? 'Amis'
+      : isFollowing
+        ? 'En attente'
+        : isFollowedBy
+          ? 'Accepter'
+          : 'Ajouter';
 
     // Build image URL
     String? imageUrl;
@@ -369,7 +378,7 @@ class _UserSearchViewState extends State<UserSearchView> {
                           minimumSize: const Size(0, 32),
                         ),
                         child: Text(
-                          isFollowing ? 'Abonné' : 'Suivre',
+                          relationLabel,
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ),

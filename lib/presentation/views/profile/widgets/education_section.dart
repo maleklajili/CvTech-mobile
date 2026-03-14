@@ -14,6 +14,7 @@ class EducationSection extends StatelessWidget {
   final VoidCallback onAdd;
   final Function(EducationModel) onEdit;
   final Function(String) onDelete;
+  final bool readOnly;
 
   const EducationSection({
     super.key,
@@ -21,6 +22,7 @@ class EducationSection extends StatelessWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
+    this.readOnly = false,
   });
 
   @override
@@ -46,22 +48,23 @@ class EducationSection extends StatelessWidget {
                 ),
               ],
             ),
-            ElevatedButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[500],
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+            if (!readOnly)
+              ElevatedButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[500],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -103,6 +106,7 @@ class EducationSection extends StatelessWidget {
                 education: education,
                 onEdit: () => onEdit(education),
                 onDelete: () => onDelete(education.id!),
+                readOnly: readOnly,
               );
             },
           ),
@@ -115,11 +119,13 @@ class _EducationCard extends StatelessWidget {
   final EducationModel education;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool readOnly;
 
   const _EducationCard({
     required this.education,
     required this.onEdit,
     required this.onDelete,
+    required this.readOnly,
   });
 
   String _formatDate(DateTime date) {
@@ -252,42 +258,43 @@ class _EducationCard extends StatelessWidget {
                   ),
                 ),
                 // Actions menu
-                PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, color: Colors.grey[500]),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                if (!readOnly)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: Colors.grey[500]),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 18),
+                            SizedBox(width: 8),
+                            Text('Modifier'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 18, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Supprimer',
+                                style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit();
+                      } else if (value == 'delete') {
+                        _showDeleteDialog(context);
+                      }
+                    },
                   ),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 18),
-                          SizedBox(width: 8),
-                          Text('Modifier'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 18, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Supprimer',
-                              style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      onEdit();
-                    } else if (value == 'delete') {
-                      _showDeleteDialog(context);
-                    }
-                  },
-                ),
               ],
             ),
             const SizedBox(height: 12),

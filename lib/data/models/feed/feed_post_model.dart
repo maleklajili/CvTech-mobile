@@ -90,6 +90,7 @@ class PostAuthor {
 /// Full post model matching the backend Post interface
 class FeedPostModel extends BaseModel {
   final PostAuthor author;
+  final String? originalPostId;
   final String title;
   final String content;
   final String type; // text, image, video, link, poll, gallery
@@ -109,6 +110,7 @@ class FeedPostModel extends BaseModel {
   final ReactionType? userReaction;
   final List<String> tags;
   final List<String> sharedByUserIds;
+  final List<PostAuthor> sharedByAuthors;
   final DateTime? publishedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -116,6 +118,7 @@ class FeedPostModel extends BaseModel {
   const FeedPostModel({
     super.id,
     required this.author,
+    this.originalPostId,
     required this.title,
     required this.content,
     this.type = 'text',
@@ -135,6 +138,7 @@ class FeedPostModel extends BaseModel {
     this.userReaction,
     this.tags = const [],
     this.sharedByUserIds = const [],
+    this.sharedByAuthors = const [],
     this.publishedAt,
     this.createdAt,
     this.updatedAt,
@@ -143,6 +147,8 @@ class FeedPostModel extends BaseModel {
   bool get hasMedia => media.isNotEmpty;
   bool get isLiked => userReaction != null || userVote == 'up';
   bool get isDisliked => userVote == 'down';
+  bool get isSharePost => originalPostId != null && originalPostId!.isNotEmpty;
+  PostAuthor? get sharer => sharedByAuthors.isNotEmpty ? sharedByAuthors.first : null;
   String get authorName => author.fullName ?? author.userName ?? 'Utilisateur';
   String get authorTitle => author.professionalTitle ?? '';
   bool isSharedBy(String? userId) {
@@ -228,6 +234,7 @@ class FeedPostModel extends BaseModel {
     }
 
     final sharedByIds = <String>[];
+    final sharedByAuthors = <PostAuthor>[];
     final rawSharedBy = json['sharedBy'];
     if (rawSharedBy is List) {
       for (final item in rawSharedBy) {
@@ -236,6 +243,7 @@ class FeedPostModel extends BaseModel {
           id = item;
         } else if (item is Map<String, dynamic>) {
           id = item['_id']?.toString() ?? item['userId']?.toString();
+          sharedByAuthors.add(PostAuthor.fromJson(item));
         } else if (item != null) {
           id = item.toString();
         }
@@ -247,9 +255,18 @@ class FeedPostModel extends BaseModel {
       sharedByIds.add(rawSharedBy);
     }
 
+    final originalPostIdRaw = json['originalPostId'];
+    String? originalPostId;
+    if (originalPostIdRaw is String && originalPostIdRaw.isNotEmpty) {
+      originalPostId = originalPostIdRaw;
+    } else if (originalPostIdRaw is Map<String, dynamic>) {
+      originalPostId = originalPostIdRaw['_id']?.toString() ?? originalPostIdRaw[r'$oid']?.toString();
+    }
+
     return FeedPostModel(
       id: json['_id']?.toString(),
       author: PostAuthor.fromJson(json['userId'] ?? ''),
+      originalPostId: originalPostId,
       title: json['title'] ?? '',
       content: json['content'] ?? '',
       type: json['type'] ?? 'text',
@@ -269,6 +286,7 @@ class FeedPostModel extends BaseModel {
       userReaction: userReaction,
       tags: (json['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
       sharedByUserIds: sharedByIds,
+      sharedByAuthors: sharedByAuthors,
       publishedAt: _parseDateTime(json['publishedAt']),
       createdAt: _parseDateTime(json['createdAt']),
       updatedAt: _parseDateTime(json['updatedAt']),
@@ -294,6 +312,7 @@ class FeedPostModel extends BaseModel {
     String? title,
     String? content,
     String? type,
+    String? originalPostId,
     int? votes,
     int? commentsCount,
     int? views,
@@ -305,10 +324,12 @@ class FeedPostModel extends BaseModel {
     ReactionType? userReaction,
     bool clearUserReaction = false,
     List<String>? tags,
+    List<PostAuthor>? sharedByAuthors,
   }) {
     return FeedPostModel(
       id: id ?? this.id,
       author: author ?? this.author,
+      originalPostId: originalPostId ?? this.originalPostId,
       title: title ?? this.title,
       content: content ?? this.content,
       type: type ?? this.type,
@@ -328,6 +349,7 @@ class FeedPostModel extends BaseModel {
       userReaction: clearUserReaction ? null : (userReaction ?? this.userReaction),
       tags: tags ?? this.tags,
       sharedByUserIds: sharedByUserIds,
+      sharedByAuthors: sharedByAuthors ?? this.sharedByAuthors,
       publishedAt: publishedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,

@@ -6,9 +6,17 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/utils/image_url_helper.dart';
 import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/api/api_endpoints.dart';
+import 'package:cv_tech/data/models/profile/education_model.dart';
+import 'package:cv_tech/data/models/profile/experience_model.dart';
+import 'package:cv_tech/data/models/profile/project_model.dart';
+import 'package:cv_tech/data/models/profile/skill_model.dart';
 import 'package:cv_tech/presentation/views/chat/conversation_view.dart';
 import 'package:cv_tech/presentation/views/feed/post_detail_view.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
+import 'package:cv_tech/presentation/views/profile/widgets/education_section.dart';
+import 'package:cv_tech/presentation/views/profile/widgets/experience_section.dart';
+import 'package:cv_tech/presentation/views/profile/widgets/projects_section.dart';
+import 'package:cv_tech/presentation/views/profile/widgets/skills_section.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
@@ -40,6 +48,9 @@ class _UserProfileViewState extends State<UserProfileView>
 
   // Follow state
   bool _isFollowing = false;
+  bool _isFollowedBy = false;
+  bool _isMutualFriend = false;
+  bool _allowMessagesFromNonFriends = true;
   bool _isFollowLoading = false;
   int _followerCount = 0;
   int _followingCount = 0;
@@ -60,6 +71,7 @@ class _UserProfileViewState extends State<UserProfileView>
     _tabController = TabController(length: 5, vsync: this);
     _loadProfile();
     _loadFollowStatus();
+    _loadRelationshipStatus();
   }
 
   @override
@@ -76,32 +88,32 @@ class _UserProfileViewState extends State<UserProfileView>
     });
 
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiEndpoints.profileById}${widget.userId}',
-      );
-
-      if (response.statusCode == 200) {
-        if (mounted) {
-          setState(() {
-            _profile = response.data is Map<String, dynamic>
-                ? response.data
-                : <String, dynamic>{};
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _error = 'Erreur lors du chargement du profil';
-            _isLoading = false;
-          });
-        }
+      final profileData = await _loadProfileFromUserEndpoints();
+      if (!_isValidProfilePayload(profileData)) {
+        throw DioException(
+          requestOptions: RequestOptions(path: '${ApiEndpoints.userById}${widget.userId}'),
+          type: DioExceptionType.badResponse,
+          error: 'Invalid profile payload',
+        );
       }
-    } on DioException catch (e) {
+
+      final allowMessages = _extractAllowMessagesFromNonFriends(profileData);
       if (mounted) {
         setState(() {
-          if (e.response?.statusCode == 404) {
+          _profile = profileData;
+          _allowMessagesFromNonFriends = allowMessages;
+          _isLoading = false;
+          _error = null;
+        });
+      }
+    } on DioException catch (e) {
+      final status = e.response?.statusCode ?? 0;
+      if (mounted) {
+        setState(() {
+          if (status == 404) {
             _error = 'Profil introuvable';
+          } else if (status == 401 || status == 403) {
+            _error = 'Session expirée. Reconnectez-vous.';
           } else if (e.type == DioExceptionType.connectionTimeout ||
               e.type == DioExceptionType.receiveTimeout ||
               e.type == DioExceptionType.sendTimeout) {
@@ -112,6 +124,318 @@ class _UserProfileViewState extends State<UserProfileView>
           _isLoading = false;
         });
       }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'Impossible de charger ce profil pour le moment.';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _loadProfileFromUserEndpoints() async {
+    final userResponse = await _apiClient.dio.get('${ApiEndpoints.userById}${widget.userId}');
+    final userData = _extractProfilePayload(userResponse.data);
+
+    final futures = await Future.wait([
+      _safeGetList('${ApiEndpoints.experience}/user/${widget.userId}'),
+      _safeGetList('${ApiEndpoints.educationByUser}${widget.userId}'),
+      _safeGetList('${ApiEndpoints.projectByUser}${widget.userId}'),
+      _safeGetList('${ApiEndpoints.skill}/user/${widget.userId}'),
+      _safeGetList('${ApiEndpoints.language}/user/${widget.userId}'),
+      _safeGetList('${ApiEndpoints.technicalSkill}/user/${widget.userId}'),
+      _safeGetList('${ApiEndpoints.personalSkill}/user/${widget.userId}'),
+    ]);
+
+    final experiences = futures[0];
+    final education = futures[1];
+    final projects = futures[2];
+    final skills = futures[3];
+    final languages = futures[4];
+    final technicalSkills = futures[5];
+    final personalSkills = futures[6];
+
+    return _mapUserPayloadToProfile(
+      userData,
+      experiences: experiences,
+      education: education,
+      projects: projects,
+      skills: skills,
+      languages: languages,
+      technicalSkills: technicalSkills,
+      personalSkills: personalSkills,
+    );
+  }
+
+  Future<List<dynamic>> _safeGetList(String path) async {
+    try {
+      final response = await _apiClient.dio.get(path);
+      final payload = response.data;
+      if (payload is List) return payload;
+      if (payload is Map<String, dynamic>) {
+        final data = payload['data'];
+        if (data is List) return data;
+        if (data is Map<String, dynamic>) {
+          for (final key in ['items', 'results', 'skills', 'languages']) {
+            final value = data[key];
+            if (value is List) return value;
+          }
+        }
+      }
+    } catch (_) {
+      return <dynamic>[];
+    }
+    return <dynamic>[];
+  }
+
+  Map<String, dynamic> _extractProfilePayload(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      final success = raw['success'];
+      if (success is bool && success == false) {
+        return <String, dynamic>{};
+      }
+      final data = raw['data'];
+      if (data is Map<String, dynamic>) {
+        return data;
+      }
+      if (raw.containsKey('_id') || raw.containsKey('name') || raw.containsKey('userName')) {
+        return raw;
+      }
+      return raw;
+    }
+    return <String, dynamic>{};
+  }
+
+  bool _isValidProfilePayload(Map<String, dynamic> payload) {
+    if (payload.isEmpty) return false;
+    final id = payload['_id']?.toString() ?? '';
+    final name = payload['name']?.toString().trim() ?? '';
+    final userName = payload['userName']?.toString().trim() ?? '';
+    return id.isNotEmpty || name.isNotEmpty || userName.isNotEmpty;
+  }
+
+  Map<String, dynamic> _mapUserPayloadToProfile(
+    Map<String, dynamic> userPayload, {
+    List<dynamic> experiences = const <dynamic>[],
+    List<dynamic> education = const <dynamic>[],
+    List<dynamic> projects = const <dynamic>[],
+    List<dynamic> skills = const <dynamic>[],
+    List<dynamic> languages = const <dynamic>[],
+    List<dynamic> technicalSkills = const <dynamic>[],
+    List<dynamic> personalSkills = const <dynamic>[],
+  }) {
+    String name = (userPayload['name'] ?? '').toString().trim();
+    if (name.isEmpty) {
+      final firstName = (userPayload['firstName'] ?? '').toString().trim();
+      final lastName = (userPayload['lastName'] ?? '').toString().trim();
+      final composed = '$firstName $lastName'.trim();
+      if (composed.isNotEmpty) {
+        name = composed;
+      }
+    }
+    if (name.isEmpty) {
+      name = (userPayload['userName'] ?? widget.userName ?? '').toString();
+    }
+
+    final mergedSkills = <String>{};
+    for (final raw in [...skills, ...technicalSkills, ...personalSkills]) {
+      if (raw is Map<String, dynamic>) {
+        final nameValue = (raw['name'] ?? '').toString().trim();
+        if (nameValue.isNotEmpty) mergedSkills.add(nameValue);
+      } else if (raw is Map) {
+        final nameValue = (raw['name'] ?? '').toString().trim();
+        if (nameValue.isNotEmpty) mergedSkills.add(nameValue);
+      } else {
+        final nameValue = raw.toString().trim();
+        if (nameValue.isNotEmpty && nameValue != 'null') mergedSkills.add(nameValue);
+      }
+    }
+
+    List<Map<String, dynamic>> normalizeExperiences() {
+      return experiences.map((item) {
+        final map = item is Map<String, dynamic>
+            ? item
+            : (item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{});
+        final rawSkills = map['skills'];
+        final mappedSkills = rawSkills is List
+            ? rawSkills.map((s) {
+                if (s is Map<String, dynamic>) return (s['name'] ?? '').toString();
+                if (s is Map) return (s['name'] ?? '').toString();
+                return s.toString();
+              }).where((s) => s.trim().isNotEmpty && s.trim() != 'null').toList()
+            : <String>[];
+
+        return <String, dynamic>{
+          'title': (map['title'] ?? map['post'] ?? '').toString(),
+          'company': (map['company'] ?? map['entreprise'] ?? '').toString(),
+          'location': (map['location'] ?? map['place'] ?? '').toString(),
+          'startDate': _formatDateText(map['startDate']),
+          'endDate': _formatDateText(map['endDate']),
+          'current': map['current'] == true || map['currentPost'] == true,
+          'description': (map['description'] ?? map['KeyAchievements'] ?? '').toString(),
+          'skills': mappedSkills,
+        };
+      }).toList();
+    }
+
+    List<Map<String, dynamic>> normalizeEducation() {
+      return education
+          .map((item) => item is Map<String, dynamic>
+              ? item
+              : (item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{}))
+          .map((map) => <String, dynamic>{
+                'degree': (map['degree'] ?? '').toString(),
+                'school': (map['school'] ?? '').toString(),
+                'location': (map['location'] ?? '').toString(),
+                'startDate': _formatDateText(map['startDate']),
+                'endDate': _formatDateText(map['endDate']),
+                'current': map['current'] == true,
+                'description': (map['description'] ?? '').toString(),
+                'type': (map['type'] ?? '').toString(),
+              })
+          .where((map) => map['type'] == '' || map['type'] == 'diploma')
+          .toList();
+    }
+
+    List<Map<String, dynamic>> normalizeProjects() {
+      return projects.map((item) {
+        final map = item is Map<String, dynamic>
+            ? item
+            : (item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{});
+        final technologies = map['technologies'] is List
+            ? (map['technologies'] as List).map((e) => e.toString()).toList()
+            : <String>[];
+        return <String, dynamic>{
+          'title': (map['title'] ?? '').toString(),
+          'description': (map['description'] ?? '').toString(),
+          'startDate': _formatDateText(map['startDate']),
+          'endDate': _formatDateText(map['endDate']),
+          'current': map['current'] == true,
+          'technologies': technologies,
+          'image': (map['image'] ?? '').toString(),
+          'liveUrl': (map['liveUrl'] ?? '').toString(),
+          'githubUrl': (map['githubUrl'] ?? '').toString(),
+        };
+      }).toList();
+    }
+
+    List<Map<String, dynamic>> normalizeLanguages() {
+      return languages.map((item) {
+        final map = item is Map<String, dynamic>
+            ? item
+            : (item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{});
+        return <String, dynamic>{
+          'name': (map['name'] ?? map['nativeName'] ?? '').toString(),
+          'level': (map['level'] ?? map['fluency'] ?? '').toString(),
+        };
+      }).toList();
+    }
+
+    return <String, dynamic>{
+      '_id': (userPayload['_id'] ?? widget.userId).toString(),
+      'name': name,
+      'title': (userPayload['professionalTitle'] ?? userPayload['title'] ?? '').toString(),
+      'bio': (userPayload['bio'] ?? '').toString(),
+      'location': (userPayload['location'] ?? userPayload['city'] ?? '').toString(),
+      'email': (userPayload['email'] ?? '').toString(),
+      'phone': (userPayload['phone'] ?? userPayload['phoneNumber'] ?? '').toString(),
+      'website': (userPayload['website'] ?? '').toString(),
+      'image': (userPayload['image'] ?? '').toString(),
+      'skills': mergedSkills.toList(),
+      'languages': normalizeLanguages(),
+      'experiences': normalizeExperiences(),
+      'education': normalizeEducation(),
+      'projects': normalizeProjects(),
+    };
+  }
+
+  String _formatDateText(dynamic value) {
+    if (value == null) return '';
+    final raw = value.toString().trim();
+    if (raw.isEmpty || raw == 'null') return '';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    return '${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
+  }
+
+  bool _extractAllowMessagesFromNonFriends(Map<String, dynamic> payload) {
+    final direct = payload['allowMessagesFromNonFriends'];
+    if (direct is bool) return direct;
+
+    final canMessage = payload['canReceiveMessagesFromNonFriends'];
+    if (canMessage is bool) return canMessage;
+
+    final privacySettings = payload['privacySettings'];
+    if (privacySettings is Map<String, dynamic>) {
+      final fromNonFriends = privacySettings['messagesFromNonFriends'];
+      if (fromNonFriends is bool) return fromNonFriends;
+    }
+
+    return true;
+  }
+
+  Future<void> _loadRelationshipStatus() async {
+    try {
+      final currentUserId = await _apiClient.getUserId();
+      if (currentUserId == null || currentUserId.isEmpty) return;
+
+      final responses = await Future.wait([
+        _apiClient.dio.get(ApiEndpoints.friends),
+        _apiClient.dio.get('${ApiEndpoints.followers}/$currentUserId'),
+      ]);
+
+      final friendsResponse = responses[0];
+      final followersResponse = responses[1];
+
+      final friendsData = friendsResponse.data;
+      final friendsList = friendsData is Map
+          ? (friendsData['friends'] ??
+              (friendsData['data'] is Map
+                  ? friendsData['data']['friends']
+                  : friendsData['data']) ??
+              [])
+          : [];
+
+      final followersData = followersResponse.data;
+      final followersList = followersData is Map
+          ? (followersData['followers'] ?? followersData['data'] ?? [])
+          : [];
+
+      bool isMutual = false;
+      if (friendsList is List) {
+        isMutual = friendsList.any((u) {
+          if (u is Map<String, dynamic>) {
+            return u['_id']?.toString() == widget.userId;
+          }
+          if (u is Map) {
+            return u['_id']?.toString() == widget.userId;
+          }
+          return false;
+        });
+      }
+
+      bool isFollowedBy = false;
+      if (followersList is List) {
+        isFollowedBy = followersList.any((u) {
+          if (u is Map<String, dynamic>) {
+            return u['_id']?.toString() == widget.userId;
+          }
+          if (u is Map) {
+            return u['_id']?.toString() == widget.userId;
+          }
+          return false;
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _isMutualFriend = isMutual;
+          _isFollowedBy = isFollowedBy;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error loading relationship status: $e');
     }
   }
 
@@ -149,6 +473,7 @@ class _UserProfileViewState extends State<UserProfileView>
           setState(() {
             _isFollowing = false;
             _followerCount = (_followerCount - 1).clamp(0, 999999);
+            _isMutualFriend = false;
           });
         }
       } else {
@@ -159,6 +484,7 @@ class _UserProfileViewState extends State<UserProfileView>
           setState(() {
             _isFollowing = true;
             _followerCount++;
+            _isMutualFriend = _isFollowedBy;
           });
         }
       }
@@ -169,6 +495,27 @@ class _UserProfileViewState extends State<UserProfileView>
     if (mounted) {
       setState(() => _isFollowLoading = false);
     }
+
+    await _loadRelationshipStatus();
+  }
+
+  bool get _canSendMessage {
+    if (_isMutualFriend) return true;
+    return _allowMessagesFromNonFriends;
+  }
+
+  String get _relationshipButtonLabel {
+    if (_isMutualFriend) return 'Amis';
+    if (_isFollowing && !_isMutualFriend) return 'En attente';
+    if (!_isFollowing && _isFollowedBy) return 'Accepter';
+    return 'Ajouter';
+  }
+
+  IconData get _relationshipButtonIcon {
+    if (_isMutualFriend) return Icons.people_alt_outlined;
+    if (_isFollowing && !_isMutualFriend) return Icons.hourglass_top_outlined;
+    if (!_isFollowing && _isFollowedBy) return Icons.person_add_alt_1_outlined;
+    return Icons.person_add_outlined;
   }
 
   @override
@@ -222,7 +569,11 @@ class _UserProfileViewState extends State<UserProfileView>
   Widget _buildBody() {
     return RefreshIndicator(
       onRefresh: () async {
-        await Future.wait([_loadProfile(), _loadFollowStatus()]);
+        await Future.wait([
+          _loadProfile(),
+          _loadFollowStatus(),
+          _loadRelationshipStatus(),
+        ]);
       },
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -620,22 +971,35 @@ class _UserProfileViewState extends State<UserProfileView>
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ConversationView(
-                    otherUserId: widget.userId,
-                    otherUserName: _profile?['name'] ?? widget.userName ?? '',
-                    otherUserImage: _profile?['image'] ?? widget.userImage,
-                  ),
-                ),
-              );
-            },
+            onPressed: _canSendMessage
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ConversationView(
+                          otherUserId: widget.userId,
+                          otherUserName:
+                              _profile?['name'] ?? widget.userName ?? '',
+                          otherUserImage:
+                              _profile?['image'] ?? widget.userImage,
+                        ),
+                      ),
+                    );
+                  }
+                : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Cette personne n\'accepte pas les messages hors amis.',
+                        ),
+                      ),
+                    );
+                  },
             icon: const Icon(Icons.message_outlined, size: 18),
-            label: const Text('Message'),
+            label: Text(_canSendMessage ? 'Message' : 'Message indisponible'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
+              backgroundColor:
+                  _canSendMessage ? AppColors.primaryColor : Colors.grey,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
@@ -671,8 +1035,8 @@ class _UserProfileViewState extends State<UserProfileView>
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.person_remove_outlined, size: 18),
-                  label: const Text('Abonné'),
+                      : Icon(_relationshipButtonIcon, size: 18),
+                  label: Text(_relationshipButtonLabel),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -689,8 +1053,8 @@ class _UserProfileViewState extends State<UserProfileView>
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.person_add_outlined, size: 18),
-                  label: const Text('Suivre'),
+                      : Icon(_relationshipButtonIcon, size: 18),
+                  label: Text(_relationshipButtonLabel),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -756,531 +1120,219 @@ class _UserProfileViewState extends State<UserProfileView>
 
   // ──────────────────── EXPERIENCE TAB ────────────────────
   Widget _buildExperienceTab() {
-    final experiences = (_profile?['experiences'] as List?) ?? [];
+    final experiences = _asMapList(_profile?['experiences'])
+        .map(_toExperienceModel)
+        .where((e) => e.post.trim().isNotEmpty || e.entreprise.trim().isNotEmpty)
+        .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section header
-          Row(
-            children: [
-              Icon(Icons.work_outline, color: Colors.blue[600], size: 22),
-              const SizedBox(width: 8),
-              const Text('Expérience',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          if (experiences.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  children: [
-                    Icon(Icons.work_off_outlined, size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text('Aucune expérience ajoutée',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-                  ],
-                ),
-              ),
-            )
-          else
-            ...experiences.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final exp = entry.value as Map<String, dynamic>;
-              final isCurrent = exp['current'] == true;
-              final accentColor = isCurrent ? Colors.green[500]! : Colors.blue[500]!;
-              final isLast = idx == experiences.length - 1;
-              final skills = (exp['skills'] as List?)?.cast<String>() ?? [];
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Timeline column
-                  SizedBox(
-                    width: 40,
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            color: accentColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 6)],
-                          ),
-                        ),
-                        if (!isLast)
-                          Container(
-                            width: 2,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [accentColor, Colors.grey[300]!],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Card
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 24),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Gradient header
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: isCurrent
-                                    ? [Colors.green[400]!, Colors.teal[500]!]
-                                    : [Colors.blue[400]!, Colors.indigo[500]!],
-                              ),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(16),
-                                topRight: Radius.circular(16),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(exp['title'] ?? '',
-                                    style: const TextStyle(
-                                        fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                                const SizedBox(height: 4),
-                                Text(exp['company'] ?? '',
-                                    style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9))),
-                              ],
-                            ),
-                          ),
-                          // Card body
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Badges row
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    _Badge(icon: Icons.calendar_today,
-                                        text: '${exp['startDate'] ?? ''} - ${isCurrent ? 'Présent' : (exp['endDate'] ?? '')}'),
-                                    if ((exp['location'] ?? '').toString().isNotEmpty)
-                                      _Badge(icon: Icons.location_on, text: exp['location'].toString()),
-                                    if (isCurrent)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green[100],
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.check_circle, size: 14, color: Colors.green[700]),
-                                            const SizedBox(width: 4),
-                                            Text('Poste actuel',
-                                                style: TextStyle(fontSize: 12, color: Colors.green[700], fontWeight: FontWeight.w500)),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                // Description
-                                if ((exp['description'] ?? '').toString().isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  Text(exp['description'].toString(),
-                                      style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.5),
-                                      maxLines: 4,
-                                      overflow: TextOverflow.ellipsis),
-                                ],
-                                // Skills
-                                if (skills.isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: skills.map((s) {
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                              colors: [Colors.blue[50]!, Colors.indigo[50]!]),
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: Colors.blue[200]!, width: 0.5),
-                                        ),
-                                        child: Text(s,
-                                            style: TextStyle(fontSize: 12, color: Colors.blue[700], fontWeight: FontWeight.w500)),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }),
-        ],
+      child: ExperienceSection(
+        experiences: experiences,
+        onAdd: () {},
+        onEdit: (_) {},
+        onDelete: (_) {},
+        readOnly: true,
       ),
     );
   }
 
   // ──────────────────── EDUCATION TAB ────────────────────
   Widget _buildEducationTab() {
-    final education = (_profile?['education'] as List?) ?? [];
+    final education = _asMapList(_profile?['education'])
+        .map(_toEducationModel)
+        .where((e) => e.degree.trim().isNotEmpty || e.school.trim().isNotEmpty)
+        .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.school_outlined, color: Colors.purple[600], size: 22),
-              const SizedBox(width: 8),
-              const Text('Formation',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          if (education.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  children: [
-                    Icon(Icons.school, size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text('Aucune formation ajoutée',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-                  ],
-                ),
-              ),
-            )
-          else
-            ...education.map((edu) {
-              final e = edu as Map<String, dynamic>;
-              final isCurrent = e['current'] == true;
-              const color = Color(0xFF3B82F6); // blue
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: const Border(left: BorderSide(color: color, width: 4)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header row
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.school, color: color, size: 24),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(e['degree'] ?? '',
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Text(e['school'] ?? '',
-                                    style: TextStyle(fontSize: 14, color: Colors.grey[700])),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Badges row
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (isCurrent)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.blue[50],
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.school, size: 14, color: Colors.blue[700]),
-                                  const SizedBox(width: 4),
-                                  Text('En cours',
-                                      style: TextStyle(fontSize: 12, color: Colors.blue[700], fontWeight: FontWeight.w500)),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Location + dates
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 16, color: Colors.grey[500]),
-                          const SizedBox(width: 4),
-                          Text(e['location'] ?? '',
-                              style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                          const SizedBox(width: 16),
-                          Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              '${e['startDate'] ?? ''} - ${isCurrent ? 'En cours' : (e['endDate'] ?? '')}',
-                              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Description
-                      if ((e['description'] ?? '').toString().isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(e['description'].toString(),
-                            style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.5)),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            }),
-        ],
+      child: EducationSection(
+        educations: education,
+        onAdd: () {},
+        onEdit: (_) {},
+        onDelete: (_) {},
+        readOnly: true,
       ),
     );
   }
 
   // ──────────────────── SKILLS TAB ────────────────────
   Widget _buildSkillsTab() {
-    final skills = (_profile?['skills'] as List?)?.cast<String>() ?? [];
-    final languages = (_profile?['languages'] as List?) ?? [];
-
-    if (skills.isEmpty && languages.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.code_off, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text('Aucune compétence ajoutée',
-                  style: TextStyle(color: Colors.grey[600])),
-            ],
-          ),
-        ),
-      );
-    }
-
+    final skills = _toSkillModels();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            children: [
-              Icon(Icons.code, color: Colors.blue[600], size: 22),
-              const SizedBox(width: 8),
-              const Text('Compétences',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Skills category card
-          if (skills.isNotEmpty) ...[
-            _SkillCategoryCard(
-              categoryName: 'Compétences',
-              count: skills.length,
-              color: const Color(0xFF3B82F6),
-              icon: Icons.code,
-              children: skills.map((skill) => _ReadOnlySkillItem(name: skill)).toList(),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Languages category card
-          if (languages.isNotEmpty) ...[
-            _SkillCategoryCard(
-              categoryName: 'Langues',
-              count: languages.length,
-              color: const Color(0xFF8B5CF6),
-              icon: Icons.language,
-              children: languages.map((lang) {
-                final l = lang is Map<String, dynamic> ? lang : <String, dynamic>{};
-                return _ReadOnlySkillItem(
-                  name: l['name'] ?? '',
-                  sublabel: l['level'] ?? '',
-                  icon: Icons.translate,
-                );
-              }).toList(),
-            ),
-          ],
-        ],
+      child: SkillsSection(
+        skills: skills,
+        onAdd: () {},
+        onEdit: (_) {},
+        onDelete: (_) {},
+        readOnly: true,
       ),
     );
   }
 
   // ──────────────────── PROJECTS TAB ────────────────────
   Widget _buildProjectsTab() {
-    final projects = (_profile?['projects'] as List?) ?? [];
-    if (projects.isEmpty) {
-      return _buildEmptyTab(Icons.folder_outlined, 'Aucun projet');
+    final projects = _asMapList(_profile?['projects'])
+        .map(_toProjectModel)
+        .where((p) => p.title.trim().isNotEmpty)
+        .toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: ProjectsSection(
+        projects: projects,
+        onAdd: () {},
+        onEdit: (_) {},
+        onDelete: (_) {},
+        readOnly: true,
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _asMapList(dynamic value) {
+    if (value is! List) return <Map<String, dynamic>>[];
+    return value
+        .whereType<dynamic>()
+        .map((item) {
+          if (item is Map<String, dynamic>) return item;
+          if (item is Map) return Map<String, dynamic>.from(item);
+          return <String, dynamic>{};
+        })
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  DateTime _parseDate(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    final raw = value.toString().trim();
+    if (raw.isEmpty || raw == 'null') return DateTime.now();
+    final parsed = DateTime.tryParse(raw);
+    if (parsed != null) return parsed;
+    final monthYear = RegExp(r'^(\d{2})\/(\d{4})$').firstMatch(raw);
+    if (monthYear != null) {
+      final month = int.tryParse(monthYear.group(1)!);
+      final year = int.tryParse(monthYear.group(2)!);
+      if (month != null && year != null) {
+        return DateTime(year, month, 1);
+      }
+    }
+    return DateTime.now();
+  }
+
+  ExperienceModel _toExperienceModel(Map<String, dynamic> data) {
+    final keyAchievementsRaw = data['keyAchievements'] ?? data['KeyAchievements'];
+
+    return ExperienceModel(
+      id: data['_id']?.toString(),
+      userId: widget.userId,
+      post: (data['post'] ?? data['title'] ?? '').toString(),
+      entreprise: (data['entreprise'] ?? data['company'] ?? '').toString(),
+      place: (data['place'] ?? data['location'] ?? '').toString(),
+      description: (data['description'] ?? '').toString(),
+      startDate: _parseDate(data['startDate']),
+      endDate: (data['endDate'] == null || data['endDate'].toString().isEmpty)
+          ? null
+          : _parseDate(data['endDate']),
+      currentPost: data['currentPost'] == true || data['current'] == true,
+      keyAchievements: keyAchievementsRaw is List
+          ? keyAchievementsRaw.map((e) => e.toString()).toList()
+          : <String>[],
+        skills: const [],
+    );
+  }
+
+  EducationModel _toEducationModel(Map<String, dynamic> data) {
+    return EducationModel(
+      id: data['_id']?.toString(),
+      userId: widget.userId,
+      degree: (data['degree'] ?? '').toString(),
+      school: (data['school'] ?? '').toString(),
+      location: (data['location'] ?? '').toString(),
+      startDate: _parseDate(data['startDate']),
+      endDate: (data['endDate'] == null || data['endDate'].toString().isEmpty)
+          ? null
+          : _parseDate(data['endDate']),
+      description: (data['description'] ?? '').toString(),
+      current: data['current'] == true,
+      type: EducationType.diploma,
+    );
+  }
+
+  ProjectModel _toProjectModel(Map<String, dynamic> data) {
+    final technologies = data['technologies'] is List
+        ? (data['technologies'] as List).map((e) => e.toString()).toList()
+        : <String>[];
+
+    return ProjectModel(
+      id: data['_id']?.toString(),
+      userId: widget.userId,
+      title: (data['title'] ?? '').toString(),
+      description: (data['description'] ?? '').toString(),
+      startDate: _parseDate(data['startDate']),
+      endDate: (data['endDate'] == null || data['endDate'].toString().isEmpty)
+          ? null
+          : _parseDate(data['endDate']),
+      technologies: technologies,
+      category: (data['category'] ?? 'Projet').toString(),
+      projectType: (data['projectType'] ?? 'Personnel').toString(),
+      image: data['image']?.toString(),
+      liveUrl: data['liveUrl']?.toString(),
+      githubUrl: data['githubUrl']?.toString(),
+      current: data['current'] == true,
+      featured: data['featured'] == true,
+      color: data['color']?.toString(),
+    );
+  }
+
+  List<SkillModel> _toSkillModels() {
+    final items = <SkillModel>[];
+    final skills = (_profile?['skills'] as List?) ?? [];
+    final languages = (_profile?['languages'] as List?) ?? [];
+
+    for (final raw in skills) {
+      final name = raw.toString().trim();
+      if (name.isEmpty || name == 'null') continue;
+      items.add(
+        SkillModel(
+          userId: widget.userId,
+          category: 'Compétences',
+          subcategory: '',
+          name: name,
+          percentage: 70,
+        ),
+      );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: projects.length,
-      itemBuilder: (context, index) {
-        final p = projects[index] as Map<String, dynamic>;
-        final technologies =
-            (p['technologies'] as List?)?.cast<String>() ?? [];
+    for (final raw in languages) {
+      final map = raw is Map<String, dynamic>
+          ? raw
+          : (raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{});
+      final name = (map['name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      final level = (map['level'] ?? '').toString().toLowerCase();
+      items.add(
+        SkillModel(
+          userId: widget.userId,
+          category: 'Langues',
+          subcategory: (map['level'] ?? '').toString(),
+          name: name,
+          percentage: _languageLevelToPercent(level),
+        ),
+      );
+    }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.green.withOpacity(0.1),
-                      Colors.teal.withOpacity(0.05),
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.folder_outlined,
-                          color: Colors.green, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(p['title'] ?? '',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text(
-                            '${p['startDate'] ?? ''} - ${p['current'] == true ? 'En cours' : (p['endDate'] ?? '')}',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textMutedColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Body
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if ((p['description'] ?? '').toString().isNotEmpty) ...[
-                      Text(p['description'].toString(),
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.textMutedColor,
-                              height: 1.5),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 12),
-                    ],
-                    if (technologies.isNotEmpty)
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: technologies.map((t) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(t,
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.green)),
-                          );
-                        }).toList(),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    return items;
+  }
+
+  int _languageLevelToPercent(String level) {
+    if (level.contains('native') || level.contains('natif')) return 95;
+    if (level.contains('fluent') || level.contains('courant')) return 85;
+    if (level.contains('advanced') || level.contains('avance')) return 75;
+    if (level.contains('intermediate') || level.contains('intermediaire')) return 60;
+    if (level.contains('beginner') || level.contains('debutant')) return 40;
+    return 65;
   }
 
   // ──────────────────── POSTS TAB ────────────────────
@@ -1330,13 +1382,46 @@ class _UserProfileViewState extends State<UserProfileView>
                   ),
                 );
               }
+
+              final visiblePosts = _isMutualFriend
+                  ? vm.posts
+                      .where((p) =>
+                          p.privacy == 'public' ||
+                          p.privacy == 'friends' ||
+                          p.privacy.isEmpty)
+                      .toList()
+                  : vm.posts
+                      .where((p) => p.privacy == 'public' || p.privacy.isEmpty)
+                      .toList();
+
+              if (visiblePosts.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_outline, size: 52, color: Colors.grey[350]),
+                      const SizedBox(height: 12),
+                      Text(
+                        _isMutualFriend
+                            ? 'Aucune publication visible pour le moment'
+                            : 'Seules les publications publiques sont visibles',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textMutedColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
               return RefreshIndicator(
                 onRefresh: () => vm.refreshFeed(),
                 child: ListView.builder(
                   padding: const EdgeInsets.all(8),
-                  itemCount: vm.posts.length,
+                  itemCount: visiblePosts.length,
                   itemBuilder: (context, index) {
-                    final post = vm.posts[index];
+                    final post = visiblePosts[index];
                     return FeedPostCard(
                       post: post,
                       currentUserId: null,
@@ -1359,22 +1444,6 @@ class _UserProfileViewState extends State<UserProfileView>
           );
         },
       ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppColors.primaryColor),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
     );
   }
 

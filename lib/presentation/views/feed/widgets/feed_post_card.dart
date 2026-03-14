@@ -58,13 +58,29 @@ class FeedPostCard extends StatefulWidget {
 
 class _FeedPostCardState extends State<FeedPostCard> {
   final FeedRepository _repository = FeedRepository();
+  static final Map<String, FeedPostModel?> _originalPostCache =
+      <String, FeedPostModel?>{};
   bool _viewTracked = false;
+  FeedPostModel? _originalPost;
+  bool _originalLoading = false;
 
   @override
   void initState() {
     super.initState();
     // Track the view when the card is first rendered
     _trackView();
+    _loadOriginalPostIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant FeedPostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.id != widget.post.id ||
+        oldWidget.post.originalPostId != widget.post.originalPostId) {
+      _originalPost = null;
+      _originalLoading = false;
+      _loadOriginalPostIfNeeded();
+    }
   }
 
   void _trackView() {
@@ -84,6 +100,54 @@ class _FeedPostCardState extends State<FeedPostCard> {
     return widget.post.isSharedBy(widget.sharedByUserId);
   }
 
+  bool get _isQuoteShare => widget.post.isSharePost;
+
+  FeedPostModel get _outerDisplayPost {
+    if (!_isQuoteShare) return widget.post;
+    final sharer = widget.post.sharer;
+    if (sharer == null || sharer.id.isEmpty) return widget.post;
+    return widget.post.copyWith(author: sharer);
+  }
+
+  Future<void> _loadOriginalPostIfNeeded() async {
+    if (!_isQuoteShare) return;
+    final originalId = widget.post.originalPostId;
+    if (originalId == null || originalId.isEmpty) return;
+
+    if (_originalPostCache.containsKey(originalId)) {
+      if (mounted) {
+        setState(() {
+          _originalPost = _originalPostCache[originalId];
+        });
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _originalLoading = true;
+    });
+
+    try {
+      final original = await _repository.getPostById(originalId);
+      _originalPostCache[originalId] = original;
+      if (mounted) {
+        setState(() {
+          _originalPost = original;
+          _originalLoading = false;
+        });
+      }
+    } catch (_) {
+      _originalPostCache[originalId] = null;
+      if (mounted) {
+        setState(() {
+          _originalPost = null;
+          _originalLoading = false;
+        });
+      }
+    }
+  }
+
   int get _voteScore {
     final counts = widget.post.reactionCounts;
     if (counts != null) {
@@ -95,6 +159,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
   // ═══════════════════════ BUILD ═══════════════════════
   @override
   Widget build(BuildContext context) {
+    final post = _outerDisplayPost;
     final isDark = !AppTheme.isLight;
     final cardBg = isDark ? const Color(0xFF1A1A2E) : Colors.white;
 
@@ -124,25 +189,29 @@ class _FeedPostCardState extends State<FeedPostCard> {
                 children: [
                   // ── Header ──
                   _PostHeader(
-                    post: widget.post,
+                    post: post,
                     isOwner: isOwner,
-                    isShared: _isSharedForBadge,
+                    isShared: _isSharedForBadge || _isQuoteShare,
+                    sharedFromName: _isQuoteShare ? widget.post.authorName : null,
                     onEdit: widget.onEdit,
                     onDelete: widget.onDelete,
                   ),
                   const SizedBox(height: 10),
 
                   // ── Title ──
-                  if (widget.post.title.isNotEmpty)
-                    _PostTitle(title: widget.post.title),
+                  if (!_isQuoteShare && post.title.isNotEmpty) _PostTitle(title: post.title),
 
                   // ── Content ──
-                  if (widget.post.content.isNotEmpty && widget.post.content != widget.post.title)
-                    _PostContent(content: widget.post.content),
+                  if (_shouldShowOuterComment(post)) _PostContent(content: post.content),
 
                   // ── Image ──
-                  if (widget.post.hasMedia)
-                    _PostImage(url: widget.post.media.first.url),
+                  if (!_isQuoteShare && post.hasMedia) _PostImage(url: post.media.first.url),
+
+                  if (_isQuoteShare)
+                    _NestedOriginalCard(
+                      originalPost: _originalPost,
+                      isLoading: _originalLoading,
+                    ),
 
                   const SizedBox(height: 10),
 
@@ -166,6 +235,19 @@ class _FeedPostCardState extends State<FeedPostCard> {
       ),
     );
   }
+
+  bool _shouldShowOuterComment(FeedPostModel outer) {
+    if (!_isQuoteShare) {
+      return outer.content.isNotEmpty && outer.content != outer.title;
+    }
+
+    if (outer.content.trim().isEmpty) return false;
+    if (_originalPost == null) return true;
+
+    final sameContent = outer.content.trim() == _originalPost!.content.trim();
+    final sameTitle = outer.title.trim() == _originalPost!.title.trim();
+    return !(sameContent && sameTitle);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -175,6 +257,7 @@ class _PostHeader extends StatelessWidget {
   final FeedPostModel post;
   final bool isOwner;
   final bool isShared;
+  final String? sharedFromName;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -182,6 +265,7 @@ class _PostHeader extends StatelessWidget {
     required this.post,
     required this.isOwner,
     required this.isShared,
+    this.sharedFromName,
     this.onEdit,
     this.onDelete,
   });
@@ -274,7 +358,9 @@ class _PostHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Partage',
+                    sharedFromName != null && sharedFromName!.isNotEmpty
+                        ? 'Partage de $sharedFromName'
+                        : 'Partage',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -303,6 +389,148 @@ class _PostHeader extends StatelessWidget {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
+}
+
+class _NestedOriginalCard extends StatelessWidget {
+  final FeedPostModel? originalPost;
+  final bool isLoading;
+
+  const _NestedOriginalCard({
+    required this.originalPost,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = !AppTheme.isLight;
+    final bg = isDark ? Colors.white.withOpacity(0.04) : const Color(0xFFF8FAFC);
+    final border = isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (isLoading) {
+      return const SizedBox(
+        height: 60,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (originalPost == null) {
+      return Text(
+        'Contenu indisponible',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textMutedColor,
+        ),
+      );
+    }
+
+    final post = originalPost!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 10,
+              backgroundColor: AppColors.primaryColor.withOpacity(0.15),
+              backgroundImage: post.author.image != null
+                  ? NetworkImage(post.author.image!)
+                  : null,
+              child: post.author.image == null
+                  ? Text(
+                      (post.authorName.isNotEmpty ? post.authorName[0] : '?').toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryColor,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '${post.authorName} · ${post.timeAgo}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textMutedColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        if (post.title.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            post.title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textColor,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+        if (post.content.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            post.content,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textMutedColor,
+              height: 1.4,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+        if (post.hasMedia) ...[
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              post.media.first.url,
+              width: double.infinity,
+              height: 140,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Text(
+          '${_fmt(post.reactionCounts != null ? post.reactionCounts!.total : post.votes)} reactions · ${_fmt(post.commentsCount)} commentaires',
+          style: TextStyle(
+            fontSize: 11,
+            color: AppTheme.textMutedColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _fmt(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+    return n.toString();
   }
 }
 

@@ -12,6 +12,7 @@ import 'package:cv_tech/presentation/views/feed/post_detail_view.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
+import 'package:cv_tech/core/services/socket_service.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class HomeView extends StatelessWidget {
@@ -39,23 +40,47 @@ class _HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver {
-  static const Duration _autoRefreshInterval = Duration(seconds: 20);
+  static const Duration _autoRefreshInterval = Duration(seconds: 8);
   Timer? _autoRefreshTimer;
+  StreamSubscription<Map<String, dynamic>>? _notificationSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.scrollController.addListener(_onScroll);
+    _connectSocketForFeedHints();
     _startAutoRefresh();
   }
 
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _notificationSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     widget.scrollController.removeListener(_onScroll);
     super.dispose();
+  }
+
+  void _connectSocketForFeedHints() {
+    final socket = SocketService.instance;
+    socket.connect();
+    _notificationSub?.cancel();
+    _notificationSub = socket.onNotification.listen((payload) {
+      final type = payload['type']?.toString().toLowerCase() ?? '';
+      final event = payload['event']?.toString().toLowerCase() ?? '';
+      final message = payload['message']?.toString().toLowerCase() ?? '';
+
+      final looksLikePostEvent =
+          type.contains('post') ||
+          event.contains('post') ||
+          message.contains('publication') ||
+          message.contains('post');
+
+      if (looksLikePostEvent) {
+        _refreshNow();
+      }
+    });
   }
 
   @override

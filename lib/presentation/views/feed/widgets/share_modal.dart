@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/data/models/feed/share_model.dart';
@@ -12,6 +11,8 @@ import 'package:cv_tech/theme/app_theme.dart';
 class ShareModal extends StatelessWidget {
   final FeedPostModel post;
   final VoidCallback? onRepost;
+  static final TextEditingController _repostCommentController =
+      TextEditingController();
 
   const ShareModal({
     super.key,
@@ -21,6 +22,7 @@ class ShareModal extends StatelessWidget {
 
   /// Show the share modal
   static void show(BuildContext context, FeedPostModel post, {VoidCallback? onRepost}) {
+    _repostCommentController.clear();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -93,6 +95,46 @@ class ShareModal extends StatelessWidget {
               color: isDark
                   ? Colors.white.withOpacity(0.08)
                   : Colors.grey.withOpacity(0.15),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+              child: TextField(
+                controller: _repostCommentController,
+                minLines: 1,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Ajouter un commentaire (optionnel)',
+                  filled: true,
+                  fillColor: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.12)
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.12)
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: AppColors.primaryColor),
+                  ),
+                ),
+              ),
             ),
 
             // Options
@@ -189,7 +231,13 @@ class ShareModal extends StatelessWidget {
     Navigator.pop(context);
     try {
       final repo = ShareRepository();
-      await repo.sharePost(CreateShareDto(postId: post.id ?? ''));
+      final comment = _repostCommentController.text.trim();
+      await repo.sharePost(
+        CreateShareDto(
+          postId: post.id ?? '',
+          caption: comment.isEmpty ? null : comment,
+        ),
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

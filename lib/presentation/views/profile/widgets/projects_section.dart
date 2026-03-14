@@ -14,6 +14,7 @@ class ProjectsSection extends StatefulWidget {
   final VoidCallback onAdd;
   final Function(ProjectModel) onEdit;
   final Function(String) onDelete;
+  final bool readOnly;
 
   const ProjectsSection({
     super.key,
@@ -21,6 +22,7 @@ class ProjectsSection extends StatefulWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
+    this.readOnly = false,
   });
 
   @override
@@ -103,22 +105,23 @@ class _ProjectsSectionState extends State<ProjectsSection> {
                 ),
               ],
             ),
-            ElevatedButton.icon(
-              onPressed: widget.onAdd,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[500],
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+            if (!widget.readOnly)
+              ElevatedButton.icon(
+                onPressed: widget.onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[500],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -298,24 +301,26 @@ class _ProjectsSectionState extends State<ProjectsSection> {
                               ),
                             ),
                           const Spacer(),
-                          IconButton(
-                            onPressed: () => widget.onEdit(currentProject),
-                            icon: const Icon(Icons.edit,
-                                color: Colors.white, size: 20),
-                            tooltip: 'Modifier',
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () =>
-                                _showDeleteDialog(context, currentProject),
-                            icon: const Icon(Icons.delete,
-                                color: Colors.white, size: 20),
-                            tooltip: 'Supprimer',
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
+                          if (!widget.readOnly) ...[
+                            IconButton(
+                              onPressed: () => widget.onEdit(currentProject),
+                              icon: const Icon(Icons.edit,
+                                  color: Colors.white, size: 20),
+                              tooltip: 'Modifier',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () =>
+                                  _showDeleteDialog(context, currentProject),
+                              icon: const Icon(Icons.delete,
+                                  color: Colors.white, size: 20),
+                              tooltip: 'Supprimer',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -457,18 +462,19 @@ class _ProjectsSectionState extends State<ProjectsSection> {
                 ),
               ],
             ),
-            ElevatedButton.icon(
-              onPressed: widget.onAdd,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[500],
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+            if (!widget.readOnly)
+              ElevatedButton.icon(
+                onPressed: widget.onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[500],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 32),

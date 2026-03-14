@@ -11,6 +11,7 @@ class SkillsSection extends StatefulWidget {
   final VoidCallback onAdd;
   final Function(SkillModel) onEdit;
   final Function(String) onDelete;
+  final bool readOnly;
 
   const SkillsSection({
     super.key,
@@ -18,6 +19,7 @@ class SkillsSection extends StatefulWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
+    this.readOnly = false,
   });
 
   @override
@@ -168,22 +170,23 @@ class _SkillsSectionState extends State<SkillsSection> {
                 ),
               ],
             ),
-            ElevatedButton.icon(
-              onPressed: widget.onAdd,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[500],
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+            if (!widget.readOnly)
+              ElevatedButton.icon(
+                onPressed: widget.onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[500],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -226,6 +229,7 @@ class _SkillsSectionState extends State<SkillsSection> {
                     onEdit: widget.onEdit,
                     onDelete: widget.onDelete,
                     onAdd: widget.onAdd,
+                    readOnly: widget.readOnly,
                     getProgressColor: _getProgressColor,
                     getLevelText: _getLevelText,
                   )),
@@ -283,6 +287,7 @@ class _CategoryCard extends StatelessWidget {
   final Function(SkillModel) onEdit;
   final Function(String) onDelete;
   final VoidCallback onAdd;
+  final bool readOnly;
   final Color Function(int) getProgressColor;
   final String Function(int) getLevelText;
 
@@ -296,6 +301,7 @@ class _CategoryCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onAdd,
+    required this.readOnly,
     required this.getProgressColor,
     required this.getLevelText,
   });
@@ -386,23 +392,26 @@ class _CategoryCard extends StatelessWidget {
                         color: color,
                         onEdit: () => onEdit(skill),
                         onDelete: () => _showDeleteDialog(context, skill),
+                        readOnly: readOnly,
                         getProgressColor: getProgressColor,
                         getLevelText: getLevelText,
                       )),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Ajouter une compétence'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: color,
-                      side: BorderSide(color: color.withOpacity(0.5)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  if (!readOnly) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: onAdd,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Ajouter une compétence'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: color,
+                        side: BorderSide(color: color.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        minimumSize: const Size(double.infinity, 40),
                       ),
-                      minimumSize: const Size(double.infinity, 40),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -425,6 +434,7 @@ class _SkillItem extends StatelessWidget {
   final Color color;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool readOnly;
   final Color Function(int) getProgressColor;
   final String Function(int) getLevelText;
 
@@ -433,6 +443,7 @@ class _SkillItem extends StatelessWidget {
     required this.color,
     required this.onEdit,
     required this.onDelete,
+    required this.readOnly,
     required this.getProgressColor,
     required this.getLevelText,
   });
@@ -541,16 +552,18 @@ class _SkillItem extends StatelessWidget {
                 ),
               ),
               // Actions
-              IconButton(
-                icon: Icon(Icons.edit, size: 18, color: Colors.grey[500]),
-                onPressed: onEdit,
-                splashRadius: 20,
-              ),
-              IconButton(
-                icon: Icon(Icons.delete, size: 18, color: Colors.grey[500]),
-                onPressed: onDelete,
-                splashRadius: 20,
-              ),
+              if (!readOnly) ...[
+                IconButton(
+                  icon: Icon(Icons.edit, size: 18, color: Colors.grey[500]),
+                  onPressed: onEdit,
+                  splashRadius: 20,
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, size: 18, color: Colors.grey[500]),
+                  onPressed: onDelete,
+                  splashRadius: 20,
+                ),
+              ],
               // Level display
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,

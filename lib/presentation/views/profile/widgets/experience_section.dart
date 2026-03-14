@@ -14,6 +14,7 @@ class ExperienceSection extends StatelessWidget {
   final VoidCallback onAdd;
   final Function(ExperienceModel) onEdit;
   final Function(String) onDelete;
+  final bool readOnly;
 
   const ExperienceSection({
     super.key,
@@ -21,6 +22,7 @@ class ExperienceSection extends StatelessWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
+    this.readOnly = false,
   });
 
   @override
@@ -45,22 +47,23 @@ class ExperienceSection extends StatelessWidget {
                 ),
               ],
             ),
-            ElevatedButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[500],
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+            if (!readOnly)
+              ElevatedButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange[500],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -108,6 +111,7 @@ class ExperienceSection extends StatelessWidget {
                 onDelete: () => onDelete(experience.id!),
                 isFirst: isFirst,
                 isLast: isLast,
+                readOnly: readOnly,
               );
             },
           ),
@@ -123,6 +127,7 @@ class _TimelineExperienceCard extends StatefulWidget {
   final VoidCallback onDelete;
   final bool isFirst;
   final bool isLast;
+  final bool readOnly;
 
   const _TimelineExperienceCard({
     required this.experience,
@@ -130,6 +135,7 @@ class _TimelineExperienceCard extends StatefulWidget {
     required this.onDelete,
     required this.isFirst,
     required this.isLast,
+    required this.readOnly,
   });
 
   @override
@@ -248,44 +254,45 @@ class _TimelineExperienceCardState extends State<_TimelineExperienceCard> {
                               ),
                             ),
                           ),
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert,
-                                color: Colors.white),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          if (!widget.readOnly)
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert,
+                                  color: Colors.white),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('Modifier'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete,
+                                          size: 18, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Supprimer',
+                                          style: TextStyle(color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  widget.onEdit();
+                                } else if (value == 'delete') {
+                                  _showDeleteDialog(context);
+                                }
+                              },
                             ),
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 18),
-                                    SizedBox(width: 8),
-                                    Text('Modifier'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete,
-                                        size: 18, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Supprimer',
-                                        style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                widget.onEdit();
-                              } else if (value == 'delete') {
-                                _showDeleteDialog(context);
-                              }
-                            },
-                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
