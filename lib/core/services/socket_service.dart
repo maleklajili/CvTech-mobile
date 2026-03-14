@@ -9,6 +9,7 @@ class SocketService {
   static SocketService? _instance;
   io.Socket? _socket;
   bool _isConnected = false;
+  final Set<String> _pendingPostRooms = <String>{};
 
   // Stream controllers pour les événements
   final _commentController = StreamController<Map<String, dynamic>>.broadcast();
@@ -84,6 +85,15 @@ class SocketService {
       _socket!.onConnect((_) {
         _isConnected = true;
         if (kDebugMode) print('✅ [Socket] Connected');
+
+        // Flush queued post-room joins requested before connection was ready.
+        if (_pendingPostRooms.isNotEmpty) {
+          for (final postId in _pendingPostRooms.toList()) {
+            _socket?.emit('join_post', {'postId': postId});
+            if (kDebugMode) print('📌 [Socket] Joined queued post room: $postId');
+          }
+          _pendingPostRooms.clear();
+        }
       });
 
       _socket!.onDisconnect((_) {
@@ -192,7 +202,12 @@ class SocketService {
   /// Rejoindre la room d'un post pour recevoir les commentaires en temps réel
   void joinPostRoom(String postId) {
     if (_socket == null || !_isConnected) {
-      if (kDebugMode) print('⚠️ [Socket] join_post skipped (not connected): $postId');
+      _pendingPostRooms.add(postId);
+      if (kDebugMode) {
+        print('⚠️ [Socket] join_post queued (not connected yet): $postId');
+      }
+      // Ensure a connection attempt is running.
+      connect();
       return;
     }
     _socket?.emit('join_post', {'postId': postId});
@@ -201,6 +216,7 @@ class SocketService {
 
   /// Quitter la room d'un post
   void leavePostRoom(String postId) {
+    _pendingPostRooms.remove(postId);
     if (_socket == null || !_isConnected) {
       return;
     }

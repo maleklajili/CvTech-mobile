@@ -174,6 +174,11 @@ class FeedRepository {
     String filter = 'friends', // friends, all, popular, new, saved
   }) async {
     try {
+      if (filter == 'friends') {
+        // Enforce friends feed client-side: own posts + followed users' posts.
+        return _buildFriendsFeedFallback(page: page, limit: limit);
+      }
+
       final response = await _apiClient.dio.get(
         ApiEndpoints.postFeed,
         queryParameters: {
@@ -246,28 +251,33 @@ class FeedRepository {
         final ownData = response.data;
         final ownPostsData = _extractPostsData(ownData);
 
-        // Fetch feed "all" to extract posts this user has shared.
+        // Fetch feed "all" to include posts shared by this profile user.
         final allResponse = await _apiClient.dio.get(
           ApiEndpoints.postFeed,
           queryParameters: {
             'filter': 'all',
             'page': 1,
-            'limit': 200,
+            'limit': 300,
           },
         );
 
         final allPostsData = _extractPostsData(allResponse.data);
         final mergedById = <String, Map<String, dynamic>>{};
 
+        // 1) Own authored posts.
         for (final p in ownPostsData) {
           if (p is Map<String, dynamic>) {
-            final id = _extractPostId(p);
-            if (id != null && id.isNotEmpty) {
-              mergedById[id] = p;
+            final authorId = _extractAuthorId(p);
+            if (authorId == userId) {
+              final id = _extractPostId(p);
+              if (id != null && id.isNotEmpty) {
+                mergedById[id] = p;
+              }
             }
           }
         }
 
+        // 2) Posts this profile user shared.
         for (final p in allPostsData) {
           if (p is Map<String, dynamic>) {
             final sharedByIds = _extractSharedByIds(p);
@@ -280,27 +290,29 @@ class FeedRepository {
           }
         }
 
-        final mergedRawPosts = mergedById.values.toList()
+        final profileRawPosts = mergedById.values.toList()
           ..sort((a, b) => _extractCreatedAt(b).compareTo(_extractCreatedAt(a)));
 
         final start = (page - 1) * limit;
-        final end = (start + limit) > mergedRawPosts.length
-            ? mergedRawPosts.length
+        final end = (start + limit) > profileRawPosts.length
+            ? profileRawPosts.length
             : (start + limit);
-        final pagedRawPosts = start < mergedRawPosts.length
-            ? mergedRawPosts.sublist(start, end)
-            : <Map<String, dynamic>>[];
+        final pagedRawPosts = start < profileRawPosts.length
+            ? profileRawPosts.sublist(start, end)
+            : <dynamic>[];
 
         final posts = <FeedPostModel>[];
         for (final p in pagedRawPosts) {
-          posts.add(FeedPostModel.fromJson(p));
+          if (p is Map<String, dynamic>) {
+            posts.add(FeedPostModel.fromJson(p));
+          }
         }
 
         return FeedResponse(
           posts: posts,
           page: page,
           limit: limit,
-          total: mergedRawPosts.length,
+          total: profileRawPosts.length,
         );
       }
 

@@ -25,6 +25,8 @@ import 'package:cv_tech/theme/app_theme.dart';
 class FeedPostCard extends StatefulWidget {
   final FeedPostModel post;
   final String? currentUserId;
+  final bool showSharedBadge;
+  final String? sharedByUserId;
   final VoidCallback? onLike;
   final void Function(ReactionType)? onReaction;
   final VoidCallback? onComment;
@@ -38,6 +40,8 @@ class FeedPostCard extends StatefulWidget {
     super.key,
     required this.post,
     this.currentUserId,
+    this.showSharedBadge = false,
+    this.sharedByUserId,
     this.onLike,
     this.onReaction,
     this.onComment,
@@ -74,6 +78,11 @@ class _FeedPostCardState extends State<FeedPostCard> {
 
   bool get isOwner =>
       widget.currentUserId != null && widget.currentUserId == widget.post.author.id;
+
+  bool get _isSharedForBadge {
+    if (!widget.showSharedBadge) return false;
+    return widget.post.isSharedBy(widget.sharedByUserId);
+  }
 
   int get _voteScore {
     final counts = widget.post.reactionCounts;
@@ -117,6 +126,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                   _PostHeader(
                     post: widget.post,
                     isOwner: isOwner,
+                    isShared: _isSharedForBadge,
                     onEdit: widget.onEdit,
                     onDelete: widget.onDelete,
                   ),
@@ -164,12 +174,14 @@ class _FeedPostCardState extends State<FeedPostCard> {
 class _PostHeader extends StatelessWidget {
   final FeedPostModel post;
   final bool isOwner;
+  final bool isShared;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const _PostHeader({
     required this.post,
     required this.isOwner,
+    required this.isShared,
     this.onEdit,
     this.onDelete,
   });
@@ -253,6 +265,24 @@ class _PostHeader extends StatelessWidget {
                   color: muted,
                 ),
               ),
+              if (isShared) ...[
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Partage',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

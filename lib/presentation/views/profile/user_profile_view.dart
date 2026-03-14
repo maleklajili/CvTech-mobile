@@ -1340,6 +1340,8 @@ class _UserProfileViewState extends State<UserProfileView>
                     return FeedPostCard(
                       post: post,
                       currentUserId: null,
+                      showSharedBadge: true,
+                      sharedByUserId: widget.userId,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(

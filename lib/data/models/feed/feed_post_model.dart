@@ -108,6 +108,7 @@ class FeedPostModel extends BaseModel {
   final ReactionCounts? reactionCounts;
   final ReactionType? userReaction;
   final List<String> tags;
+  final List<String> sharedByUserIds;
   final DateTime? publishedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -133,6 +134,7 @@ class FeedPostModel extends BaseModel {
     this.reactionCounts,
     this.userReaction,
     this.tags = const [],
+    this.sharedByUserIds = const [],
     this.publishedAt,
     this.createdAt,
     this.updatedAt,
@@ -143,6 +145,10 @@ class FeedPostModel extends BaseModel {
   bool get isDisliked => userVote == 'down';
   String get authorName => author.fullName ?? author.userName ?? 'Utilisateur';
   String get authorTitle => author.professionalTitle ?? '';
+  bool isSharedBy(String? userId) {
+    if (userId == null || userId.isEmpty) return false;
+    return sharedByUserIds.contains(userId);
+  }
 
   String get timeAgo {
     final date = publishedAt ?? createdAt ?? DateTime.now();
@@ -221,6 +227,26 @@ class FeedPostModel extends BaseModel {
       isSaved = savedBy.isNotEmpty;
     }
 
+    final sharedByIds = <String>[];
+    final rawSharedBy = json['sharedBy'];
+    if (rawSharedBy is List) {
+      for (final item in rawSharedBy) {
+        String? id;
+        if (item is String) {
+          id = item;
+        } else if (item is Map<String, dynamic>) {
+          id = item['_id']?.toString() ?? item['userId']?.toString();
+        } else if (item != null) {
+          id = item.toString();
+        }
+        if (id != null && id.isNotEmpty && !sharedByIds.contains(id)) {
+          sharedByIds.add(id);
+        }
+      }
+    } else if (rawSharedBy is String && rawSharedBy.isNotEmpty) {
+      sharedByIds.add(rawSharedBy);
+    }
+
     return FeedPostModel(
       id: json['_id']?.toString(),
       author: PostAuthor.fromJson(json['userId'] ?? ''),
@@ -242,6 +268,7 @@ class FeedPostModel extends BaseModel {
       reactionCounts: reactionCounts,
       userReaction: userReaction,
       tags: (json['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      sharedByUserIds: sharedByIds,
       publishedAt: _parseDateTime(json['publishedAt']),
       createdAt: _parseDateTime(json['createdAt']),
       updatedAt: _parseDateTime(json['updatedAt']),
@@ -300,6 +327,7 @@ class FeedPostModel extends BaseModel {
       reactionCounts: reactionCounts ?? this.reactionCounts,
       userReaction: clearUserReaction ? null : (userReaction ?? this.userReaction),
       tags: tags ?? this.tags,
+      sharedByUserIds: sharedByUserIds,
       publishedAt: publishedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,

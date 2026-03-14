@@ -74,6 +74,8 @@ class _PostsSectionContentState extends State<_PostsSectionContent> {
                       return FeedPostCard(
                         post: post,
                         currentUserId: currentUserId,
+                        showSharedBadge: true,
+                        sharedByUserId: currentUserId,
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
