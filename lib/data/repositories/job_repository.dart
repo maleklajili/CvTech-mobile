@@ -174,40 +174,42 @@ class JobRepository {
   }
 
   /// Changer le statut d'une offre
-  Future<JobModel> toggleStatus(String id, String status) async {
+  Future<void> toggleStatus(String id, String status) async {
     try {
       final response = await _apiClient.dio.put(
         '${ApiEndpoints.jobToggleStatus}$id',
         data: {'status': status},
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-
-        return JobModel.fromJson(data);
+      if (response.statusCode != 200) {
+        throw Exception('Échec du changement de statut');
       }
-
-      throw Exception('Échec du changement de statut');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
   /// Toggle featured status
-  Future<JobModel> toggleFeatured(String id) async {
+  Future<bool?> toggleFeatured(String id) async {
     try {
       final response = await _apiClient.dio.put(
         '${ApiEndpoints.jobFeature}$id',
       );
 
       if (response.statusCode == 200) {
-        final data = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-
-        return JobModel.fromJson(data);
+        if (response.data is Map<String, dynamic>) {
+          final data = response.data as Map<String, dynamic>;
+          if (data['isFeatured'] is bool) {
+            return data['isFeatured'] as bool;
+          }
+          if (data['data'] is Map<String, dynamic>) {
+            final nested = data['data'] as Map<String, dynamic>;
+            if (nested['isFeatured'] is bool) {
+              return nested['isFeatured'] as bool;
+            }
+          }
+        }
+        return null;
       }
 
       throw Exception('Échec du changement de featured');

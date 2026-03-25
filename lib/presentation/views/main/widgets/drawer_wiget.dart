@@ -1,16 +1,24 @@
+import 'dart:async';
+
 // Flutter imports:
 import 'package:flutter/material.dart';
 
 // Package imports:
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 
 // Project imports:
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/core/services/socket_service.dart';
 import 'package:cv_tech/data/models/auth/user_model.dart';
+import 'package:cv_tech/data/repositories/message_repository.dart';
 import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
+import 'package:cv_tech/presentation/views/chat/chat_list_view.dart';
+import 'package:cv_tech/presentation/views/community/community_hub_view.dart';
+import 'package:cv_tech/presentation/views/company/companies_view.dart';
+import 'package:cv_tech/presentation/views/connection/connections_view.dart';
+import 'package:cv_tech/presentation/views/job/jobs_view.dart';
 import 'package:cv_tech/presentation/views/profile/profile_view.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
 import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
@@ -27,13 +35,35 @@ class DrawerWiget extends StatefulWidget {
 
 class _DrawerWigetState extends State<DrawerWiget> {
   final UserRepository _userRepository = UserRepository();
+  final MessageRepository _messageRepository = MessageRepository();
+  final SocketService _socketService = SocketService.instance;
+
+  StreamSubscription<Map<String, dynamic>>? _notificationSub;
+  StreamSubscription<Map<String, dynamic>>? _messageSub;
+  StreamSubscription<Map<String, dynamic>>? _networkSub;
+  Timer? _badgePollingTimer;
+
   UserModel? _currentUser;
   bool _isLoading = true;
+  int _unreadMessages = 0;
+  int _unreadNotifications = 0;
+  int _lastUnreadMessages = 0;
+  final List<_DrawerNotificationItem> _notifications = <_DrawerNotificationItem>[];
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _initDynamicBadges();
+  }
+
+  @override
+  void dispose() {
+    _notificationSub?.cancel();
+    _messageSub?.cancel();
+    _networkSub?.cancel();
+    _badgePollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadCurrentUser() async {
@@ -54,15 +84,211 @@ class _DrawerWigetState extends State<DrawerWiget> {
     }
   }
 
-  void _navigateToProfile() {
-    Navigator.pop(context); // Fermer le drawer
-    Navigator.push(
+  Future<void> _initDynamicBadges() async {
+    await _refreshUnreadMessages();
+
+    await _socketService.connect();
+    _startBadgePolling();
+
+    _notificationSub?.cancel();
+    _notificationSub = _socketService.onNotification.listen((payload) {
+      if (!mounted) return;
+      _appendNotification(_DrawerNotificationItem.fromPayload(payload));
+    });
+
+    _messageSub?.cancel();
+    _messageSub = _socketService.onNewMessage.listen((payload) {
+      _refreshUnreadMessages(notifyOnIncrease: true);
+      if (!mounted) return;
+      _appendNotification(_DrawerNotificationItem.fromPayload({
+        'title': 'Nouveau message',
+        'message': payload['text'] ?? payload['message'] ?? 'Vous avez recu un nouveau message',
+        'createdAt': DateTime.now().toIso8601String(),
+      }));
+    });
+
+    _networkSub?.cancel();
+    _networkSub = _socketService.onConnectionRequest.listen((payload) {
+      if (!mounted) return;
+      _appendNotification(_DrawerNotificationItem.fromPayload({
+        'title': 'Reseau',
+        'message': payload['message'] ?? 'Nouvelle activite dans votre reseau',
+        'createdAt': DateTime.now().toIso8601String(),
+      }));
+    });
+  }
+
+  void _startBadgePolling() {
+    _badgePollingTimer?.cancel();
+    _badgePollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _refreshUnreadMessages(notifyOnIncrease: true);
+    });
+  }
+
+  void _appendNotification(_DrawerNotificationItem item) {
+    if (!mounted) return;
+    setState(() {
+      _notifications.insert(0, item);
+      _unreadNotifications = _notifications.where((n) => !n.isRead).length;
+    });
+  }
+
+  Future<void> _closeDrawerIfOpen() async {
+    final scaffold = Scaffold.maybeOf(context);
+    if (scaffold?.isDrawerOpen ?? false) {
+      Navigator.of(context).pop();
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+  }
+
+  Future<void> _openPage(Widget page, String routeName) async {
+    await _closeDrawerIfOpen();
+    if (!mounted) return;
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ProfileView(),
-        settings: const RouteSettings(name: '/profile'),
+        builder: (context) => page,
+        settings: RouteSettings(name: routeName),
       ),
     );
+  }
+
+  Future<void> _markAllNotificationsRead() async {
+    if (!mounted) return;
+    setState(() {
+      for (var i = 0; i < _notifications.length; i++) {
+        _notifications[i] = _notifications[i].copyWith(isRead: true);
+      }
+      _unreadNotifications = 0;
+    });
+  }
+
+  Future<void> _refreshUnreadMessages({bool notifyOnIncrease = false}) async {
+    final previousUnread = _unreadMessages;
+    final previousTracked = _lastUnreadMessages;
+    final baselineUnread = previousTracked > 0 ? previousTracked : previousUnread;
+
+    try {
+      final chats = await _messageRepository.getRecentChats();
+      final unread = chats.fold<int>(
+        0,
+        (sum, chat) => sum + _safeToInt(chat.unreadCount),
+      );
+      if (!mounted) return;
+      setState(() {
+        _unreadMessages = unread;
+        _lastUnreadMessages = unread;
+      });
+
+      if (notifyOnIncrease && unread > baselineUnread) {
+        final diff = unread - baselineUnread;
+        _appendNotification(
+          _DrawerNotificationItem(
+            title: 'Messages',
+            message: diff == 1
+                ? 'Vous avez 1 nouveau message non lu'
+                : 'Vous avez $diff nouveaux messages non lus',
+            createdAt: DateTime.now(),
+            isRead: false,
+          ),
+        );
+      }
+    } catch (_) {
+      // Keep existing badge value if fetch fails.
+    }
+  }
+
+  Future<void> _navigateToProfile() async {
+    await _openPage(const ProfileView(), '/profile');
+  }
+
+  Future<void> _navigateToCommunities() async {
+    await _openPage(const CommunityHubView(), '/communities');
+  }
+
+  Future<void> _navigateToCompanies() async {
+    await _openPage(const CompaniesView(), '/companies');
+  }
+
+  Future<void> _navigateToJobs() async {
+    await _openPage(const JobsView(), '/jobs');
+  }
+
+  Future<void> _navigateToMessages() async {
+    await _openPage(const ChatListView(), '/messages');
+    await _refreshUnreadMessages();
+  }
+
+  Future<void> _navigateToNetwork() async {
+    await _openPage(const ConnectionsView(), '/friends');
+  }
+
+  Future<void> _navigateToNotifications() async {
+    await _markAllNotificationsRead();
+    await _openPage(
+      _NotificationsView(notifications: _notifications),
+      '/notifications',
+    );
+  }
+
+  int _safeToInt(Object? value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    try {
+      return int.tryParse(value.toString()) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  String? _badgeValue(Object? rawCount) {
+    final count = _safeToInt(rawCount);
+    if (count <= 0) return null;
+    if (count > 99) return '99+';
+    return count.toString();
+  }
+
+  List<_DrawerMenuItemConfig> _mainMenuItems() {
+    return <_DrawerMenuItemConfig>[
+      const _DrawerMenuItemConfig(
+        title: 'Accueil',
+        icon: Icons.home,
+        routeName: '/',
+      ),
+      const _DrawerMenuItemConfig(
+        title: 'Explorer',
+        icon: Icons.explore,
+        routeName: '/discover',
+      ),
+      _DrawerMenuItemConfig(
+        title: 'Reseau',
+        icon: Icons.people,
+        routeName: '/friends',
+        onTap: _navigateToNetwork,
+      ),
+      _DrawerMenuItemConfig(
+        title: 'Communautés',
+        icon: Icons.public,
+        routeName: '/communities',
+        onTap: _navigateToCommunities,
+      ),
+      _DrawerMenuItemConfig(
+        title: 'Messages',
+        icon: Icons.message,
+        routeName: '/messages',
+        badge: _badgeValue(_unreadMessages),
+        onTap: _navigateToMessages,
+      ),
+      _DrawerMenuItemConfig(
+        title: 'Notifications',
+        icon: Icons.notifications,
+        routeName: '/notifications',
+        badge: _badgeValue(_unreadNotifications),
+        onTap: _navigateToNotifications,
+      ),
+    ];
   }
 
   @override
@@ -137,44 +363,15 @@ class _DrawerWigetState extends State<DrawerWiget> {
                 ),
               ),
             ),
-            _buildMenuItem(
-              context,
-              'Accueil',
-              Icons.home,
-              isActive: ModalRoute.of(context)?.settings.name == '/',
-            ),
-            _buildMenuItem(
-              context,
-              'Explorer',
-              Icons.explore,
-              isActive: ModalRoute.of(context)?.settings.name == '/discover',
-            ),
-            _buildMenuItem(
-              context,
-              'Amis',
-              Icons.people,
-              isActive: ModalRoute.of(context)?.settings.name == '/friends',
-            ),
-            _buildMenuItem(
-              context,
-              'Communautés',
-              Icons.public,
-              isActive: ModalRoute.of(context)?.settings.name == '/communities',
-            ),
-            _buildMenuItem(
-              context,
-              'Messages',
-              Icons.message,
-              isActive: ModalRoute.of(context)?.settings.name == '/messages',
-              badge: '3',
-            ),
-            _buildMenuItem(
-              context,
-              'Notifications',
-              Icons.notifications,
-              isActive:
-                  ModalRoute.of(context)?.settings.name == '/notifications',
-              badge: '12',
+            ..._mainMenuItems().map(
+              (item) => _buildMenuItem(
+                context,
+                item.title,
+                item.icon,
+                isActive: ModalRoute.of(context)?.settings.name == item.routeName,
+                badge: item.badge,
+                onTap: item.onTap,
+              ),
             ),
             const Divider(),
             // Professionnel
@@ -194,12 +391,14 @@ class _DrawerWigetState extends State<DrawerWiget> {
               'Entreprises',
               Icons.business,
               isActive: ModalRoute.of(context)?.settings.name == '/companies',
+              onTap: _navigateToCompanies,
             ),
             _buildMenuItem(
               context,
               'Offres d\'emploi',
               Icons.work,
               isActive: ModalRoute.of(context)?.settings.name == '/jobs',
+              onTap: _navigateToJobs,
             ),
             _buildMenuItem(
               context,
@@ -254,7 +453,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
                         ? ThemeMode.light
                         : ThemeMode.dark,
                   );
-                  Navigator.pop(context);
+                  _closeDrawerIfOpen();
                 },
               ),
             ),
@@ -328,7 +527,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
               ),
             )
           : null,
-      onTap: onTap ?? () {},
+      onTap: onTap,
     );
   }
 
@@ -443,5 +642,142 @@ class _DrawerWigetState extends State<DrawerWiget> {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return parts[0][0].toUpperCase();
+  }
+}
+
+class _DrawerMenuItemConfig {
+  final String title;
+  final IconData icon;
+  final String routeName;
+  final String? badge;
+  final VoidCallback? onTap;
+
+  const _DrawerMenuItemConfig({
+    required this.title,
+    required this.icon,
+    required this.routeName,
+    this.badge,
+    this.onTap,
+  });
+}
+
+class _DrawerNotificationItem {
+  final String title;
+  final String message;
+  final DateTime createdAt;
+  final bool isRead;
+
+  const _DrawerNotificationItem({
+    required this.title,
+    required this.message,
+    required this.createdAt,
+    required this.isRead,
+  });
+
+  factory _DrawerNotificationItem.fromPayload(Map<String, dynamic> payload) {
+    final title = _safeString(
+      payload['title'] ?? payload['type'],
+      fallback: 'Notification',
+    );
+    final message = _safeString(
+      payload['message'] ?? payload['content'] ?? payload['text'],
+      fallback: 'Nouvelle notification',
+    );
+    final rawDate = payload['createdAt'] ?? payload['date'] ?? payload['timestamp'];
+    DateTime? parsed;
+    if (rawDate != null) {
+      try {
+        parsed = DateTime.tryParse(rawDate.toString());
+      } catch (_) {
+        parsed = null;
+      }
+    }
+
+    return _DrawerNotificationItem(
+      title: title,
+      message: message,
+      createdAt: parsed ?? DateTime.now(),
+      isRead: false,
+    );
+  }
+
+  static String _safeString(
+    Object? value, {
+    required String fallback,
+  }) {
+    if (value == null) return fallback;
+    try {
+      final text = value.toString();
+      if (text.isEmpty || text == 'undefined' || text == 'null') {
+        return fallback;
+      }
+      return text;
+    } catch (_) {
+      return fallback;
+    }
+  }
+  _DrawerNotificationItem copyWith({
+    String? title,
+    String? message,
+    DateTime? createdAt,
+    bool? isRead,
+  }) {
+    return _DrawerNotificationItem(
+      title: title ?? this.title,
+      message: message ?? this.message,
+      createdAt: createdAt ?? this.createdAt,
+      isRead: isRead ?? this.isRead,
+    );
+  }
+}
+
+class _NotificationsView extends StatelessWidget {
+  final List<_DrawerNotificationItem> notifications;
+
+  const _NotificationsView({required this.notifications});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notifications'),
+      ),
+      body: notifications.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.notifications_none,
+                      size: 52, color: Colors.grey.shade400),
+                  const SizedBox(height: 10),
+                  const Text('Aucune notification pour le moment'),
+                ],
+              ),
+            )
+          : ListView.separated(
+              itemCount: notifications.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final item = notifications[index];
+                final created =
+                    '${item.createdAt.day.toString().padLeft(2, '0')}/${item.createdAt.month.toString().padLeft(2, '0')} ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
+
+                return ListTile(
+                  leading: Icon(
+                    item.isRead ? Icons.notifications_none : Icons.notifications_active,
+                    color: item.isRead ? Colors.grey : AppColors.primaryColor,
+                  ),
+                  title: Text(
+                    item.title,
+                    style: TextStyle(
+                      fontWeight: item.isRead ? FontWeight.w500 : FontWeight.w700,
+                    ),
+                  ),
+                  subtitle: Text('${item.message}\n$created'),
+                  isThreeLine: true,
+                );
+              },
+            ),
+    );
   }
 }
