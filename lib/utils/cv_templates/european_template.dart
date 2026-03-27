@@ -203,12 +203,10 @@ class EuropeanCvTemplate {
           decoration: pw.BoxDecoration(color: PdfColor.fromInt(0xFF4A6478), borderRadius: pw.BorderRadius.circular(2.5)),
           child: pw.Align(
             alignment: pw.Alignment.centerLeft,
-            child: pw.FractionallySizedBox(
-              widthFactor: percent,
-              child: pw.Container(
-                height: 5,
-                decoration: pw.BoxDecoration(color: _accentColor, borderRadius: pw.BorderRadius.circular(2.5)),
-              ),
+            child: pw.Container(
+              width: (_sidebarWidth - 32) * percent,
+              height: 5,
+              decoration: pw.BoxDecoration(color: _accentColor, borderRadius: pw.BorderRadius.circular(2.5)),
             ),
           ),
         ),

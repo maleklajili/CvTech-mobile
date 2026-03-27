@@ -12,10 +12,10 @@ class LatexCvTemplate {
   static Future<pw.Document> build({
     required Map<String, dynamic> sections,
   }) async {
-    final regular = await PdfGoogleFonts.ebGaramondRegular();
-    final bold = await PdfGoogleFonts.ebGaramondBold();
-    final italic = await PdfGoogleFonts.ebGaramondItalic();
-    final boldItalic = await PdfGoogleFonts.ebGaramondBoldItalic();
+    final regular = await PdfGoogleFonts.notoSerifRegular();
+    final bold = await PdfGoogleFonts.notoSerifBold();
+    final italic = await PdfGoogleFonts.notoSerifItalic();
+    final boldItalic = await PdfGoogleFonts.notoSerifBoldItalic();
 
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(base: regular, bold: bold, italic: italic, boldItalic: boldItalic),
