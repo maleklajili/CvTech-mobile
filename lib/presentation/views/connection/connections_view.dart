@@ -4,6 +4,7 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/utils/image_url_helper.dart';
 import 'package:cv_tech/data/models/connection/connection_model.dart';
 import 'package:cv_tech/presentation/views/chat/conversation_view.dart';
+import 'package:cv_tech/presentation/views/friend_group/friend_groups_view.dart';
 import 'package:cv_tech/presentation/views/profile/user_profile_view.dart';
 import 'package:cv_tech/presentation/views_models/connection/connection_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
@@ -59,7 +60,7 @@ class _ConnectionsBodyState extends State<_ConnectionsBody>
     return Scaffold(
       backgroundColor:
           isDark ? const Color(0xFF0F0F23) : const Color(0xFFF8FAFC),
-      appBar: _buildAppBar(vm, isDark),
+      appBar: _buildAppBar(context, vm, isDark),
       body: _isSearching
           ? _buildSearchResults(vm, isDark)
           : TabBarView(
@@ -74,7 +75,7 @@ class _ConnectionsBodyState extends State<_ConnectionsBody>
     );
   }
 
-  PreferredSizeWidget _buildAppBar(ConnectionViewModel vm, bool isDark) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, ConnectionViewModel vm, bool isDark) {
     return AppBar(
       title: _isSearching
           ? TextField(
@@ -96,8 +97,27 @@ class _ConnectionsBodyState extends State<_ConnectionsBody>
       backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
       foregroundColor: AppTheme.textColor,
       elevation: 0.5,
+      leading: Navigator.of(context).canPop()
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).maybePop(),
+            )
+          : null,
       automaticallyImplyLeading: false,
       actions: [
+        IconButton(
+          icon: const Icon(Icons.group_work_outlined),
+          tooltip: 'Groupes d\'amis',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const FriendGroupsView(),
+                settings: const RouteSettings(name: '/friends/groups'),
+              ),
+            );
+          },
+        ),
         IconButton(
           icon: Icon(_isSearching ? Icons.close : Icons.search),
           onPressed: () {
@@ -361,15 +381,35 @@ class _FriendsTab extends StatelessWidget {
         // Connection count
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '${vm.friends.length} connexion${vm.friends.length != 1 ? 's' : ''}',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textMutedColor),
-            ),
+          child: Row(
+            children: [
+              Text(
+                '${vm.friends.length} connexion${vm.friends.length != 1 ? 's' : ''}',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textMutedColor),
+              ),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FriendGroupsView(),
+                      settings: const RouteSettings(name: '/friends/groups'),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.groups_2_outlined, size: 16),
+                label: const Text('Groupes d\'amis'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
           ),
         ),
         // List

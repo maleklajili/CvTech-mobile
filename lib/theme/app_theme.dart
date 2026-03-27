@@ -10,11 +10,15 @@ import 'package:cv_tech/theme/custom_floating_action_buttom_theme.dart';
 import 'package:cv_tech/theme/custom_icon_button_theme.dart';
 import 'package:cv_tech/theme/custom_icon_theme.dart';
 import 'package:cv_tech/theme/custom_text_theme.dart';
-import '../app.dart';
 
 class AppTheme {
-  static bool get isLight =>
-      Theme.of(mainContext).brightness == Brightness.light;
+    static Brightness _currentBrightness = Brightness.light;
+
+    static void syncWithContext(BuildContext context) {
+        _currentBrightness = Theme.of(context).brightness;
+    }
+
+    static bool get isLight => _currentBrightness == Brightness.light;
 
   static Color get backgroundColor =>
       isLight ? AppColors.backgroundColor : AppColors.darkBackgroundColor;

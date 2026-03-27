@@ -7,6 +7,7 @@ class MessageUser {
   final String lastName;
   final String userName;
   final String? image;
+  final bool isOnline;
 
   const MessageUser({
     required this.id,
@@ -14,6 +15,7 @@ class MessageUser {
     required this.lastName,
     required this.userName,
     this.image,
+    this.isOnline = false,
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -21,12 +23,29 @@ class MessageUser {
   factory MessageUser.fromJson(Map<String, dynamic> json) {
     final id = json['_id']?.toString() ?? json['id']?.toString() ?? '';
     final rawImage = json['image']?.toString();
+    final dynamic onlineValue =
+        json['isOnline'] ?? json['online'] ?? json['isActive'] ?? json['active'];
+
+    bool onlineFromValue(dynamic value) {
+      if (value is bool) return value;
+      if (value is num) return value != 0;
+      if (value is String) {
+        final normalized = value.toLowerCase().trim();
+        return normalized == 'true' ||
+            normalized == '1' ||
+            normalized == 'online' ||
+            normalized == 'active';
+      }
+      return false;
+    }
+
     return MessageUser(
       id: id,
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
       userName: json['userName'] ?? '',
       image: ImageUrlHelper.getImageUrlSync(rawImage, id),
+      isOnline: onlineFromValue(onlineValue),
     );
   }
 
@@ -36,6 +55,7 @@ class MessageUser {
         'lastName': lastName,
         'userName': userName,
         'image': image,
+        'isOnline': isOnline,
       };
 }
 

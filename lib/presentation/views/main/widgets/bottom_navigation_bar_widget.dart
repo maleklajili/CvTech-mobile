@@ -17,33 +17,68 @@ class BottomNavigationBarWidget extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: viewModel.currentIndex,
       type: BottomNavigationBarType.fixed,
-      items: const [
+      items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home),
+          icon: const Icon(Icons.home),
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.people_outline_rounded),
+          icon: _buildIconWithBadge(
+            const Icon(Icons.people_outline_rounded),
+            viewModel.networkCount,
+          ),
           label: 'Réseau',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.description_outlined),
+          icon: const Icon(Icons.description_outlined),
           label: 'CV',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.menu_book_outlined),
-          label: 'Cours',
+          icon: const Icon(Icons.work_outline),
+          label: 'Offre d\'emploi',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.chat_bubble_outline_rounded),
-          label: 'Chat',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
+          icon: const Icon(Icons.person_outline),
           label: 'Profil',
         ),
       ],
       onTap: viewModel.changeCurrentIndex,
+    );
+  }
+
+  Widget _buildIconWithBadge(Widget icon, int count) {
+    if (count <= 0) {
+      return icon;
+    }
+
+    final label = count > 99 ? '99+' : count.toString();
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        icon,
+        Positioned(
+          right: -8,
+          top: -4,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+            decoration: const BoxDecoration(
+              color: Colors.red,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

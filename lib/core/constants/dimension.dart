@@ -1,9 +1,6 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
 
-// Project imports:
-import '../../app.dart';
-
 class Dimensions {
   Dimensions._();
 
@@ -120,7 +117,11 @@ class Dimensions {
   static EdgeInsets get verticalPaddingLarge =>
       const EdgeInsets.symmetric(vertical: paddingLargeVertical);
 
-  static final dpr = MediaQuery.of(mainContext).devicePixelRatio;
+  static double get dpr {
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    if (views.isEmpty) return 1.0;
+    return views.first.devicePixelRatio;
+  }
 
   /// SizedBox with height of 5
   static const heightSmall = SizedBox(height: s);

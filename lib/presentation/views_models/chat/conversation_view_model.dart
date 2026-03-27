@@ -25,6 +25,7 @@ class ConversationViewModel extends ChangeNotifier {
   String? _error;
   String? _currentUserId;
   bool _otherUserTyping = false;
+  bool _otherUserOnline = false;
 
   StreamSubscription? _messageSub;
   StreamSubscription? _typingSub;
@@ -38,6 +39,7 @@ class ConversationViewModel extends ChangeNotifier {
   String? get error => _error;
   String? get currentUserId => _currentUserId;
   bool get otherUserTyping => _otherUserTyping;
+  bool get otherUserOnline => _otherUserOnline;
 
   ConversationViewModel({
     required this.otherUserId,
@@ -63,6 +65,9 @@ class ConversationViewModel extends ChangeNotifier {
           final alreadyExists = _messages.any((m) => m.id == msg.id);
           if (!alreadyExists) {
             _messages.add(msg);
+            if (msg.sender.id == otherUserId && msg.sender.isOnline) {
+              _otherUserOnline = true;
+            }
             _safeNotify();
           }
           // Mark as read since we're in the conversation
@@ -81,6 +86,9 @@ class ConversationViewModel extends ChangeNotifier {
       final isTyping = data['isTyping'] == true;
       if (typingUserId == otherUserId) {
         _otherUserTyping = isTyping;
+        if (isTyping) {
+          _otherUserOnline = true;
+        }
         _safeNotify();
       }
     });
@@ -139,6 +147,10 @@ class ConversationViewModel extends ChangeNotifier {
 
     try {
       _messages = await _repo.getConversation(otherUserId);
+      final fromOther = _messages.where((m) => m.sender.id == otherUserId);
+      if (fromOther.isNotEmpty) {
+        _otherUserOnline = fromOther.last.sender.isOnline;
+      }
       _error = null;
     } catch (e) {
       _error = e.toString();

@@ -106,8 +106,37 @@ class UserRepository {
       throw Exception(
           response.data['error'] ?? 'Échec de la récupération du profil');
     } on DioException catch (e) {
+      if (_isTransientConnectionIssue(e)) {
+        try {
+          await _apiClient.refreshBaseUrl();
+          final retryResponse = await _apiClient.dio.get(ApiEndpoints.currentUser);
+
+          if (retryResponse.statusCode == 200) {
+            final data = retryResponse.data is Map && retryResponse.data.containsKey('data')
+                ? retryResponse.data['data'] as Map<String, dynamic>
+                : retryResponse.data as Map<String, dynamic>;
+
+            return UserModel.fromJson(data);
+          }
+        } on DioException catch (retryError) {
+          throw _handleDioError(retryError);
+        }
+      }
       throw _handleDioError(e);
     }
+  }
+
+  bool _isTransientConnectionIssue(DioException e) {
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionTimeout) {
+      return true;
+    }
+
+    final message = (e.message ?? '').toLowerCase();
+    return message.contains('connection closed before full header was received') ||
+        message.contains('httpexception') ||
+        message.contains('connection reset');
   }
 
   /// Récupérer un utilisateur par son ID
@@ -308,6 +337,11 @@ class UserRepository {
       case DioExceptionType.cancel:
         return Exception('Requête annulée');
       case DioExceptionType.connectionError:
+        final message = (e.message ?? '').toLowerCase();
+        if (message.contains('connection closed before full header was received')) {
+          return Exception(
+              'Connexion instable avec le serveur (ngrok). Réessayez dans quelques secondes.');
+        }
         return Exception('Aucune connexion internet');
       default:
         return Exception('Une erreur inattendue est survenue');

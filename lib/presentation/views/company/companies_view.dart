@@ -3152,6 +3152,7 @@ class _LocalJobApplication {
   final String cvName;
   final String? cvPath;
   final DateTime appliedAt;
+  final DateTime? interviewAt;
   final String status;
   final String? responseMessage;
 
@@ -3165,6 +3166,7 @@ class _LocalJobApplication {
     required this.cvName,
     this.cvPath,
     required this.appliedAt,
+    this.interviewAt,
     required this.status,
     this.responseMessage,
   });
@@ -3179,6 +3181,7 @@ class _LocalJobApplication {
     String? cvName,
     String? cvPath,
     DateTime? appliedAt,
+    DateTime? interviewAt,
     String? status,
     String? responseMessage,
   }) {
@@ -3192,6 +3195,7 @@ class _LocalJobApplication {
       cvName: cvName ?? this.cvName,
       cvPath: cvPath ?? this.cvPath,
       appliedAt: appliedAt ?? this.appliedAt,
+      interviewAt: interviewAt ?? this.interviewAt,
       status: status ?? this.status,
       responseMessage: responseMessage ?? this.responseMessage,
     );
@@ -3237,6 +3241,7 @@ class _JobDetailViewState extends State<_JobDetailView> {
   final UserRepository _userRepository = UserRepository();
   String _activeTab = 'details';
   late final List<_LocalJobApplication> _applications;
+  String _applicationStatusFilter = 'Toutes';
   OverlayEntry? _blockingLoaderEntry;
   bool _isLoadingApplications = false;
   bool _candidateInfoLoaded = false;
@@ -3394,6 +3399,50 @@ class _JobDetailViewState extends State<_JobDetailView> {
     return DateTime.now();
   }
 
+  DateTime? _parseInterviewDate(dynamic responseValue) {
+    if (responseValue == null) return null;
+    final raw = responseValue.toString().trim();
+    if (raw.isEmpty) return null;
+
+    const prefix = 'INTERVIEW_AT:';
+    if (raw.startsWith(prefix)) {
+      final iso = raw.substring(prefix.length).trim();
+      return DateTime.tryParse(iso);
+    }
+
+    return DateTime.tryParse(raw);
+  }
+
+  String _feedbackForInterview(DateTime dateTime) {
+    return 'INTERVIEW_AT:${dateTime.toIso8601String()}';
+  }
+
+  Future<DateTime?> _pickInterviewDateTime() async {
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 2),
+    );
+    if (pickedDate == null) return null;
+
+    if (!mounted) return null;
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+    );
+    if (pickedTime == null) return null;
+
+    return DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+  }
+
   Future<void> _loadOwnerApplications() async {
     final companyId = job.companyId?.trim();
     if (companyId == null || companyId.isEmpty) return;
@@ -3409,10 +3458,6 @@ class _JobDetailViewState extends State<_JobDetailView> {
 
       final currentJobId = job.id?.trim();
       final filtered = rawApplications.where((item) {
-        final rawStatus = _stringOrDefault(item['status'], '').toLowerCase();
-        if (rawStatus == 'accepted' || rawStatus == 'rejected') {
-          return false;
-        }
         if (currentJobId == null || currentJobId.isEmpty) return true;
         final itemJobId = _asObjectIdString(item['jobId']) ??
             _asObjectIdString(item['job']) ??
@@ -3467,6 +3512,7 @@ class _JobDetailViewState extends State<_JobDetailView> {
               ? null
               : _stringOrDefault(item['cvFilePath'] ?? item['cvPath'], ''),
           appliedAt: _parseDateOrNow(item['createdAt'] ?? item['appliedAt']),
+          interviewAt: _parseInterviewDate(item['response']),
           status: status,
           responseMessage: _stringOrDefault(item['response'], ''),
         );
@@ -3502,6 +3548,26 @@ class _JobDetailViewState extends State<_JobDetailView> {
     final id = job.id;
     if (id != null && id.isNotEmpty) return id;
     return '${job.companyId ?? 'company'}::${job.title}';
+  }
+
+  List<_LocalJobApplication> get _filteredApplications {
+    if (_applicationStatusFilter == 'Toutes') {
+      return _applications;
+    }
+    return _applications.where((app) {
+      switch (_applicationStatusFilter) {
+        case 'En attente':
+          return app.status == 'pending';
+        case 'Entretien':
+          return app.status == 'shortlisted' || app.status == 'viewed';
+        case 'Acceptée':
+          return app.status == 'accepted';
+        case 'Rejetée':
+          return app.status == 'rejected';
+        default:
+          return true;
+      }
+    }).toList();
   }
 
   void _syncApplicationsStore() {
@@ -3647,15 +3713,24 @@ class _JobDetailViewState extends State<_JobDetailView> {
     }
   }
 
-  Future<void> _updateApplicationStatus(_LocalJobApplication app, String status) async {
+  Future<void> _updateApplicationStatus(
+    _LocalJobApplication app,
+    String status, {
+    DateTime? interviewAt,
+  }) async {
     try {
       final ids = await _resolveApplicationIds(app, requireCompanyId: true);
       if (ids == null) return;
+
+      final feedback = status == 'shortlisted' && interviewAt != null
+          ? _feedbackForInterview(interviewAt)
+          : null;
 
       await _jobApplicationRepository.updateApplicationStatus(
         applicationId: ids.applicationId,
         companyId: ids.companyId!,
         status: status,
+        feedback: feedback,
       );
       final index = _applications.indexOf(app);
       if (index >= 0 && mounted) {
@@ -3664,6 +3739,8 @@ class _JobDetailViewState extends State<_JobDetailView> {
             applicationId: ids.applicationId,
             companyId: ids.companyId,
             status: status,
+            interviewAt: interviewAt,
+            responseMessage: feedback,
           );
           _syncApplicationsStore();
         });
@@ -3709,49 +3786,6 @@ class _JobDetailViewState extends State<_JobDetailView> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Retrait impossible: $e')),
-      );
-    }
-  }
-
-  Future<void> _respondToApplication(_LocalJobApplication app) async {
-    final message = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => const _ApplicationResponseDialog(),
-    );
-
-    if (message == null || message.isEmpty) return;
-
-    try {
-      final ids = await _resolveApplicationIds(app, requireCompanyId: true);
-      if (ids == null) return;
-
-      await _jobApplicationRepository.respondToApplication(
-        applicationId: ids.applicationId,
-        companyId: ids.companyId!,
-        response: message,
-      );
-      final index = _applications.indexOf(app);
-      if (index >= 0 && mounted) {
-        setState(() {
-          _applications[index] = app.copyWith(
-            applicationId: ids.applicationId,
-            companyId: ids.companyId,
-            responseMessage: message,
-          );
-          _syncApplicationsStore();
-        });
-      }
-      if (isOwner) {
-        await _loadOwnerApplications();
-      }
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reponse envoyee')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Envoi de reponse impossible: $e')),
       );
     }
   }
@@ -3921,10 +3955,10 @@ class _JobDetailViewState extends State<_JobDetailView> {
               _TagPill(label: 'Postule le ${_dateLabel(app.appliedAt)}'),
             ],
           ),
-          if (app.responseMessage != null && app.responseMessage!.isNotEmpty) ...[
+          if (app.interviewAt != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Reponse: ${app.responseMessage!}',
+              'Entretien le ${_dateLabel(app.interviewAt)}',
               style: TextStyle(color: AppTheme.textMutedColor),
             ),
           ],
@@ -3941,7 +3975,15 @@ class _JobDetailViewState extends State<_JobDetailView> {
                 ),
                 if (statusLabel == 'En attente' || statusLabel == 'En cours')
                   OutlinedButton(
-                    onPressed: () => _updateApplicationStatus(app, 'shortlisted'),
+                    onPressed: () async {
+                      final picked = await _pickInterviewDateTime();
+                      if (picked == null) return;
+                      await _updateApplicationStatus(
+                        app,
+                        'shortlisted',
+                        interviewAt: picked,
+                      );
+                    },
                     child: const Text('Entretien'),
                   ),
                 if (statusLabel == 'Entretien')
@@ -3954,10 +3996,6 @@ class _JobDetailViewState extends State<_JobDetailView> {
                     onPressed: () => _updateApplicationStatus(app, 'rejected'),
                     child: const Text('Refuser'),
                   ),
-                TextButton(
-                  onPressed: () => _respondToApplication(app),
-                  child: const Text('Repondre'),
-                ),
               ] else if (app.candidateEmail == _currentCandidateEmail)
                 TextButton(
                   onPressed: () => _withdrawApplication(app),
@@ -4157,6 +4195,45 @@ class _JobDetailViewState extends State<_JobDetailView> {
                     ],
                   ),
                   const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          'Toutes',
+                          'En attente',
+                          'Entretien',
+                          'Acceptée',
+                          'Rejetée',
+                        ]
+                            .map((status) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: FilterChip(
+                                    label: Text(status),
+                                    selected: _applicationStatusFilter == status,
+                                    onSelected: (selected) {
+                                      if (mounted) {
+                                        setState(() {
+                                          _applicationStatusFilter =
+                                              selected ? status : 'Toutes';
+                                        });
+                                      }
+                                    },
+                                    backgroundColor:
+                                        AppTheme.backgroundColor,
+                                    selectedColor: AppColors.primaryColor,
+                                    labelStyle: TextStyle(
+                                      color: _applicationStatusFilter == status
+                                          ? Colors.white
+                                          : AppTheme.textColor,
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ),
                   if (_isLoadingApplications)
                     const Center(
                       child: Padding(
@@ -4169,9 +4246,14 @@ class _JobDetailViewState extends State<_JobDetailView> {
                       'Aucune candidature pour le moment.',
                       style: TextStyle(color: AppTheme.textMutedColor),
                     )
+                  else if (_filteredApplications.isEmpty)
+                    Text(
+                      'Aucune candidature avec ce statut.',
+                      style: TextStyle(color: AppTheme.textMutedColor),
+                    )
                   else
                     Column(
-                      children: _applications
+                      children: _filteredApplications
                           .map((application) => _buildApplicationRow(application))
                           .toList(),
                     ),
@@ -4209,55 +4291,6 @@ class _ApplyJobSheet extends StatefulWidget {
 
   @override
   State<_ApplyJobSheet> createState() => _ApplyJobSheetState();
-}
-
-class _ApplicationResponseDialog extends StatefulWidget {
-  const _ApplicationResponseDialog();
-
-  @override
-  State<_ApplicationResponseDialog> createState() =>
-      _ApplicationResponseDialogState();
-}
-
-class _ApplicationResponseDialogState extends State<_ApplicationResponseDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Repondre a la candidature'),
-      content: TextField(
-        controller: _controller,
-        maxLines: 4,
-        decoration: const InputDecoration(
-          hintText: 'Votre message de reponse...',
-          border: OutlineInputBorder(),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Envoyer'),
-        ),
-      ],
-    );
-  }
 }
 
 class _ApplicationIdsResult {

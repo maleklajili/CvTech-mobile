@@ -44,66 +44,45 @@ class PostRepository {
   /// Récupérer les posts d'un utilisateur spécifique (pour profil)
   Future<List<PostModel>> getUserPosts(String userId, {int page = 1, int limit = 20}) async {
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiEndpoints.postByUser}$userId',
-        queryParameters: {'page': page, 'limit': limit},
+      final feedResponse = await _apiClient.dio.get(
+        ApiEndpoints.postFeed,
+        queryParameters: {
+          'filter': 'all',
+          'page': page,
+          'limit': 100,
+        },
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
+      if (feedResponse.statusCode == 200) {
+        final data = feedResponse.data;
         final postsData = data is Map && data.containsKey('posts')
             ? data['posts'] as List
             : data is Map && data.containsKey('data')
-                ? data['data'] as List
-                : data is List ? data : [];
+                ? (data['data'] is Map && data['data']['posts'] is List
+                    ? data['data']['posts'] as List
+                    : data['data'] is List
+                        ? data['data'] as List
+                        : <dynamic>[])
+                : data is List
+                    ? data
+                    : <dynamic>[];
 
         return postsData
-            .map((json) => PostModel.fromJson(json as Map<String, dynamic>))
+            .whereType<Map<String, dynamic>>()
+            .where((json) {
+              final author = json['userId'];
+              if (author is String) return author == userId;
+              if (author is Map<String, dynamic>) {
+                return author['_id']?.toString() == userId;
+              }
+              return false;
+            })
+            .map((json) => PostModel.fromJson(json))
             .toList();
       }
 
-      throw Exception(
-          response.data['error'] ?? 'Échec de la récupération des posts');
+      return <PostModel>[];
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        // Fallback when /posts/user/:id is not available in backend.
-        final feedResponse = await _apiClient.dio.get(
-          ApiEndpoints.postFeed,
-          queryParameters: {
-            'filter': 'all',
-            'page': page,
-            'limit': 100,
-          },
-        );
-
-        if (feedResponse.statusCode == 200) {
-          final data = feedResponse.data;
-          final postsData = data is Map && data.containsKey('posts')
-              ? data['posts'] as List
-              : data is Map && data.containsKey('data')
-                  ? (data['data'] is Map && data['data']['posts'] is List
-                      ? data['data']['posts'] as List
-                      : data['data'] is List
-                          ? data['data'] as List
-                          : <dynamic>[])
-                  : data is List
-                      ? data
-                      : <dynamic>[];
-
-          return postsData
-              .whereType<Map<String, dynamic>>()
-              .where((json) {
-                final author = json['userId'];
-                if (author is String) return author == userId;
-                if (author is Map<String, dynamic>) {
-                  return author['_id']?.toString() == userId;
-                }
-                return false;
-              })
-              .map((json) => PostModel.fromJson(json))
-              .toList();
-        }
-      }
       throw _handleDioError(e);
     }
   }

@@ -191,8 +191,19 @@ class AuthErrorHandler {
     if (lower.contains('no connection') ||
         lower.contains('aucune connexion') ||
         lower.contains('internet') ||
-        lower.contains('network')) {
+        lower.contains('network') ||
+        lower.contains('impossible de joindre le serveur') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('connection refused')) {
       return AuthErrorType.noConnection;
+    }
+
+    if (lower.contains('ssl') ||
+        lower.contains('tls') ||
+        lower.contains('certificate') ||
+        lower.contains('certificat') ||
+        lower.contains('handshake')) {
+      return AuthErrorType.serverError;
     }
     
     if (lower.contains('server error') ||

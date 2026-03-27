@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
@@ -9,6 +10,7 @@ import 'package:cv_tech/data/models/message/message_model.dart';
 import 'package:cv_tech/data/repositories/message_repository.dart';
 import 'package:cv_tech/presentation/views_models/chat/conversation_view_model.dart';
 import 'package:cv_tech/presentation/views/profile/user_profile_view.dart';
+import 'package:cv_tech/presentation/widgets/reddit_feedback_widgets.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class ConversationView extends StatelessWidget {
@@ -146,6 +148,47 @@ class _ConversationBodyState extends State<_ConversationBody> {
     _scrollToBottom();
   }
 
+  Future<void> _pickAndSendFile() async {
+    final vm = context.read<ConversationViewModel>();
+
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      withData: false,
+      type: FileType.custom,
+      allowedExtensions: <String>[
+        'pdf',
+        'doc',
+        'docx',
+        'ppt',
+        'pptx',
+        'xls',
+        'xlsx',
+        'txt',
+        'zip',
+      ],
+    );
+
+    final file = result?.files.single;
+    if (file == null || file.path == null || file.path!.isEmpty) {
+      return;
+    }
+
+    await vm.sendMedia(
+      filePath: file.path!,
+      type: 'document',
+      fileName: file.name,
+    );
+
+    if (mounted && vm.error != null) {
+      RedditToastService.show(
+        context,
+        message: vm.error!,
+        type: RedditToastType.error,
+      );
+    }
+    _scrollToBottom();
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ConversationViewModel>();
@@ -192,24 +235,47 @@ class _ConversationBodyState extends State<_ConversationBody> {
         ),
         child: Row(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primaryColor.withOpacity(0.15),
-            backgroundImage: resolvedOtherImage != null
-              ? NetworkImage(resolvedOtherImage)
-                : null,
-            child: resolvedOtherImage == null
-                ? Text(
-                    widget.otherUserName.isNotEmpty
-                        ? widget.otherUserName[0].toUpperCase()
-                        : '?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryColor,
-                      fontSize: 14,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primaryColor.withOpacity(0.15),
+                backgroundImage: resolvedOtherImage != null
+                  ? NetworkImage(resolvedOtherImage)
+                    : null,
+                child: resolvedOtherImage == null
+                    ? Text(
+                        widget.otherUserName.isNotEmpty
+                            ? widget.otherUserName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryColor,
+                          fontSize: 14,
+                        ),
+                      )
+                    : null,
+              ),
+              Positioned(
+                right: -1,
+                bottom: -1,
+                child: Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    color: vm.otherUserOnline
+                        ? const Color(0xFF22C55E)
+                        : (isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1)),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+                      width: 1.8,
                     ),
-                  )
-                : null,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -221,15 +287,19 @@ class _ConversationBodyState extends State<_ConversationBody> {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (vm.otherUserTyping)
-                  Text(
-                    'est en train d\'écrire...',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.primaryColor,
-                      fontStyle: FontStyle.italic,
-                    ),
+                Text(
+                  vm.otherUserTyping
+                      ? 'est en train d\'écrire...'
+                      : (vm.otherUserOnline ? 'En ligne' : 'Hors ligne'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: vm.otherUserTyping
+                        ? AppColors.primaryColor
+                        : AppTheme.textMutedColor,
+                    fontStyle:
+                        vm.otherUserTyping ? FontStyle.italic : FontStyle.normal,
                   ),
+                ),
               ],
             ),
           ),
@@ -346,33 +416,39 @@ class _ConversationBodyState extends State<_ConversationBody> {
               subtitle: const Text('Supprimer définitivement ce message'),
               onTap: () async {
                 Navigator.pop(context);
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    title: const Text('Supprimer le message ?'),
-                    content: const Text('Cette action est irréversible.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Annuler'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
+                bool confirm = false;
+                await showRedditAlert(
+                  context,
+                  title: 'Supprimer le message ?',
+                  body: 'Cette action est irréversible.',
+                  type: RedditAlertType.ban,
+                  confirmLabel: 'Supprimer',
+                  cancelLabel: 'Annuler',
+                  onConfirm: () => confirm = true,
                 );
-                if (confirm == true) {
+                if (confirm) {
                   // Use repository's hard delete
                   try {
                     await MessageRepository().deleteMessage(msg.id);
                     vm.messages.removeWhere((m) => m.id == msg.id);
                     // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
                     vm.notifyListeners();
+                    if (context.mounted) {
+                      RedditToastService.show(
+                        context,
+                        message: 'Message supprimé',
+                        type: RedditToastType.mod,
+                      );
+                    }
                   } catch (e) {
                     if (kDebugMode) print('Error deleting message: $e');
+                    if (context.mounted) {
+                      RedditToastService.show(
+                        context,
+                        message: 'Erreur lors de la suppression',
+                        type: RedditToastType.error,
+                      );
+                    }
                   }
                 }
               },
@@ -443,6 +519,12 @@ class _ConversationBodyState extends State<_ConversationBody> {
                 IconButton(
                   icon: Icon(Icons.image_outlined, color: AppColors.primaryColor, size: 24),
                   onPressed: _pickAndSendImage,
+                ),
+
+              if (!_isEditing)
+                IconButton(
+                  icon: Icon(Icons.attach_file_rounded, color: AppColors.primaryColor, size: 22),
+                  onPressed: _pickAndSendFile,
                 ),
 
               // Text field

@@ -95,6 +95,7 @@ class FeedPostModel extends BaseModel {
   final String content;
   final String type; // text, image, video, link, poll, gallery
   final String? communityId;
+  final String? communityName;
   final String? communityIcon;
   final String privacy;
   final List<PostMedia> media;
@@ -123,6 +124,7 @@ class FeedPostModel extends BaseModel {
     required this.content,
     this.type = 'text',
     this.communityId,
+    this.communityName,
     this.communityIcon,
     this.privacy = 'public',
     this.media = const [],
@@ -180,7 +182,45 @@ class FeedPostModel extends BaseModel {
     return null;
   }
 
+  static String? _parseCommunityId(dynamic community) {
+    if (community == null) return null;
+    if (community is String && community.trim().isNotEmpty) {
+      return community.trim();
+    }
+    if (community is Map<String, dynamic>) {
+      final id = community['_id'] ?? community['id'] ?? community[r'$oid'];
+      if (id != null) {
+        final parsed = id.toString().trim();
+        if (parsed.isNotEmpty) return parsed;
+      }
+    }
+    if (community is Map) {
+      final id = community['_id'] ?? community['id'] ?? community[r'$oid'];
+      if (id != null) {
+        final parsed = id.toString().trim();
+        if (parsed.isNotEmpty) return parsed;
+      }
+    }
+    return null;
+  }
+
+  static String? _parseCommunityName(dynamic community) {
+    if (community == null) return null;
+    if (community is String) return null;
+    if (community is Map<String, dynamic>) {
+      final name = (community['name'] ?? community['title'])?.toString().trim();
+      if (name != null && name.isNotEmpty) return name;
+    }
+    if (community is Map) {
+      final name = (community['name'] ?? community['title'])?.toString().trim();
+      if (name != null && name.isNotEmpty) return name;
+    }
+    return null;
+  }
+
   factory FeedPostModel.fromJson(Map<String, dynamic> json) {
+    final rawCommunity = json['community'];
+
     // Get author ID for constructing media URLs
     final authorId = json['userId'] is Map
         ? json['userId']['_id']?.toString()
@@ -270,7 +310,8 @@ class FeedPostModel extends BaseModel {
       title: json['title'] ?? '',
       content: json['content'] ?? '',
       type: json['type'] ?? 'text',
-      communityId: json['community']?.toString(),
+      communityId: _parseCommunityId(rawCommunity),
+      communityName: _parseCommunityName(rawCommunity),
       communityIcon: json['communityIcon'],
       privacy: json['privacy'] ?? 'public',
       media: mediaList,
@@ -334,6 +375,7 @@ class FeedPostModel extends BaseModel {
       content: content ?? this.content,
       type: type ?? this.type,
       communityId: communityId,
+      communityName: communityName,
       communityIcon: communityIcon,
       privacy: privacy,
       media: media,

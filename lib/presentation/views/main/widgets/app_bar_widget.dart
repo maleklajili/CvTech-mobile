@@ -1,14 +1,17 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
 
+// Package imports:
+import 'package:provider/provider.dart';
+
 // Project imports:
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/constants/app_strings.dart';
 import 'package:cv_tech/core/constants/dimension.dart';
-import 'package:cv_tech/core/utils/navigator_utils.dart';
-import 'package:cv_tech/presentation/views/profile/profile_view.dart';
+import 'package:cv_tech/presentation/views/chat/chat_list_view.dart';
 import 'package:cv_tech/presentation/views/profile/user_search_view.dart';
 import 'package:cv_tech/presentation/views_models/main/app_bar_view_model.dart';
+import 'package:cv_tech/presentation/views_models/main/bottom_navigation_bar_view_model.dart';
 
 class AppBarWidget extends StatelessWidget {
   final AppBarViewModel viewModel;
@@ -20,6 +23,8 @@ class AppBarWidget extends StatelessWidget {
   }
 
   AppBar _buildAppBarWidget(BuildContext context) {
+    final bottomNavViewModel = context.watch<BottomNavigationBarViewModel>();
+
     return AppBar(
       title: const Text(
         AppStrings.appName,
@@ -49,71 +54,18 @@ class AppBarWidget extends StatelessWidget {
           children: [
             IconButton(
               icon: const Icon(
-                Icons.people_outline,
-                weight: 100,
-              ),
-              onPressed: () {},
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                padding: const EdgeInsets.all(1),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryColor,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 14,
-                  minHeight: 14,
-                ),
-                child: const Text(
-                  '99',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ],
-        ),
-        Dimensions.widthMedium,
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(
                 Icons.chat_outlined,
                 weight: 100,
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChatListView()),
+                );
+              },
             ),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                padding: const EdgeInsets.all(1),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryColor,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 14,
-                  minHeight: 14,
-                ),
-                child: const Text(
-                  '24',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
+            if (bottomNavViewModel.unreadMessages > 0)
+              _buildBadge(bottomNavViewModel.unreadMessages),
           ],
         ),
         Dimensions.widthMedium,
@@ -124,38 +76,21 @@ class AppBarWidget extends StatelessWidget {
                 Icons.notifications_outlined,
                 weight: 100,
               ),
-              onPressed: () {},
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                padding: const EdgeInsets.all(1),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryColor,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 14,
-                  minHeight: 14,
-                ),
-                child: const Text(
-                  '12',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Notifications disponibles dans le menu latéral'),
+                    duration: Duration(seconds: 2),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),
         Dimensions.widthMedium,
         GestureDetector(
           onTap: () {
-            navigateTo(context, const ProfileView());
+            bottomNavViewModel.changeCurrentIndex(4);
           },
           child: Container(
             width: 30,
@@ -168,6 +103,35 @@ class AppBarWidget extends StatelessWidget {
         ),
         const SizedBox(width: 16),
       ],
+    );
+  }
+
+  Widget _buildBadge(int value) {
+    final label = value > 99 ? '99+' : value.toString();
+
+    return Positioned(
+      right: 0,
+      top: 0,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        decoration: const BoxDecoration(
+          color: AppColors.primaryColor,
+          shape: BoxShape.circle,
+        ),
+        constraints: const BoxConstraints(
+          minWidth: 14,
+          minHeight: 14,
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }

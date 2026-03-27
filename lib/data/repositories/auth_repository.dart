@@ -40,6 +40,9 @@ class AuthRepository {
   /// Login with email/username and password
   Future<AuthResponse> login(LoginRequest request) async {
     try {
+      // Ensure latest backend URL is applied before authentication call.
+      await _apiClient.refreshBaseUrl();
+
       // Nettoyer les tokens existants avant le login pour éviter les interférences
       await _apiClient.clearTokens();
       
@@ -269,6 +272,9 @@ class AuthRepository {
       case DioExceptionType.receiveTimeout:
         return Exception(
             'Délai de connexion dépassé. Vérifiez votre connexion internet.');
+      case DioExceptionType.badCertificate:
+        return Exception(
+            'Connexion sécurisée impossible (certificat SSL invalide). Vérifiez l\'URL du backend.');
       case DioExceptionType.badResponse:
         // Extraire le message d'erreur proprement du format backend
         // Format backend: { "success": false, "error": { "message": "..." }, "timestamp": "..." }
@@ -302,6 +308,30 @@ class AuthRepository {
         return Exception('Requête annulée');
       case DioExceptionType.connectionError:
         return Exception('Aucune connexion internet');
+      case DioExceptionType.unknown:
+        final details = [
+          if (e.message != null && e.message!.trim().isNotEmpty) e.message!.trim(),
+          if (e.error != null) e.error.toString(),
+        ].join(' | ');
+
+        final lower = details.toLowerCase();
+        if (lower.contains('certificate') ||
+            lower.contains('handshake') ||
+            lower.contains('ssl') ||
+            lower.contains('tls')) {
+          return Exception(
+              'Connexion sécurisée impossible (SSL/TLS). Vérifiez l\'URL du backend ou le certificat.');
+        }
+        if (lower.contains('socketexception') ||
+            lower.contains('failed host lookup') ||
+            lower.contains('connection refused') ||
+            lower.contains('network is unreachable')) {
+          return Exception(
+              'Impossible de joindre le serveur. Vérifiez que le backend est démarré et l\'URL est correcte.');
+        }
+
+        return Exception(
+            'Erreur réseau inattendue. Vérifiez la connexion et la configuration backend.');
       default:
         return Exception('Une erreur inattendue est survenue');
     }

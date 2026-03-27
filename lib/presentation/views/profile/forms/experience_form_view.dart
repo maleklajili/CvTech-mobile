@@ -464,12 +464,15 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year}',
-                            style: const TextStyle(fontSize: 16),
+                          Expanded(
+                            child: Text(
+                              '${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year}',
+                              style: const TextStyle(fontSize: 16),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
                         ],
                       ),
@@ -503,19 +506,22 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
                         color: _currentPost ? Colors.grey.shade50 : null,
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            _currentPost
-                                ? 'En cours'
-                                : _endDate != null
-                                    ? '${_endDate!.month.toString().padLeft(2, '0')}/${_endDate!.year}'
-                                    : 'Sélectionner',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: _currentPost ? Colors.grey.shade400 : Colors.black87,
+                          Expanded(
+                            child: Text(
+                              _currentPost
+                                  ? 'En cours'
+                                  : _endDate != null
+                                      ? '${_endDate!.month.toString().padLeft(2, '0')}/${_endDate!.year}'
+                                      : 'Sélectionner',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _currentPost ? Colors.grey.shade400 : Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Icon(
                             Icons.calendar_today,
                             size: 20,

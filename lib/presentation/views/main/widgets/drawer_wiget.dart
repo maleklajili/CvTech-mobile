@@ -19,6 +19,8 @@ import 'package:cv_tech/presentation/views/community/community_hub_view.dart';
 import 'package:cv_tech/presentation/views/company/companies_view.dart';
 import 'package:cv_tech/presentation/views/connection/connections_view.dart';
 import 'package:cv_tech/presentation/views/job/jobs_view.dart';
+import 'package:cv_tech/presentation/views/main/settings_view.dart';
+import 'package:cv_tech/presentation/views/main/trends_explore_view.dart';
 import 'package:cv_tech/presentation/views/profile/profile_view.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
 import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
@@ -214,6 +216,14 @@ class _DrawerWigetState extends State<DrawerWiget> {
     await _openPage(const JobsView(), '/jobs');
   }
 
+  Future<void> _navigateToTrends() async {
+    await _openPage(const TrendsExploreView(), '/trends');
+  }
+
+  Future<void> _navigateToSettings() async {
+    await _openPage(const SettingsView(), '/settings');
+  }
+
   Future<void> _navigateToMessages() async {
     await _openPage(const ChatListView(), '/messages');
     await _refreshUnreadMessages();
@@ -257,10 +267,11 @@ class _DrawerWigetState extends State<DrawerWiget> {
         icon: Icons.home,
         routeName: '/',
       ),
-      const _DrawerMenuItemConfig(
+      _DrawerMenuItemConfig(
         title: 'Explorer',
         icon: Icons.explore,
-        routeName: '/discover',
+        routeName: '/trends',
+        onTap: _navigateToTrends,
       ),
       _DrawerMenuItemConfig(
         title: 'Reseau',
@@ -405,6 +416,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
               'Tendances pro',
               Icons.trending_up,
               isActive: ModalRoute.of(context)?.settings.name == '/trends',
+              onTap: _navigateToTrends,
             ),
             const Divider(),
             // Utilisateur
@@ -437,6 +449,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
               'Paramètres',
               Icons.settings,
               isActive: ModalRoute.of(context)?.settings.name == '/settings',
+              onTap: _navigateToSettings,
             ),
             const Divider(),
             // Thème

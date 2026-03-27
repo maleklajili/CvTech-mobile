@@ -10,8 +10,15 @@ import 'package:cv_tech/theme/app_theme.dart';
 /// Page de création / édition d'un post (style LinkedIn)
 class CreatePostView extends StatefulWidget {
   final FeedPostModel? post; // null = création, non-null = édition
+  final String? communityId;
+  final String? communityTitle;
 
-  const CreatePostView({super.key, this.post});
+  const CreatePostView({
+    super.key,
+    this.post,
+    this.communityId,
+    this.communityTitle,
+  });
 
   @override
   State<CreatePostView> createState() => _CreatePostViewState();
@@ -114,6 +121,7 @@ class _CreatePostViewState extends State<CreatePostView> {
       success = await viewModel.createPost(
         title: title,
         content: content,
+        communityId: widget.communityId,
         tags: _tags.isEmpty ? null : _tags,
         imageBytes: _selectedImageBytes,
         imageName: _selectedImageName,
@@ -127,7 +135,13 @@ class _CreatePostViewState extends State<CreatePostView> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditing ? 'Post modifié' : 'Post publié'),
+            content: Text(
+              isEditing
+                  ? 'Post modifie'
+                  : (widget.communityId != null
+                      ? 'Post publie dans la communaute'
+                      : 'Post publie'),
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -146,7 +160,13 @@ class _CreatePostViewState extends State<CreatePostView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Modifier le post' : 'Créer un post'),
+        title: Text(
+          isEditing
+              ? 'Modifier le post'
+              : (widget.communityTitle != null && widget.communityTitle!.isNotEmpty
+                  ? 'Publier dans ${widget.communityTitle}'
+                  : 'Creer un post'),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -249,6 +269,32 @@ class _CreatePostViewState extends State<CreatePostView> {
               ),
             const SizedBox(height: 16),
             // Tags
+            if (!isEditing && widget.communityTitle != null && widget.communityTitle!.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F8FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFCFE7FF)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.groups_2_outlined, size: 16, color: AppColors.primaryColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Communaute ciblee: ${widget.communityTitle}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (_tags.isNotEmpty)
               Wrap(
                 spacing: 8,

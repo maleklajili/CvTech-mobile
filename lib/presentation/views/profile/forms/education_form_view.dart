@@ -606,12 +606,16 @@ class _EducationFormViewState extends State<EducationFormView> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year}',
-                            style: const TextStyle(fontSize: 16),
+                          Expanded(
+                            child: Text(
+                              '${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year}',
+                              style: const TextStyle(fontSize: 16),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
                         ],
                       ),
@@ -645,19 +649,23 @@ class _EducationFormViewState extends State<EducationFormView> {
                         color: _currentlyStudying ? Colors.grey.shade50 : null,
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            _currentlyStudying
-                                ? 'En cours'
-                                : _endDate != null
-                                    ? '${_endDate!.month.toString().padLeft(2, '0')}/${_endDate!.year}'
-                                    : 'Sélectionner',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: _currentlyStudying ? Colors.grey.shade400 : Colors.black87,
+                          Expanded(
+                            child: Text(
+                              _currentlyStudying
+                                  ? 'En cours'
+                                  : _endDate != null
+                                      ? '${_endDate!.month.toString().padLeft(2, '0')}/${_endDate!.year}'
+                                      : 'Sélectionner',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _currentlyStudying ? Colors.grey.shade400 : Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Icon(
                             Icons.calendar_today,
                             size: 20,

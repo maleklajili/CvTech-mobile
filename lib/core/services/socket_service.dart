@@ -9,6 +9,7 @@ class SocketService {
   static SocketService? _instance;
   io.Socket? _socket;
   bool _isConnected = false;
+  bool _disabledForSession = false;
   final Set<String> _pendingPostRooms = <String>{};
 
   // Stream controllers pour les événements
@@ -35,6 +36,13 @@ class SocketService {
 
   SocketService._internal();
 
+  bool _shouldDisableHostedSocket(dynamic error) {
+    final msg = error.toString().toLowerCase();
+    return msg.contains('404') ||
+        msg.contains('not upgraded') ||
+        msg.contains('websocketexception');
+  }
+
   static SocketService get instance {
     _instance ??= SocketService._internal();
     return _instance!;
@@ -42,6 +50,7 @@ class SocketService {
 
   /// Initialiser la connexion Socket.IO
   Future<void> connect() async {
+    if (_disabledForSession) return;
     if (_isConnected && _socket != null) return;
 
     try {
@@ -54,19 +63,24 @@ class SocketService {
       // Construire l'URL socket (port séparé du backend API)
       final backendUrl = await NetworkConfig.getBackendUrl();
       final uri = Uri.parse(backendUrl);
-      final socketPort = NetworkConfig.defaultSocketPort;
-      final socketUrl = '${uri.scheme}://${uri.host}:$socketPort';
-
-      // Chrome bloque localhost:6000 sur le web (ERR_UNSAFE_PORT).
-      // On évite la tentative de connexion et on laisse les vues utiliser leur fallback HTTP.
+      const configuredSocketPort = NetworkConfig.defaultSocketPort;
+      final isLocalHost = uri.host == 'localhost' ||
+          uri.host == '127.0.0.1' ||
+          uri.host == '10.0.2.2';
       final isUnsafeWebLocalhost = kIsWeb &&
-          socketPort == '6000' &&
-          (uri.host == 'localhost' || uri.host == '127.0.0.1');
-      if (isUnsafeWebLocalhost) {
-        if (kDebugMode) {
-          print('⚠️ [Socket] Skipped on web: localhost:6000 is an unsafe port');
-        }
-        return;
+          configuredSocketPort == '6000' &&
+          isLocalHost;
+
+      final socketPort = isUnsafeWebLocalhost ? '6001' : configuredSocketPort;
+        final normalizedPort = uri.port > 0
+          ? ':${uri.port}'
+          : (uri.scheme == 'https' ? ':443' : ':80');
+      final socketUrl = isLocalHost
+          ? '${uri.scheme}://${uri.host}:$socketPort'
+          : '${uri.scheme}://${uri.host}$normalizedPort';
+
+      if (isUnsafeWebLocalhost && kDebugMode) {
+        print('⚠️ [Socket] localhost:6000 is unsafe on web, using 6001');
       }
 
       if (kDebugMode) print('🔌 [Socket] Connecting to $socketUrl');
@@ -76,8 +90,8 @@ class SocketService {
         'autoConnect': false,
         'path': '/socket.io/',
         'auth': {'token': token},
-        'reconnection': true,
-        'reconnectionAttempts': 10,
+        'reconnection': isLocalHost,
+        'reconnectionAttempts': isLocalHost ? 10 : 0,
         'reconnectionDelay': 1000,
         'reconnectionDelayMax': 5000,
       });
@@ -103,6 +117,24 @@ class SocketService {
 
       _socket!.onError((error) {
         if (kDebugMode) print('❌ [Socket] Error: $error');
+        if (!isLocalHost && _shouldDisableHostedSocket(error)) {
+          _disabledForSession = true;
+          disconnect();
+          if (kDebugMode) {
+            print('⚠️ [Socket] Disabled for this session: hosted endpoint unavailable');
+          }
+        }
+      });
+
+      _socket!.onConnectError((error) {
+        if (kDebugMode) print('❌ [Socket] Connect error: $error');
+        if (!isLocalHost && _shouldDisableHostedSocket(error)) {
+          _disabledForSession = true;
+          disconnect();
+          if (kDebugMode) {
+            print('⚠️ [Socket] Disabled for this session: hosted endpoint unavailable');
+          }
+        }
       });
 
       // Écouter les événements de commentaires

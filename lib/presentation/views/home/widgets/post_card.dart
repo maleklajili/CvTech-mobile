@@ -37,34 +37,34 @@ class PostCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Community and author info
-                      _buildDisplayOwnerPost(),
-                      const SizedBox(height: 8),
-                      // Post title
-                      _buildTitlePost(context),
-                      // Post image if available
-                      if (post.hasImage) ...[
-                        const SizedBox(height: 8),
-                        _buildImagePost(),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // Post actions
-          _buildActionPost()
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDisplayOwnerPost() {
-    return Row(
-      children: [
-        Expanded(
-          child: Text.rich(
+                      Widget _buildDisplayOwnerPost() {
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: Text.rich(
+                                TextSpan(children: [
+                                  TextSpan(
+                                    text: post.author,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: AppTheme.textColor,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: ' • ${post.timeAgo}',
+                                    style: TextStyle(
+                                      color: AppTheme.textMutedColor,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ]),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
             TextSpan(children: [
               TextSpan(
                 text: post.author,
@@ -131,7 +131,7 @@ class PostCard extends StatelessWidget {
                 '${post.commentCount} comments',
                 style: TextStyle(
                   color: AppTheme.textMutedColor,
-                  fontSize: 12,
+                  fontSize: 17, // +5px
                 ),
               ),
               style: TextButton.styleFrom(

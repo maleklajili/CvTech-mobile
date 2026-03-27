@@ -98,8 +98,7 @@ class CompanyRepository {
   /// Créer une nouvelle entreprise
   Future<CompanyModel> create(CompanyModel company) async {
     try {
-      final map = company.toJson();
-      final formData = FormData.fromMap(map);
+      final formData = _toCompanyFormData(company);
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.companyCreate,
@@ -123,8 +122,7 @@ class CompanyRepository {
   /// Mettre à jour une entreprise
   Future<CompanyModel> update(String id, CompanyModel company) async {
     try {
-      final map = company.toJson();
-      final formData = FormData.fromMap(map);
+      final formData = _toCompanyFormData(company);
 
       final response = await _apiClient.dio.put(
         '${ApiEndpoints.companyUpdate}$id',
@@ -162,11 +160,69 @@ class CompanyRepository {
 
   Exception _handleDioError(DioException error) {
     if (error.response?.data != null) {
-      final message = error.response!.data['message'] ?? 
-                     error.response!.data['error'] ?? 
-                     'Une erreur est survenue';
-      return Exception(message);
+      final data = error.response!.data;
+      if (data is Map<String, dynamic>) {
+        final message = data['message'] ?? data['error'] ?? 'Une erreur est survenue';
+        return Exception(message.toString());
+      }
+      return Exception(data.toString());
     }
     return Exception(error.message ?? 'Erreur de connexion');
+  }
+
+  FormData _toCompanyFormData(CompanyModel company) {
+    final formData = FormData();
+
+    formData.fields
+      ..add(MapEntry('name', company.name))
+      ..add(MapEntry('industry', company.industry))
+      ..add(MapEntry('description', company.description))
+      ..add(MapEntry('website', (company.website ?? '').trim()))
+      ..add(MapEntry('location', (company.location ?? '').trim()))
+      ..add(MapEntry('status', company.status.name));
+
+    if ((company.shortDescription ?? '').trim().isNotEmpty) {
+      formData.fields.add(MapEntry('shortDescription', company.shortDescription!.trim()));
+    }
+    if (company.foundedYear != null) {
+      formData.fields.add(MapEntry('foundedYear', company.foundedYear.toString()));
+    }
+    if ((company.size ?? '').trim().isNotEmpty) {
+      formData.fields.add(MapEntry('size', company.size!.trim()));
+    }
+    if ((company.address ?? '').trim().isNotEmpty) {
+      formData.fields.add(MapEntry('address', company.address!.trim()));
+    }
+    if ((company.phone ?? '').trim().isNotEmpty) {
+      formData.fields.add(MapEntry('phone', company.phone!.trim()));
+    }
+    if ((company.email ?? '').trim().isNotEmpty) {
+      formData.fields.add(MapEntry('email', company.email!.trim()));
+    }
+
+    final social = company.socialMedia;
+    if (social != null) {
+      if ((social.linkedin ?? '').trim().isNotEmpty) {
+        formData.fields.add(MapEntry('socialMedia.linkedin', social.linkedin!.trim()));
+      }
+      if ((social.twitter ?? '').trim().isNotEmpty) {
+        formData.fields.add(MapEntry('socialMedia.twitter', social.twitter!.trim()));
+      }
+      if ((social.facebook ?? '').trim().isNotEmpty) {
+        formData.fields.add(MapEntry('socialMedia.facebook', social.facebook!.trim()));
+      }
+      if ((social.instagram ?? '').trim().isNotEmpty) {
+        formData.fields.add(MapEntry('socialMedia.instagram', social.instagram!.trim()));
+      }
+    }
+
+    for (var i = 0; i < company.keywords.length; i++) {
+      final keyword = company.keywords[i].trim();
+      if (keyword.isNotEmpty) {
+        formData.fields.add(MapEntry('keywords[$i]', keyword));
+      }
+    }
+
+    return formData;
   }
 }

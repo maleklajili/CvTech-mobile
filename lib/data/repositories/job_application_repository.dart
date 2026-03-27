@@ -138,12 +138,18 @@ class JobApplicationRepository {
     required String applicationId,
     required String companyId,
     required String status,
+    String? feedback,
   }) async {
     try {
+      final payload = <String, dynamic>{'status': status};
+      if (feedback != null && feedback.trim().isNotEmpty) {
+        payload['feedback'] = feedback.trim();
+      }
+
       await _apiClient.dio.put(
         '${ApiEndpoints.jobApplication}$applicationId/status',
         queryParameters: {'companyId': companyId},
-        data: {'status': status},
+        data: payload,
       );
     } on DioException catch (e) {
       throw _handleDioError(e);

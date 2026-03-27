@@ -75,6 +75,10 @@ class ApiEndpoints {
   static const String jobMyJobs = '$job/my-jobs';
   static const String jobToggleStatus = '$job/toggle-status/'; // + :id
   static const String jobFeature = '$job/feature/'; // + :id
+
+  // Job application endpoints
+  static const String jobApplications = '/job-applications';
+  static const String jobApplication = '$jobApplications/'; // + :applicationId
   
   // Transaction endpoints
   static const String transaction = '/transactions';
@@ -184,4 +188,20 @@ class ApiEndpoints {
   static const String userSearch = '$users/search'; // GET ?q= (global user search)
   static const String userStats = '$users/stats'; // GET current user stats
   static const String mutualFriends = '$users/mutual-friends/'; // + :userId (GET)
+  
+  // Friend Group endpoints
+  static const String friendGroups = '/friend-groups';
+  static const String friendGroupCreate = '$friendGroups/create'; // POST
+  static const String friendGroupGetAll = '$friendGroups'; // GET
+  static const String friendGroupById = '$friendGroups/'; // + :groupId (GET, PUT, DELETE)
+  static const String friendGroupAddMembers = '$friendGroups/'; // + :groupId/add-members (POST)
+  static const String friendGroupRemoveMembers = '$friendGroups/'; // + :groupId/remove-members (DELETE)
+  static const String friendGroupSearch = '$friendGroups/search/'; // + :query (GET)
+
+  // AI CV endpoints
+  static const String aiCv = '/ai-cv';
+  static const String aiCvGenerate = '$aiCv/generate';
+  static const String aiCvReformulate = '$aiCv/reformulate/'; // + :id
+  static const String aiCvMyCvs = '$aiCv/my-cvs';
+  static const String aiCvDelete = '$aiCv/delete/'; // + :id
 }

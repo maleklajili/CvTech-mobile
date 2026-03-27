@@ -129,12 +129,34 @@ class CompanyModel {
   }) : stats = stats ?? CompanyStats();
 
   factory CompanyModel.fromJson(Map<String, dynamic> json) {
+    final rawKeywords = json['keywords'];
+    final parsedKeywords = rawKeywords is List
+        ? rawKeywords
+            .where((e) => e != null)
+            .map((e) => e.toString())
+            .toList()
+        : <String>[];
+
+    final rawVerificationDocuments = json['verificationDocuments'];
+    final parsedVerificationDocuments = rawVerificationDocuments is List
+        ? rawVerificationDocuments
+            .where((e) => e != null)
+            .map((e) {
+              if (e is Map<String, dynamic>) {
+                return (e['file'] ?? e['name'] ?? '').toString();
+              }
+              return e.toString();
+            })
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : null;
+
     return CompanyModel(
       id: json['_id'] ?? json['id'],
-      userId: json['userId'] ?? '',
-      name: json['name'] ?? '',
-      industry: json['industry'] ?? '',
-      description: json['description'] ?? '',
+      userId: (json['userId'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      industry: (json['industry'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
       shortDescription: json['shortDescription'],
       website: json['website'],
       foundedYear: json['foundedYear'],
@@ -148,15 +170,11 @@ class CompanyModel {
       socialMedia: json['socialMedia'] != null
           ? SocialMedia.fromJson(json['socialMedia'])
           : null,
-      keywords: json['keywords'] != null
-          ? List<String>.from(json['keywords'])
-          : [],
+        keywords: parsedKeywords,
       status: _statusFromString(json['status']),
       verified: json['verified'] ?? false,
       verificationStatus: _verificationStatusFromString(json['verificationStatus']),
-      verificationDocuments: json['verificationDocuments'] != null
-          ? List<String>.from(json['verificationDocuments'])
-          : null,
+        verificationDocuments: parsedVerificationDocuments,
       verificationNotes: json['verificationNotes'],
       stats: json['stats'] != null
           ? CompanyStats.fromJson(json['stats'])

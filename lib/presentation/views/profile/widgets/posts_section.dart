@@ -6,12 +6,12 @@ import 'package:provider/provider.dart';
 
 // Project imports:
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/presentation/views/feed/create_post_view.dart';
 import 'package:cv_tech/presentation/views/feed/post_detail_view.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
-import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 /// Section Posts dans le profil - Affiche les publications de l'utilisateur
@@ -36,117 +36,110 @@ class _PostsSectionContent extends StatefulWidget {
 }
 
 class _PostsSectionContentState extends State<_PostsSectionContent> {
+  String? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    ApiClient().getUserId().then((id) {
+      if (mounted) setState(() => _currentUserId = id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final profileViewModel = context.read<ProfileViewModel>();
-    final currentUserId = profileViewModel.user?.id;
+    final currentUserId = _currentUserId;
 
     return Consumer<FeedViewModel>(
       builder: (context, vm, child) {
-        return RefreshIndicator(
-          onRefresh: () => vm.refreshFeed(),
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              // Header avec statistiques et bouton Publier
-              SliverToBoxAdapter(
-                child: _buildHeader(context, vm),
-              ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header avec statistiques et bouton Publier
+            _buildHeader(context, vm),
 
-              // Liste des posts
-              if (vm.state == FeedState.loading && vm.posts.isEmpty)
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (vm.state == FeedState.error && vm.posts.isEmpty)
-                SliverFillRemaining(
-                  child: _buildErrorState(context, vm),
-                )
-              else if (vm.posts.isEmpty && vm.state == FeedState.loaded)
-                SliverFillRemaining(
-                  child: _buildEmptyState(context, vm),
-                )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final post = vm.posts[index];
-                      return FeedPostCard(
-                        post: post,
-                        currentUserId: currentUserId,
-                        showSharedBadge: true,
-                        sharedByUserId: currentUserId,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChangeNotifierProvider.value(
-                              value: vm,
-                              child: PostDetailView(post: post),
+            // Liste des posts
+            if (vm.state == FeedState.loading && vm.posts.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (vm.state == FeedState.error && vm.posts.isEmpty)
+              _buildErrorState(context, vm)
+            else if (vm.posts.isEmpty && vm.state == FeedState.loaded)
+              _buildEmptyState(context, vm)
+            else
+              ...vm.posts.map((post) => FeedPostCard(
+                    post: post,
+                    currentUserId: currentUserId,
+                    showSharedBadge: true,
+                    sharedByUserId: currentUserId,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider.value(
+                          value: vm,
+                          child: PostDetailView(post: post),
+                        ),
+                      ),
+                    ).then((_) => vm.syncPostById(post.id!)),
+                    onLike: () => vm.likePost(post.id!),
+                    onReaction: (type) => vm.reactToPost(post.id!, type),
+                    onComment: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider.value(
+                          value: vm,
+                          child: PostDetailView(
+                              post: post, focusComment: true),
+                        ),
+                      ),
+                    ).then((_) => vm.syncPostById(post.id!)),
+                    onShare: () => ShareModal.show(context, post),
+                    onSave: () => vm.toggleSavePost(post.id!),
+                    onEdit: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider.value(
+                          value: vm,
+                          child: CreatePostView(post: post),
+                        ),
+                      ),
+                    ).then((_) => vm.loadMyPosts()),
+                    onDelete: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Supprimer'),
+                          content: const Text(
+                              'Voulez-vous supprimer cette publication ?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Annuler'),
                             ),
-                          ),
-                        ).then((_) => vm.syncPostById(post.id!)),
-                        onLike: () => vm.likePost(post.id!),
-                        onReaction: (type) => vm.reactToPost(post.id!, type),
-                        onComment: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChangeNotifierProvider.value(
-                              value: vm,
-                              child: PostDetailView(
-                                  post: post, focusComment: true),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Supprimer',
+                                  style: TextStyle(color: Colors.red)),
                             ),
-                          ),
-                        ).then((_) => vm.syncPostById(post.id!)),
-                        onShare: () => ShareModal.show(context, post),
-                        onSave: () => vm.toggleSavePost(post.id!),
-                        onEdit: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChangeNotifierProvider.value(
-                              value: vm,
-                              child: CreatePostView(post: post),
-                            ),
-                          ),
-                        ).then((_) => vm.loadMyPosts()),
-                        onDelete: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Supprimer'),
-                              content: const Text(
-                                  'Voulez-vous supprimer cette publication ?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Annuler'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text('Supprimer',
-                                      style: TextStyle(color: Colors.red)),
-                                ),
-                              ],
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        final success = await vm.deletePost(post.id!);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Publication supprimée'),
+                              backgroundColor: Colors.green,
                             ),
                           );
-                          if (confirm == true) {
-                            final success = await vm.deletePost(post.id!);
-                            if (success && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Publication supprimée'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                      );
+                        }
+                      }
                     },
-                    childCount: vm.posts.length,
-                  ),
-                ),
-            ],
-          ),
+                  )),
+          ],
         );
       },
     );
@@ -227,113 +220,133 @@ class _PostsSectionContentState extends State<_PostsSectionContent> {
   }
 
   Widget _buildErrorState(BuildContext context, FeedViewModel vm) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 48,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Erreur de chargement',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      vm.errorMessage ?? 'Une erreur est survenue',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textMutedColor),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: vm.refreshFeed,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reessayer'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Erreur de chargement',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              vm.errorMessage ?? 'Une erreur est survenue',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textMutedColor),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: vm.refreshFeed,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Réessayer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildEmptyState(BuildContext context, FeedViewModel vm) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Icon(
-                Icons.article_outlined,
-                size: 50,
-                color: AppColors.primaryColor,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Aucune publication',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Partagez vos idées, projets et réalisations\navec votre réseau professionnel',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppTheme.textMutedColor,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () => _navigateToCreatePost(context, vm),
-              icon: const Icon(Icons.add_circle_outline),
-              label: const Text('Créer ma première publication'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: Icon(
+                        Icons.article_outlined,
+                        size: 50,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Aucune publication',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Partagez vos idees, projets et realisations\navec votre reseau professionnel',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textMutedColor,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: () => _navigateToCreatePost(context, vm),
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text('Creer ma premiere publication'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                elevation: 0,
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

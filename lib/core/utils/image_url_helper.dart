@@ -4,6 +4,22 @@ import 'package:cv_tech/core/config/network_config.dart';
 /// Helper pour générer les URLs complètes des images
 class ImageUrlHelper {
   static String? _cachedBaseUrl;
+
+  static String get _defaultBaseUrl =>
+      NetworkConfig.useHostedBackendByDefault
+          ? NetworkConfig.defaultHostedUrl
+          : NetworkConfig.defaultWebUrl;
+
+  /// Initialize cache early at app startup to avoid localhost fallbacks.
+  static Future<void> initialize() async {
+    _cachedBaseUrl = await NetworkConfig.getBackendUrl();
+  }
+
+  /// Keep helper cache aligned with API client base URL updates.
+  static void setBaseUrl(String? baseUrl) {
+    if (baseUrl == null || baseUrl.trim().isEmpty) return;
+    _cachedBaseUrl = baseUrl.trim();
+  }
   
   /// Obtenir l'URL de base (avec cache)
   static Future<String> _getBaseUrl() async {
@@ -43,7 +59,7 @@ class ImageUrlHelper {
     }
 
     // Utiliser l'URL en cache ou une URL par défaut
-    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
+    final baseUrl = _cachedBaseUrl ?? _defaultBaseUrl;
     String cleanUserId = userId.trim();
     String cleanImageName = imageName.trim();
     
@@ -58,7 +74,7 @@ class ImageUrlHelper {
       return trimmed;
     }
 
-    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
+    final baseUrl = _cachedBaseUrl ?? _defaultBaseUrl;
     if (trimmed.startsWith('/')) {
       return '$baseUrl$trimmed';
     }
@@ -84,7 +100,7 @@ class ImageUrlHelper {
       return resolved;
     }
 
-    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
+    final baseUrl = _cachedBaseUrl ?? _defaultBaseUrl;
     final cleanSenderId = senderId.trim();
     final cleanName = mediaUrlOrName.trim();
     return '$baseUrl/uploads/images-$cleanSenderId/messages/$cleanName';
@@ -145,13 +161,13 @@ class ImageUrlHelper {
     
     if (authorId == null || authorId.isEmpty) return null;
     
-    final baseUrl = _cachedBaseUrl ?? 'http://localhost:9001';
+    final baseUrl = _cachedBaseUrl ?? _defaultBaseUrl;
     return '$baseUrl/uploads/images-$authorId/posts/$fileName';
   }
 
   /// Obtenir l'URL de base (publique)
   static String getBaseUrl() {
-    return _cachedBaseUrl ?? 'http://localhost:9001';
+    return _cachedBaseUrl ?? _defaultBaseUrl;
   }
 
   /// Effacer le cache de l'URL

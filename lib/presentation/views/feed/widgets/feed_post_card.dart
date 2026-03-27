@@ -273,7 +273,9 @@ class _PostHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = AppTheme.textMutedColor;
-    final community = post.tags.isNotEmpty ? post.tags.first : null;
+    final community = post.communityName;
+    final isCommunityPost =
+        post.communityId != null && post.communityId!.isNotEmpty;
 
     return Row(
       children: [
@@ -299,7 +301,7 @@ class _PostHeader extends StatelessWidget {
                 ? Text(
                     _initials(post.authorName),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryColor,
                     ),
@@ -320,7 +322,7 @@ class _PostHeader extends StatelessWidget {
                     Text(
                       'c/$community',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.textColor,
                       ),
@@ -329,7 +331,7 @@ class _PostHeader extends StatelessWidget {
                     Text(
                       post.authorName,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.textColor,
                       ),
@@ -337,7 +339,7 @@ class _PostHeader extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     '· ${post.timeAgo}',
-                    style: TextStyle(fontSize: 12, color: muted),
+                    style: TextStyle(fontSize: 15, color: muted),
                   ),
                 ],
               ),
@@ -345,28 +347,53 @@ class _PostHeader extends StatelessWidget {
               Text(
                 'Posted by u/${post.authorName}',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 15,
                   color: muted,
                 ),
               ),
-              if (isShared) ...[
+              if (isShared || isCommunityPost) ...[
                 const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    sharedFromName != null && sharedFromName!.isNotEmpty
-                        ? 'Partage de $sharedFromName'
-                        : 'Partage',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryColor,
-                    ),
-                  ),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (isCommunityPost)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0B7A75).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          community != null && community.isNotEmpty
+                              ? 'Communaute c/$community'
+                              : 'Communaute',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0B7A75),
+                          ),
+                        ),
+                      ),
+                    if (isShared)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          sharedFromName != null && sharedFromName!.isNotEmpty
+                              ? 'Partage de $sharedFromName'
+                              : 'Partage',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryColor,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ],

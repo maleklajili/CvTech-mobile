@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 
 // Project imports:
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/data/models/feed/feed_post_model.dart';
+import 'package:cv_tech/data/repositories/community_repository.dart';
 import 'package:cv_tech/presentation/views/feed/create_post_view.dart';
 import 'package:cv_tech/presentation/views/feed/post_detail_view.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
@@ -43,12 +45,16 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
   static const Duration _autoRefreshInterval = Duration(seconds: 8);
   Timer? _autoRefreshTimer;
   StreamSubscription<Map<String, dynamic>>? _notificationSub;
+  final CommunityRepository _communityRepository = CommunityRepository();
+  Set<String> _memberCommunityIds = <String>{};
+  bool _membershipLoaded = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.scrollController.addListener(_onScroll);
+    _loadMemberships();
     _connectSocketForFeedHints();
     _startAutoRefresh();
   }
@@ -83,6 +89,24 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
     });
   }
 
+  Future<void> _loadMemberships() async {
+    try {
+      final communities = await _communityRepository.getMyCommunities();
+      final ids = communities.map((c) => c.id).toSet();
+      if (!mounted) return;
+      setState(() {
+        _memberCommunityIds = ids;
+        _membershipLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memberCommunityIds = <String>{};
+        _membershipLoaded = true;
+      });
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -104,11 +128,20 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
 
   Future<void> _refreshNow() async {
     if (!mounted) return;
+    await _loadMemberships();
+    if (!mounted) return;
     final vm = context.read<FeedViewModel>();
     if (vm.state == FeedState.loading || vm.state == FeedState.loadingMore) {
       return;
     }
     await vm.refreshFeed();
+  }
+
+  bool _canAccessPost(FeedPostModel post) {
+    final communityId = post.communityId;
+    if (communityId == null || communityId.isEmpty) return true;
+    if (!_membershipLoaded) return false;
+    return _memberCommunityIds.contains(communityId);
   }
 
   void _onScroll() {
@@ -186,6 +219,8 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
   }
 
   Widget _buildPostsList(BuildContext context, FeedViewModel vm) {
+    final visiblePosts = vm.posts.where(_canAccessPost).toList();
+
     if (vm.state == FeedState.loading && vm.posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -213,7 +248,7 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
         ),
       );
     }
-    if (vm.posts.isEmpty) {
+    if (visiblePosts.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -221,9 +256,11 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
             Icon(Icons.article_outlined, size: 64, color: AppTheme.textMutedColor),
             const SizedBox(height: 16),
             Text(
-              vm.currentFilter == 'friends'
-                  ? 'Aucune publication de vos amis'
-                  : 'Aucune publication pour le moment',
+              vm.posts.isNotEmpty
+                  ? 'Aucune publication visible'
+                  : (vm.currentFilter == 'friends'
+                      ? 'Aucune publication de vos amis'
+                      : 'Aucune publication pour le moment'),
               style: TextStyle(
                 color: AppTheme.textMutedColor,
                 fontSize: 16,
@@ -231,9 +268,11 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
             ),
             const SizedBox(height: 8),
             Text(
-              vm.currentFilter == 'friends'
-                  ? 'Suivez des personnes pour voir leurs publications !'
-                  : 'Soyez le premier à publier !',
+              vm.posts.isNotEmpty
+                  ? 'Rejoignez la communaute correspondante pour consulter et reagir.'
+                  : (vm.currentFilter == 'friends'
+                      ? 'Suivez des personnes pour voir leurs publications !'
+                      : 'Soyez le premier a publier !'),
               style: TextStyle(
                 color: AppTheme.textMutedColor,
                 fontSize: 14,
@@ -250,15 +289,19 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
         child: ListView.builder(
           controller: widget.scrollController,
           padding: EdgeInsets.zero,
-          itemCount: vm.posts.length + (vm.state == FeedState.loadingMore ? 1 : 0),
+          itemCount: visiblePosts.length + (vm.state == FeedState.loadingMore ? 1 : 0),
           itemBuilder: (context, index) {
-          if (index >= vm.posts.length) {
+          if (index >= visiblePosts.length) {
             return const Padding(
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          final post = vm.posts[index];
+          final post = visiblePosts[index];
+          final postId = post.id;
+          if (postId == null || postId.isEmpty) {
+            return const SizedBox.shrink();
+          }
           return FeedPostCard(
             post: post,
             onTap: () => Navigator.push(
@@ -269,9 +312,9 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
                   child: PostDetailView(post: post),
                 ),
               ),
-            ).then((_) => vm.syncPostById(post.id!)),
-            onLike: () => vm.likePost(post.id!),
-            onReaction: (type) => vm.reactToPost(post.id!, type),
+            ).then((_) => vm.syncPostById(postId)),
+            onLike: () => vm.likePost(postId),
+            onReaction: (type) => vm.reactToPost(postId, type),
             onComment: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -280,13 +323,13 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
                   child: PostDetailView(post: post, focusComment: true),
                 ),
               ),
-            ).then((_) => vm.syncPostById(post.id!)),
+            ).then((_) => vm.syncPostById(postId)),
             onShare: () => ShareModal.show(
               context,
               post,
               onRepost: () => _refreshNow(),
             ),
-            onSave: () => vm.toggleSavePost(post.id!),
+            onSave: () => vm.toggleSavePost(postId),
             onEdit: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -315,7 +358,7 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
                   ],
                 ),
               );
-              if (confirm == true) vm.deletePost(post.id!);
+              if (confirm == true) vm.deletePost(postId);
             },
           );
         },

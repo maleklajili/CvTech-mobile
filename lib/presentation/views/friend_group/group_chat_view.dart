@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
@@ -101,6 +102,37 @@ class _GroupChatViewState extends State<GroupChatView> {
       );
     }
     _scrollToBottom();
+  }
+
+  Future<void> _openMessageFile(dynamic message) async {
+    final url = message.mediaUrl?.toString() ?? '';
+    if (url.isEmpty) {
+      RedditToastService.show(
+        context,
+        message: 'URL du fichier indisponible',
+        type: RedditToastType.error,
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      RedditToastService.show(
+        context,
+        message: 'Lien de fichier invalide',
+        type: RedditToastType.error,
+      );
+      return;
+    }
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      RedditToastService.show(
+        context,
+        message: 'Impossible d\'ouvrir le fichier',
+        type: RedditToastType.error,
+      );
+    }
   }
 
   void _scrollToBottom() {
@@ -306,7 +338,9 @@ class _GroupChatViewState extends State<GroupChatView> {
                         const SizedBox(height: 2),
                       ],
                       Text(
-                        message.content,
+                        message.isDocument
+                            ? message.fileName
+                            : message.content,
                         style: TextStyle(
                           color: isMine
                               ? Colors.white
@@ -315,6 +349,53 @@ class _GroupChatViewState extends State<GroupChatView> {
                           height: 1.4,
                         ),
                       ),
+                      if (message.isDocument) ...[
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () => _openMessageFile(message),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isMine
+                                  ? Colors.white.withValues(alpha: 0.15)
+                                  : AppTheme.backgroundColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isMine
+                                    ? Colors.white.withValues(alpha: 0.24)
+                                    : AppTheme.dividerColor,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.download_rounded,
+                                  size: 16,
+                                  color: isMine
+                                      ? Colors.white
+                                      : AppColors.primaryColor,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Telecharger',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isMine
+                                        ? Colors.white
+                                        : AppColors.primaryColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

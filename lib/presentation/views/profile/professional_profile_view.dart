@@ -18,6 +18,9 @@ import 'package:cv_tech/presentation/views/profile/widgets/projects_section.dart
 import 'package:cv_tech/presentation/views/profile/widgets/posts_section.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/skills_section.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
+import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
+import 'package:cv_tech/presentation/views/profile/ai_cv_view.dart';
+import 'package:cv_tech/core/constants/app_colors.dart';
 
 class ProfessionalProfileView extends StatefulWidget {
   const ProfessionalProfileView({super.key});
@@ -33,11 +36,20 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
     final authState = context.watch<AuthBloc>().state;
     final userId = authState is AuthAuthenticated ? authState.user.id : null;
     
-    return ChangeNotifierProvider(
-      create: (_) => ProfessionalProfileViewModel()..loadAllData(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ProfessionalProfileViewModel()..loadAllData()),
+        ChangeNotifierProvider(create: (context) => ProfileViewModel(context)),
+      ],
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Profil Professionnel'),
+          leading: Navigator.of(context).canPop()
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => Navigator.of(context).maybePop(),
+                )
+              : null,
           automaticallyImplyLeading: false,
         ),
         body: Consumer<ProfessionalProfileViewModel>(
@@ -99,6 +111,82 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
     );
   }
 
+  Widget _buildCvChoiceBanner(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryColor.withOpacity(0.12),
+            AppColors.primaryColor.withOpacity(0.04),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryColor.withOpacity(0.25)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.description_outlined, color: AppColors.primaryColor, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Générer un CV',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Manuel', style: TextStyle(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryColor,
+                    side: BorderSide(color: AppColors.primaryColor),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    // Scroll down to let the user fill in their profile manually
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Complétez vos sections ci-dessous pour créer votre CV'),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: const Text('Avec IA', style: TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AiCvView()),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildContent(BuildContext context, ProfessionalProfileViewModel viewModel, String? userId) {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -106,6 +194,10 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── CV Generation Choice Banner ──────────────────────────
+          _buildCvChoiceBanner(context),
+          const SizedBox(height: 20),
+
           // Education Section
           EducationSection(
             educations: viewModel.educations,

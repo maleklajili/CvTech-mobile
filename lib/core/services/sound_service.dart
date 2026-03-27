@@ -8,6 +8,7 @@ class SoundService {
   final AudioPlayer _player = AudioPlayer();
   bool _hasAsset = false;
   bool _assetChecked = false;
+  bool _playerConfigured = false;
 
   SoundService._internal();
 
@@ -32,6 +33,11 @@ class SoundService {
   /// Jouer le son de notification pour un nouveau commentaire
   Future<void> playCommentSound() async {
     try {
+      if (!_playerConfigured) {
+        await _player.setReleaseMode(ReleaseMode.stop);
+        _playerConfigured = true;
+      }
+
       final hasLocal = await _checkAsset();
       if (hasLocal) {
         await _player.play(
@@ -39,16 +45,16 @@ class SoundService {
           volume: 0.5,
         );
       } else {
-        // Fallback: son de notification en ligne (court pop sound)
-        await _player.play(
-          UrlSource(
-            'https://cdn.pixabay.com/audio/2024/11/27/audio_8dca6ab66a.mp3',
-          ),
-          volume: 0.5,
-        );
+        // Fallback fiable sur Android/iOS quand l'asset n'existe pas.
+        await SystemSound.play(SystemSoundType.click);
       }
     } catch (e) {
       if (kDebugMode) print('🔊 [Sound] Error playing comment sound: $e');
+      try {
+        await SystemSound.play(SystemSoundType.click);
+      } catch (_) {
+        // Ignore fallback errors.
+      }
     }
   }
 

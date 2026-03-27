@@ -15,12 +15,27 @@ class ShareRepository {
   /// Share a post
   Future<ShareModel> sharePost(CreateShareDto dto) async {
     try {
-      final response = await _apiClient.dio.post(
-        '${ApiEndpoints.shareCreate}${dto.postId}/share',
-        data: {
-          if (dto.caption != null && dto.caption!.isNotEmpty) 'content': dto.caption,
-        },
-      );
+      final payload = <String, dynamic>{
+        if (dto.caption != null && dto.caption!.isNotEmpty) 'caption': dto.caption,
+        if (dto.privacy != null && dto.privacy!.isNotEmpty) 'privacy': dto.privacy,
+      };
+
+      Response<dynamic> response;
+      try {
+        response = await _apiClient.dio.post(
+          '${ApiEndpoints.shareCreate}${dto.postId}/share',
+          data: payload,
+        );
+      } on DioException catch (e) {
+        // Some backend versions expect no payload for this endpoint.
+        if (e.response?.statusCode == 400 && payload.isNotEmpty) {
+          response = await _apiClient.dio.post(
+            '${ApiEndpoints.shareCreate}${dto.postId}/share',
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;

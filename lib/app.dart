@@ -15,10 +15,10 @@ import 'package:cv_tech/presentation/views/splash/splash_screen.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
-final GlobalKey<NavigatorState> _navigatorKey = GlobalKey();
-BuildContext get mainContext => _navigatorKey.currentContext!;
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+BuildContext? get mainContext => _navigatorKey.currentContext;
 
-NavigatorState get mainState => _navigatorKey.currentState!;
+NavigatorState? get mainState => _navigatorKey.currentState;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -33,19 +33,44 @@ class MyApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         theme: AppTheme.lightTheme,
         themeMode: themeViewModel.themeMode,
-        home: const AuthWrapper(),
+        initialRoute: '/',
+        onGenerateInitialRoutes: (String initialRouteName) {
+          return [
+            MaterialPageRoute<void>(
+              builder: (_) => const _RootGuard(child: AuthWrapper()),
+              settings: const RouteSettings(name: '/'),
+            ),
+          ];
+        },
+        builder: (context, child) {
+          AppTheme.syncWithContext(context);
+          return child ?? const _RootGuard(child: AuthWrapper());
+        },
         routes: {
-          '/create': (context) => const AuthWrapper(), // Placeholder
+          '/': (context) => const _RootGuard(child: AuthWrapper()),
+          '/create': (context) => const _RootGuard(child: AuthWrapper()), // Placeholder
           '/home': (context) => const MainView(),
         },
         onUnknownRoute: (settings) {
           // Route fallback - rediriger vers la page d'accueil
           return MaterialPageRoute(
-            builder: (context) => const AuthWrapper(),
+            builder: (context) => const _RootGuard(child: AuthWrapper()),
+            settings: const RouteSettings(name: '/'),
           );
         },
       ),
     );
+  }
+}
+
+class _RootGuard extends StatelessWidget {
+  final Widget child;
+
+  const _RootGuard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(canPop: false, child: child);
   }
 }
 
@@ -59,7 +84,6 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _splashCompleted = false;
-  bool _hasShownContent = false;
 
   @override
   void initState() {
@@ -82,30 +106,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        print('🟠 AuthWrapper: State changed to ${state.runtimeType}');
-        
-        // Afficher le splash screen au démarrage (pendant le loading initial)
-        // Mais PAS pendant les tentatives de login/register
-        if ((state is AuthInitial || state is AuthLoading) && !_hasShownContent) {
-          print('⏳ AuthWrapper: Loading state - Showing SplashScreen');
+        if (!_splashCompleted) {
           return const SplashScreen();
         }
-        
-        // Si le splash n'est pas encore terminé, continuer à l'afficher
-        if (!_splashCompleted && !_hasShownContent) {
-          print('⏳ AuthWrapper: Splash not completed - Showing SplashScreen');
-          return const SplashScreen();
-        }
-        
+
         if (state is AuthAuthenticated) {
-          print('✅ AuthWrapper: Authenticated - Showing MainView');
-          _hasShownContent = true;
           return const MainView();
         }
-        
-        // Pour AuthUnauthenticated, AuthError, ou après le splash
-        print('❌ AuthWrapper: Showing LoginView (state: ${state.runtimeType})');
-        _hasShownContent = true;
+
+        if (state is AuthInitial || state is AuthLoading) {
+          return const SplashScreen();
+        }
+
         return const LoginView();
       },
     );

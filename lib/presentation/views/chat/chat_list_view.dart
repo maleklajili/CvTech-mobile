@@ -4,6 +4,7 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/message/message_model.dart';
 import 'package:cv_tech/presentation/views_models/chat/chat_list_view_model.dart';
 import 'package:cv_tech/presentation/views/chat/conversation_view.dart';
+import 'package:cv_tech/presentation/widgets/reddit_feedback_widgets.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class ChatListView extends StatelessWidget {
@@ -36,6 +37,12 @@ class _ChatListBody extends StatelessWidget {
         backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
         foregroundColor: AppTheme.textColor,
         elevation: 0.5,
+        leading: Navigator.of(context).canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).maybePop(),
+              )
+            : null,
         automaticallyImplyLeading: false,
       ),
       body: _buildBody(context, vm, isDark),
@@ -153,28 +160,28 @@ class _ChatListBody extends StatelessWidget {
     ChatListViewModel vm,
     ChatPreview chat,
   ) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Supprimer la conversation ?'),
-        content: Text(
+    bool confirmed = false;
+    await showRedditAlert(
+      context,
+      title: 'Supprimer la conversation ?',
+      body:
           'La conversation avec ${chat.user.fullName.isNotEmpty ? chat.user.fullName : chat.user.userName} sera masquée.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      type: RedditAlertType.confirm,
+      confirmLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
+      onConfirm: () => confirmed = true,
     );
-    if (result == true) {
-      return await vm.hideConversation(chat.user.id);
+
+    if (confirmed) {
+      final ok = await vm.hideConversation(chat.user.id);
+      if (context.mounted && !ok) {
+        RedditToastService.show(
+          context,
+          message: 'Erreur lors de la suppression',
+          type: RedditToastType.error,
+        );
+      }
+      return ok;
     }
     return false;
   }
@@ -208,9 +215,18 @@ class _ChatListBody extends StatelessWidget {
               leading: const Icon(Icons.visibility_off_outlined),
               title: const Text('Masquer la conversation'),
               subtitle: const Text('Masquée uniquement de votre côté'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                vm.hideConversation(chat.user.id);
+                final ok = await vm.hideConversation(chat.user.id);
+                if (context.mounted) {
+                  RedditToastService.show(
+                    context,
+                    message: ok
+                        ? 'Conversation masquée'
+                        : 'Erreur lors du masquage',
+                    type: ok ? RedditToastType.mod : RedditToastType.error,
+                  );
+                }
               },
             ),
             ListTile(
@@ -219,26 +235,28 @@ class _ChatListBody extends StatelessWidget {
               subtitle: const Text('Supprime définitivement la conversation'),
               onTap: () async {
                 Navigator.pop(context);
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    title: const Text('Supprimer définitivement ?'),
-                    content: const Text('Cette action est irréversible. La conversation sera supprimée pour les deux utilisateurs.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Annuler'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
+                bool confirm = false;
+                await showRedditAlert(
+                  context,
+                  title: 'Supprimer définitivement ?',
+                  body:
+                      'Cette action est irréversible. La conversation sera supprimée pour les deux utilisateurs.',
+                  type: RedditAlertType.ban,
+                  confirmLabel: 'Supprimer',
+                  cancelLabel: 'Annuler',
+                  onConfirm: () => confirm = true,
                 );
-                if (confirm == true) {
-                  vm.deleteConversation(chat.user.id);
+                if (confirm) {
+                  final ok = await vm.deleteConversation(chat.user.id);
+                  if (context.mounted) {
+                    RedditToastService.show(
+                      context,
+                      message: ok
+                          ? 'Conversation supprimée'
+                          : 'Erreur lors de la suppression',
+                      type: ok ? RedditToastType.mod : RedditToastType.error,
+                    );
+                  }
                 }
               },
             ),
@@ -279,22 +297,45 @@ class _ChatTile extends StatelessWidget {
         child: Row(
           children: [
             // ── Avatar ──
-            CircleAvatar(
-              radius: 26,
-              backgroundColor: AppColors.primaryColor.withOpacity(0.15),
-              backgroundImage: chat.user.image != null
-                  ? NetworkImage(chat.user.image!)
-                  : null,
-              child: chat.user.image == null
-                  ? Text(
-                      _initials(chat.user),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryColor,
-                        fontSize: 14,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: AppColors.primaryColor.withOpacity(0.15),
+                  backgroundImage: chat.user.image != null
+                      ? NetworkImage(chat.user.image!)
+                      : null,
+                  child: chat.user.image == null
+                      ? Text(
+                          _initials(chat.user),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryColor,
+                            fontSize: 14,
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  right: -1,
+                  bottom: -1,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: chat.user.isOnline
+                          ? const Color(0xFF22C55E)
+                          : (isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1)),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF0F0F23) : Colors.white,
+                        width: 2,
                       ),
-                    )
-                  : null,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 14),
 

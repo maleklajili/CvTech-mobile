@@ -1347,8 +1347,8 @@ class _UserProfileViewState extends State<UserProfileView>
                 return const Center(child: CircularProgressIndicator());
               }
               if (vm.state == FeedState.error && vm.posts.isEmpty) {
-                return Center(
-                  child: Column(
+                return _buildScrollablePlaceholder(
+                  Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
@@ -1370,8 +1370,8 @@ class _UserProfileViewState extends State<UserProfileView>
                 );
               }
               if (vm.posts.isEmpty) {
-                return Center(
-                  child: Column(
+                return _buildScrollablePlaceholder(
+                  Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.article_outlined, size: 64, color: Colors.grey[300]),
@@ -1395,8 +1395,8 @@ class _UserProfileViewState extends State<UserProfileView>
                       .toList();
 
               if (visiblePosts.isEmpty) {
-                return Center(
-                  child: Column(
+                return _buildScrollablePlaceholder(
+                  Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.lock_outline, size: 52, color: Colors.grey[350]),
@@ -1448,8 +1448,8 @@ class _UserProfileViewState extends State<UserProfileView>
   }
 
   Widget _buildEmptyTab(IconData icon, String message) {
-    return Center(
-      child: Column(
+    return _buildScrollablePlaceholder(
+      Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 48, color: Colors.grey[300]),
@@ -1458,6 +1458,25 @@ class _UserProfileViewState extends State<UserProfileView>
               style: TextStyle(color: AppTheme.textMutedColor, fontSize: 14)),
         ],
       ),
+    );
+  }
+
+  Widget _buildScrollablePlaceholder(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

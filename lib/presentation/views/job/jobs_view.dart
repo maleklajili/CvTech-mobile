@@ -90,7 +90,7 @@ class _JobsViewState extends State<JobsView> {
       location: _stringValue(raw['location'], fallback: 'Non specifie'),
       contractType: _stringValue(raw['contractType'], fallback: '-'),
       appliedAt: _parseDate(raw['appliedAt'] ?? raw['createdAt']),
-      interviewAt: _parseDate(raw['respondedAt']),
+      interviewAt: _parseInterviewDate(raw['response']) ?? _parseDate(raw['respondedAt']),
       status: status,
     );
   }
@@ -117,6 +117,20 @@ class _JobsViewState extends State<JobsView> {
       return DateTime.tryParse((value[r'$date'] as String).trim());
     }
     return null;
+  }
+
+  DateTime? _parseInterviewDate(dynamic responseValue) {
+    if (responseValue == null) return null;
+    final raw = responseValue.toString().trim();
+    if (raw.isEmpty) return null;
+
+    const prefix = 'INTERVIEW_AT:';
+    if (raw.startsWith(prefix)) {
+      final iso = raw.substring(prefix.length).trim();
+      return DateTime.tryParse(iso);
+    }
+
+    return DateTime.tryParse(raw);
   }
 
   String _formatDate(DateTime? value) {

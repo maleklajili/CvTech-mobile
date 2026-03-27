@@ -86,6 +86,18 @@ class FeedRepository {
     return _normalizeId(rawPost['_id'] ?? rawPost['id']);
   }
 
+  bool _isCommunityPost(dynamic rawPost) {
+    if (rawPost is! Map<String, dynamic>) return false;
+    final community = rawPost['community'];
+    if (community == null) return false;
+    if (community is String) return community.trim().isNotEmpty;
+    if (community is Map) {
+      final normalized = _normalizeId(community);
+      return normalized != null && normalized.isNotEmpty;
+    }
+    return community.toString().trim().isNotEmpty;
+  }
+
   int _asInt(dynamic value, int fallback) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -241,70 +253,38 @@ class FeedRepository {
 
   /// Get posts for a specific user (profile view)
   Future<FeedResponse> getUserPosts(String userId, {int page = 1, int limit = 20}) async {
+    // Backend may not expose /posts/user/:id in all environments.
+    // Use a feed-based strategy to avoid noisy 404s in web consoles.
+    return _getUserPostsFallback(userId: userId, page: page, limit: limit);
+  }
+
+  Future<FeedResponse> _getUserPostsFallback({
+    required String userId,
+    required int page,
+    required int limit,
+  }) async {
     try {
-      final response = await _apiClient.dio.get(
-        '${ApiEndpoints.postByUser}$userId',
-        queryParameters: {'page': 1, 'limit': 200},
+      final fallback = await _apiClient.dio.get(
+        ApiEndpoints.postFeed,
+        queryParameters: {
+          'filter': 'all',
+          'page': page,
+          'limit': 150,
+        },
       );
 
-      if (response.statusCode == 200) {
-        final ownData = response.data;
-        final ownPostsData = _extractPostsData(ownData);
-
-        // Fetch feed "all" to include posts shared by this profile user.
-        final allResponse = await _apiClient.dio.get(
-          ApiEndpoints.postFeed,
-          queryParameters: {
-            'filter': 'all',
-            'page': 1,
-            'limit': 300,
-          },
-        );
-
-        final allPostsData = _extractPostsData(allResponse.data);
-        final mergedById = <String, Map<String, dynamic>>{};
-
-        // 1) Own authored posts.
-        for (final p in ownPostsData) {
-          if (p is Map<String, dynamic>) {
-            final authorId = _extractAuthorId(p);
-            if (authorId == userId) {
-              final id = _extractPostId(p);
-              if (id != null && id.isNotEmpty) {
-                mergedById[id] = p;
-              }
-            }
-          }
-        }
-
-        // 2) Posts this profile user shared.
-        for (final p in allPostsData) {
-          if (p is Map<String, dynamic>) {
-            final sharedByIds = _extractSharedByIds(p);
-            if (sharedByIds.contains(userId)) {
-              final id = _extractPostId(p);
-              if (id != null && id.isNotEmpty) {
-                mergedById[id] = p;
-              }
-            }
-          }
-        }
-
-        final profileRawPosts = mergedById.values.toList()
-          ..sort((a, b) => _extractCreatedAt(b).compareTo(_extractCreatedAt(a)));
-
-        final start = (page - 1) * limit;
-        final end = (start + limit) > profileRawPosts.length
-            ? profileRawPosts.length
-            : (start + limit);
-        final pagedRawPosts = start < profileRawPosts.length
-            ? profileRawPosts.sublist(start, end)
-            : <dynamic>[];
-
+      if (fallback.statusCode == 200) {
+        final postsData = _extractPostsData(fallback.data);
         final posts = <FeedPostModel>[];
-        for (final p in pagedRawPosts) {
+
+        for (final p in postsData) {
           if (p is Map<String, dynamic>) {
-            posts.add(FeedPostModel.fromJson(p));
+            if (_isCommunityPost(p)) continue;
+            final authorId = _extractAuthorId(p);
+            final sharedByIds = _extractSharedByIds(p);
+            if (authorId == userId || sharedByIds.contains(userId)) {
+              posts.add(FeedPostModel.fromJson(p));
+            }
           }
         }
 
@@ -312,54 +292,19 @@ class FeedRepository {
           posts: posts,
           page: page,
           limit: limit,
-          total: profileRawPosts.length,
+          total: posts.length,
         );
       }
-
-      throw Exception('Erreur lors du chargement des posts utilisateur');
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        // Fallback when /posts/user/:id route is unavailable.
-        final fallback = await _apiClient.dio.get(
-          ApiEndpoints.postFeed,
-          queryParameters: {
-            'filter': 'all',
-            'page': page,
-            'limit': 100,
-          },
-        );
-
-        if (fallback.statusCode == 200) {
-          final data = fallback.data;
-          final postsData = data is Map && data['posts'] is List
-              ? data['posts'] as List
-              : data is Map && data['data'] is Map && data['data']['posts'] is List
-                  ? data['data']['posts'] as List
-                  : data is List
-                      ? data
-                      : <dynamic>[];
-
-          final posts = <FeedPostModel>[];
-          for (final p in postsData) {
-            if (p is Map<String, dynamic>) {
-              final authorId = _extractAuthorId(p);
-              final sharedByIds = _extractSharedByIds(p);
-              if (authorId == userId || sharedByIds.contains(userId)) {
-                posts.add(FeedPostModel.fromJson(p));
-              }
-            }
-          }
-
-          return FeedResponse(
-            posts: posts,
-            page: page,
-            limit: limit,
-            total: posts.length,
-          );
-        }
-      }
-      throw _handleDioError(e);
+    } catch (_) {
+      // ignore and return empty response
     }
+
+    return FeedResponse(
+      posts: const [],
+      page: page,
+      limit: limit,
+      total: 0,
+    );
   }
 
   /// Get trending posts (most voted/popular)
@@ -403,6 +348,7 @@ class FeedRepository {
     required String content,
     String type = 'text',
     String privacy = 'public',
+    String? communityId,
     List<String>? tags,
     Uint8List? imageBytes,
     String? imageName,
@@ -417,6 +363,10 @@ class FeedRepository {
 
       if (tags != null && tags.isNotEmpty) {
         map['tags'] = jsonEncode(tags);
+      }
+
+      if (communityId != null && communityId.isNotEmpty) {
+        map['community'] = communityId;
       }
 
       if (imageBytes != null) {
