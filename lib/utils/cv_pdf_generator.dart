@@ -8,8 +8,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'cv_templates/standard_template.dart';
 import 'cv_templates/modern_template.dart';
+import 'cv_templates/canadian_template.dart';
+import 'cv_templates/latex_template.dart';
+import 'cv_templates/european_template.dart';
 
-enum CvTemplate { standard, modern }
+enum CvTemplate { standard, modern, canadian, latex, european }
 
 class CvPdfGenerator {
   /// Build a PDF from structured profile data using a template.
@@ -24,6 +27,22 @@ class CvPdfGenerator {
     switch (template) {
       case CvTemplate.modern:
         pdf = await ModernCvTemplate.build(
+          sections: sections,
+          photoBytes: photoBytes,
+        );
+        break;
+      case CvTemplate.canadian:
+        pdf = await CanadianCvTemplate.build(
+          sections: sections,
+        );
+        break;
+      case CvTemplate.latex:
+        pdf = await LatexCvTemplate.build(
+          sections: sections,
+        );
+        break;
+      case CvTemplate.european:
+        pdf = await EuropeanCvTemplate.build(
           sections: sections,
           photoBytes: photoBytes,
         );

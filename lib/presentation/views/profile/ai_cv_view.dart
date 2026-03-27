@@ -750,6 +750,39 @@ class _AiCvContentState extends State<_AiCvContent> {
             const SizedBox(height: 8),
             _buildTemplateOption(
               ctx: ctx,
+              icon: Icons.flag_outlined,
+              label: 'Canadien (ATS)',
+              description: 'ATS-friendly, méthode STAR, sans photo',
+              onTap: () {
+                Navigator.pop(ctx);
+                _downloadAsPdf(context, cv, CvTemplate.canadian);
+              },
+            ),
+            const SizedBox(height: 8),
+            _buildTemplateOption(
+              ctx: ctx,
+              icon: Icons.school_outlined,
+              label: 'LaTeX Académique',
+              description: 'Style académique, police serif, publications',
+              onTap: () {
+                Navigator.pop(ctx);
+                _downloadAsPdf(context, cv, CvTemplate.latex);
+              },
+            ),
+            const SizedBox(height: 8),
+            _buildTemplateOption(
+              ctx: ctx,
+              icon: Icons.account_circle_outlined,
+              label: 'Européen avec photo',
+              description: 'Sidebar avec photo, barres de compétences',
+              onTap: () {
+                Navigator.pop(ctx);
+                _downloadAsPdf(context, cv, CvTemplate.european);
+              },
+            ),
+            const SizedBox(height: 8),
+            _buildTemplateOption(
+              ctx: ctx,
               icon: Icons.text_snippet_outlined,
               label: 'Texte brut',
               description: 'Export Markdown vers PDF simple',
