@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/presentation/views_models/profile/ai_cv_view_model.dart';
 import 'package:cv_tech/data/models/profile/ai_cv_model.dart';
+import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/utils/cv_pdf_generator.dart';
 
 class AiCvView extends StatelessWidget {
@@ -842,15 +845,62 @@ class _AiCvContentState extends State<_AiCvContent> {
     CvTemplate template,
   ) async {
     try {
+      // Show loading indicator
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                SizedBox(width: 12),
+                Text('Génération du PDF en cours...'),
+              ],
+            ),
+            duration: Duration(seconds: 10),
+          ),
+        );
+      }
+
       // Parse the AI-generated markdown content into structured sections
       final sections = _parseCvContent(cv);
+
+      // Fetch user's profile photo if available
+      Uint8List? photoBytes;
+      try {
+        final userRepo = UserRepository();
+        final user = await userRepo.getCurrentUser();
+        final imageUrl = user.imageUrl;
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          final dio = Dio();
+          final response = await dio.get<List<int>>(
+            imageUrl,
+            options: Options(responseType: ResponseType.bytes),
+          );
+          if (response.statusCode == 200 && response.data != null) {
+            photoBytes = Uint8List.fromList(response.data!);
+          }
+        }
+      } catch (_) {
+        // Photo fetch failed silently, continue without photo
+      }
+
       await CvPdfGenerator.generateFromProfile(
         sections: sections,
         template: template,
+        photoBytes: photoBytes,
         title: cv.title,
       );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
     } catch (e) {
       if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur: $e')),
         );
@@ -887,17 +937,42 @@ class _AiCvContentState extends State<_AiCvContent> {
 
     String currentSection = '';
     final buffer = StringBuffer();
+    bool nameFound = false;
 
     for (final line in lines) {
       final trimmed = line.trim();
 
       if (trimmed.startsWith('# ')) {
         name = trimmed.substring(2).replaceAll(RegExp(r'\*+'), '').trim();
+        nameFound = true;
         continue;
+      }
+
+      // Line right after the name that isn't a section header = title/subtitle
+      if (nameFound && title.isEmpty && !trimmed.startsWith('##') && trimmed.isNotEmpty && currentSection.isEmpty) {
+        // Check if it looks like a job title (no bullet, no special prefix)
+        if (!trimmed.startsWith('-') && !trimmed.startsWith('*') && !trimmed.startsWith('#')) {
+          final clean = trimmed.replaceAll(RegExp(r'\*+|_+'), '').trim();
+          // If it contains contact info, treat as contact
+          if (clean.contains('@') || clean.contains('+') || clean.contains('http') || clean.contains('linkedin')) {
+            contact += '$clean\n';
+          } else if (clean.length < 80) {
+            title = clean;
+          }
+          continue;
+        }
       }
 
       if (trimmed.startsWith('## ')) {
         // Save previous section
+        if (currentSection == 'summary') {
+          summary = buffer.toString().trim();
+        } else if (currentSection == 'contact') {
+          contact = buffer.toString().trim();
+        } else {
+          _saveSection(currentSection, buffer, experience, education, skills, projects);
+        }
+        buffer.clear();
         _saveSection(currentSection, buffer, experience, education, skills, projects);
         buffer.clear();
 
@@ -924,9 +999,16 @@ class _AiCvContentState extends State<_AiCvContent> {
         buffer.writeln(trimmed);
       }
     }
-    _saveSection(currentSection, buffer, experience, education, skills, projects);
+    // Save the last section
+    if (currentSection == 'summary') {
+      summary = buffer.toString().trim();
+    } else if (currentSection == 'contact') {
+      contact = buffer.toString().trim();
+    } else {
+      _saveSection(currentSection, buffer, experience, education, skills, projects);
+    }
 
-    if (contact.isEmpty && summary.isEmpty) {
+    if (contact.isEmpty) {
       // Try to extract contact from content
       contact = cv.content
           .split('\n')

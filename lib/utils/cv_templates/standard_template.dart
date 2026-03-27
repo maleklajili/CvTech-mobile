@@ -1,10 +1,15 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-/// Professional CV template — clean design (Sebastian Bennett style)
 class StandardCvTemplate {
+  static const _primaryColor = PdfColor.fromInt(0xFF1A1A2E);
+  static const _accentColor = PdfColor.fromInt(0xFF16213E);
+  static const _textColor = PdfColor.fromInt(0xFF2D2D2D);
+  static const _subtextColor = PdfColor.fromInt(0xFF6B6B6B);
+  static const _lineColor = PdfColor.fromInt(0xFFCCCCCC);
+
   static Future<pw.Document> build({
     required Map<String, dynamic> sections,
     Uint8List? photoBytes,
@@ -36,59 +41,37 @@ class StandardCvTemplate {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 44, vertical: 36),
         build: (context) => [
-          // ── HEADER ──
           _buildHeader(name, title, contact, photoBytes),
-          pw.SizedBox(height: 6),
-          pw.Divider(thickness: 1.5, color: PdfColors.black),
-
-          // ── ABOUT ME ──
+          pw.SizedBox(height: 20),
           if (summary.isNotEmpty) ...[
-            pw.SizedBox(height: 14),
-            _sectionTitle('ABOUT ME'),
-            pw.SizedBox(height: 6),
-            pw.Text(
-              summary,
-              style: const pw.TextStyle(fontSize: 10, lineSpacing: 4),
-            ),
-          ],
-
-          // ── EDUCATION ──
-          if (education.isNotEmpty) ...[
-            pw.SizedBox(height: 14),
-            _sectionTitle('EDUCATION'),
-            pw.SizedBox(height: 6),
-            ...education.map(
-              (edu) => _buildEducationItem(edu as Map<String, dynamic>),
-            ),
-          ],
-
-          // ── WORK EXPERIENCE ──
-          if (experience.isNotEmpty) ...[
-            pw.SizedBox(height: 14),
-            _sectionTitle('WORK EXPERIENCE'),
-            pw.SizedBox(height: 6),
-            ...experience.map(
-              (exp) => _buildExperienceItem(exp as Map<String, dynamic>),
-            ),
-          ],
-
-          // ── PROJECTS ──
-          if (projects.isNotEmpty) ...[
-            pw.SizedBox(height: 14),
-            _sectionTitle('PROJECTS'),
-            pw.SizedBox(height: 6),
-            ...projects.map(
-              (proj) => _buildProjectItem(proj as Map<String, dynamic>),
-            ),
-          ],
-
-          // ── SKILLS ──
-          if (skills.isNotEmpty) ...[
-            pw.SizedBox(height: 14),
-            _sectionTitle('SKILLS'),
+            _sectionTitle('PROFIL PROFESSIONNEL'),
             pw.SizedBox(height: 8),
+            pw.Text(summary, style: pw.TextStyle(fontSize: 10, lineSpacing: 5, color: _textColor)),
+            pw.SizedBox(height: 16),
+          ],
+          if (experience.isNotEmpty) ...[
+            _sectionTitle('EXPERIENCE PROFESSIONNELLE'),
+            pw.SizedBox(height: 8),
+            ...experience.map((exp) => _buildExperienceItem(exp as Map<String, dynamic>)),
+            pw.SizedBox(height: 8),
+          ],
+          if (education.isNotEmpty) ...[
+            _sectionTitle('FORMATION'),
+            pw.SizedBox(height: 8),
+            ...education.map((edu) => _buildEducationItem(edu as Map<String, dynamic>)),
+            pw.SizedBox(height: 8),
+          ],
+          if (projects.isNotEmpty) ...[
+            _sectionTitle('PROJETS'),
+            pw.SizedBox(height: 8),
+            ...projects.map((proj) => _buildProjectItem(proj as Map<String, dynamic>)),
+            pw.SizedBox(height: 8),
+          ],
+          if (skills.isNotEmpty) ...[
+            _sectionTitle('COMPETENCES'),
+            pw.SizedBox(height: 10),
             _buildSkillsChips(skills),
           ],
         ],
@@ -97,245 +80,120 @@ class StandardCvTemplate {
     return pdf;
   }
 
-  // ────────────────── HEADER ──────────────────
-
-  static pw.Widget _buildHeader(
-    String name,
-    String title,
-    String contact,
-    Uint8List? photoBytes,
-  ) {
-    final nameWidget = pw.Column(
+  static pw.Widget _buildHeader(String name, String title, String contact, Uint8List? photoBytes) {
+    final infoColumn = pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          name.toUpperCase(),
-          style: pw.TextStyle(
-            fontSize: 26,
-            fontWeight: pw.FontWeight.bold,
-            letterSpacing: 2,
-          ),
-        ),
+        pw.Text(name.toUpperCase(), style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _primaryColor, letterSpacing: 3)),
         if (title.isNotEmpty) ...[
-          pw.SizedBox(height: 4),
-          pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            color: PdfColors.grey800,
-            child: pw.Text(
-              title,
-              style: pw.TextStyle(
-                fontSize: 11,
-                color: PdfColors.white,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-          ),
+          pw.SizedBox(height: 6),
+          pw.Text(title, style: pw.TextStyle(fontSize: 13, color: _subtextColor, letterSpacing: 1)),
         ],
         if (contact.isNotEmpty) ...[
-          pw.SizedBox(height: 8),
-          pw.Text(
-            contact.replaceAll('\n', '   |   '),
-            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+          pw.SizedBox(height: 10),
+          pw.Wrap(
+            spacing: 14, runSpacing: 4,
+            children: contact.split(RegExp(r'[\n|]')).where((c) => c.trim().isNotEmpty).map((c) =>
+              pw.Text(c.trim(), style: const pw.TextStyle(fontSize: 9, color: _subtextColor))
+            ).toList(),
           ),
         ],
       ],
     );
 
     if (photoBytes != null) {
-      return pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.ClipRRect(
-            horizontalRadius: 4,
-            verticalRadius: 4,
-            child: pw.Image(
-              pw.MemoryImage(photoBytes),
-              width: 75,
-              height: 90,
-              fit: pw.BoxFit.cover,
-            ),
-          ),
-          pw.SizedBox(width: 16),
-          pw.Expanded(child: nameWidget),
-        ],
-      );
+      return pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.ClipRRect(horizontalRadius: 6, verticalRadius: 6, child: pw.Image(pw.MemoryImage(photoBytes), width: 80, height: 95, fit: pw.BoxFit.cover)),
+        pw.SizedBox(width: 18),
+        pw.Expanded(child: infoColumn),
+      ]);
     }
-    return nameWidget;
-  }
 
-  // ────────────────── SECTION TITLE ──────────────────
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+      infoColumn,
+      pw.SizedBox(height: 10),
+      pw.Container(width: double.infinity, height: 2, color: _primaryColor),
+    ]);
+  }
 
   static pw.Widget _sectionTitle(String text) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          text,
-          style: pw.TextStyle(
-            fontSize: 13,
-            fontWeight: pw.FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Divider(thickness: 0.8, color: PdfColors.grey400),
-      ],
-    );
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+      pw.Row(children: [
+        pw.Container(width: 4, height: 16, color: _accentColor),
+        pw.SizedBox(width: 10),
+        pw.Text(text, style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: _primaryColor, letterSpacing: 2)),
+      ]),
+      pw.SizedBox(height: 4),
+      pw.Divider(thickness: 0.5, color: _lineColor),
+    ]);
   }
-
-  // ────────────────── EDUCATION ──────────────────
-
-  static pw.Widget _buildEducationItem(Map<String, dynamic> edu) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 8),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Expanded(
-                child: pw.Text(
-                  edu['degree'] ?? '',
-                  style: pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-              if ((edu['dates'] as String?)?.isNotEmpty == true)
-                pw.Text(
-                  edu['dates'],
-                  style: const pw.TextStyle(
-                    fontSize: 9,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-            ],
-          ),
-          if ((edu['school'] as String?)?.isNotEmpty == true)
-            pw.Text(
-              edu['school'],
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontStyle: pw.FontStyle.italic,
-                color: PdfColors.grey700,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ────────────────── EXPERIENCE ──────────────────
 
   static pw.Widget _buildExperienceItem(Map<String, dynamic> exp) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 12),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Expanded(
-                child: pw.Text(
-                  exp['post'] ?? '',
-                  style: pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-              if ((exp['dates'] as String?)?.isNotEmpty == true)
-                pw.Text(
-                  exp['dates'],
-                  style: const pw.TextStyle(
-                    fontSize: 9,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-            ],
+      padding: const pw.EdgeInsets.only(bottom: 14),
+      child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Expanded(child: pw.Text(exp['post'] ?? '', style: pw.TextStyle(fontSize: 11.5, fontWeight: pw.FontWeight.bold, color: _primaryColor))),
+          if ((exp['dates'] as String?)?.isNotEmpty == true)
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(3)),
+              child: pw.Text(exp['dates'], style: pw.TextStyle(fontSize: 8.5, fontStyle: pw.FontStyle.italic, color: _subtextColor)),
+            ),
+        ]),
+        if ((exp['company'] as String?)?.isNotEmpty == true) ...[
+          pw.SizedBox(height: 2),
+          pw.Text(
+            '${exp['company']}${(exp['location'] as String?)?.isNotEmpty == true ? '  -  ${exp['location']}' : ''}',
+            style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic, color: _subtextColor),
           ),
-          if ((exp['company'] as String?)?.isNotEmpty == true)
-            pw.Text(
-              '${exp['company']}${(exp['location'] as String?)?.isNotEmpty == true ? ' - ${exp['location']}' : ''}',
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontStyle: pw.FontStyle.italic,
-                color: PdfColors.grey700,
-              ),
-            ),
-          if ((exp['description'] as String?)?.isNotEmpty == true)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 3),
-              child: pw.Text(
-                exp['description'],
-                style: const pw.TextStyle(fontSize: 10, lineSpacing: 3),
-              ),
-            ),
-          if (exp['achievements'] != null)
-            ...((exp['achievements'] as List?) ?? []).map(
-              (a) => pw.Padding(
-                padding: const pw.EdgeInsets.only(left: 10, top: 3),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Container(
-                      width: 4,
-                      height: 4,
-                      margin: const pw.EdgeInsets.only(top: 4, right: 8),
-                      decoration: const pw.BoxDecoration(
-                        shape: pw.BoxShape.circle,
-                        color: PdfColors.grey700,
-                      ),
-                    ),
-                    pw.Expanded(
-                      child: pw.Text(
-                        a.toString(),
-                        style: const pw.TextStyle(fontSize: 10),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
-      ),
+        if ((exp['description'] as String?)?.isNotEmpty == true) ...[
+          pw.SizedBox(height: 4),
+          pw.Text(exp['description'], style: pw.TextStyle(fontSize: 9.5, color: _textColor, lineSpacing: 3)),
+        ],
+        if (exp['achievements'] != null)
+          ...((exp['achievements'] as List?) ?? []).map((a) => pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 12, top: 3),
+            child: pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Container(width: 5, height: 5, margin: const pw.EdgeInsets.only(top: 3, right: 8),
+                decoration: const pw.BoxDecoration(shape: pw.BoxShape.circle, color: _accentColor)),
+              pw.Expanded(child: pw.Text(a.toString(), style: pw.TextStyle(fontSize: 9.5, color: _textColor))),
+            ]),
+          )),
+      ]),
     );
   }
 
-  // ────────────────── PROJECTS ──────────────────
+  static pw.Widget _buildEducationItem(Map<String, dynamic> edu) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 10),
+      child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Expanded(child: pw.Text(edu['degree'] ?? '', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: _primaryColor))),
+          if ((edu['dates'] as String?)?.isNotEmpty == true)
+            pw.Text(edu['dates'], style: pw.TextStyle(fontSize: 8.5, fontStyle: pw.FontStyle.italic, color: _subtextColor)),
+        ]),
+        if ((edu['school'] as String?)?.isNotEmpty == true) ...[
+          pw.SizedBox(height: 2),
+          pw.Text(edu['school'], style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic, color: _subtextColor)),
+        ],
+      ]),
+    );
+  }
 
   static pw.Widget _buildProjectItem(Map<String, dynamic> proj) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 8),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            proj['title'] ?? '',
-            style: pw.TextStyle(
-              fontSize: 11,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          if ((proj['description'] as String?)?.isNotEmpty == true)
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 2),
-              child: pw.Text(
-                proj['description'],
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-            ),
+      padding: const pw.EdgeInsets.only(bottom: 10),
+      child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Text(proj['title'] ?? '', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+        if ((proj['description'] as String?)?.isNotEmpty == true) ...[
+          pw.SizedBox(height: 3),
+          pw.Text(proj['description'], style: pw.TextStyle(fontSize: 9.5, color: _textColor)),
         ],
-      ),
+      ]),
     );
   }
-
-  // ────────────────── SKILLS ──────────────────
 
   static pw.Widget _buildSkillsChips(List<dynamic> skills) {
     final grouped = <String, List<String>>{};
@@ -346,42 +204,21 @@ class StandardCvTemplate {
       grouped[cat]!.add('${map['name']}');
     }
 
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: grouped.entries.map((entry) {
-        return pw.Padding(
-          padding: const pw.EdgeInsets.only(bottom: 8),
-          child: pw.Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: [
-              pw.Container(
-                padding: const pw.EdgeInsets.only(right: 4, top: 3),
-                child: pw.Text(
-                  '${entry.key}:',
-                  style: pw.TextStyle(
-                    fontSize: 10,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-              ...entry.value.map(
-                (skill) => pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey500),
-                    borderRadius: pw.BorderRadius.circular(3),
-                  ),
-                  child: pw.Text(skill, style: const pw.TextStyle(fontSize: 9)),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: grouped.entries.map((entry) {
+      return pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 10),
+        child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Text(entry.key, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+          pw.SizedBox(height: 5),
+          pw.Wrap(spacing: 6, runSpacing: 5, children: entry.value.map((skill) =>
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: pw.BoxDecoration(color: PdfColors.grey100, border: pw.Border.all(color: _lineColor, width: 0.5), borderRadius: pw.BorderRadius.circular(4)),
+              child: pw.Text(skill, style: pw.TextStyle(fontSize: 9, color: _textColor)),
+            ),
+          ).toList()),
+        ]),
+      );
+    }).toList());
   }
 }
