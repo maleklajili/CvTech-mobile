@@ -13,6 +13,7 @@ import 'package:cv_tech/data/models/profile/education_model.dart';
 import 'package:cv_tech/data/models/profile/skill_reference_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class EducationFormView extends StatefulWidget {
   final EducationModel? education;
@@ -205,9 +206,7 @@ class _EducationFormViewState extends State<EducationFormView> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la sélection: $e')),
-      );
+      CustomToast.error(context, '$e', title: 'Erreur de sélection');
     }
   }
 
@@ -271,23 +270,14 @@ class _EducationFormViewState extends State<EducationFormView> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.education == null
-                  ? 'Formation ajoutée avec succès'
-                  : 'Formation modifiée avec succès',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        CustomToast.success(
+          context,
+          widget.education == null
+              ? 'Formation ajoutée avec succès'
+              : 'Formation modifiée avec succès',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.educationError ?? 'Une erreur est survenue'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, viewModel.educationError ?? 'Une erreur est survenue');
       }
     }
   }

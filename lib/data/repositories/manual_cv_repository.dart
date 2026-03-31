@@ -1,84 +1,39 @@
 import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/api/api_endpoints.dart';
-import 'package:cv_tech/data/models/profile/ai_cv_model.dart';
+import 'package:cv_tech/data/models/profile/manual_cv_model.dart';
 import 'package:dio/dio.dart';
 import 'dart:typed_data';
 
-class AiCvRepository {
+class ManualCvRepository {
   final ApiClient _apiClient;
 
-  AiCvRepository({ApiClient? apiClient})
+  ManualCvRepository({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
-  /// Generate a new AI CV based on user profile
-  Future<AiCvModel> generate({
-    String language = 'fr',
-    String section = 'full',
-    String format = 'standard',
-    String? customPrompt,
-  }) async {
+  Future<ManualCvModel> create(Map<String, dynamic> data) async {
     try {
-      final body = <String, dynamic>{
-        'language': language,
-        'section': section,
-        'format': format,
-      };
-      if (customPrompt != null && customPrompt.isNotEmpty) {
-        body['customPrompt'] = customPrompt;
-      }
-
       final response = await _apiClient.dio.post(
-        ApiEndpoints.aiCvGenerate,
-        data: body,
+        ApiEndpoints.manualCvCreate,
+        data: data,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data is Map && response.data.containsKey('data')
+        final result = response.data is Map && response.data.containsKey('data')
             ? response.data['data']
             : response.data;
-        return AiCvModel.fromJson(data);
+        return ManualCvModel.fromJson(result);
       }
 
-      throw Exception('Échec de la génération du CV');
+      throw Exception('Échec de la création du CV');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  /// Reformulate an existing AI CV
-  Future<AiCvModel> reformulate({
-    required String cvId,
-    String? instructions,
-  }) async {
-    try {
-      final body = <String, dynamic>{};
-      if (instructions != null && instructions.isNotEmpty) {
-        body['instructions'] = instructions;
-      }
-
-      final response = await _apiClient.dio.post(
-        '${ApiEndpoints.aiCvReformulate}$cvId',
-        data: body,
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-        return AiCvModel.fromJson(data);
-      }
-
-      throw Exception('Échec de la reformulation du CV');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-
-  /// Get all user's AI-generated CVs
-  Future<List<AiCvModel>> getMyCvs() async {
+  Future<List<ManualCvModel>> getMyCvs() async {
     try {
       final response = await _apiClient.dio.get(
-        ApiEndpoints.aiCvMyCvs,
+        ApiEndpoints.manualCvMyCvs,
       );
 
       if (response.statusCode == 200) {
@@ -86,7 +41,7 @@ class AiCvRepository {
             ? response.data['data']
             : response.data;
         if (data is List) {
-          return data.map((e) => AiCvModel.fromJson(e)).toList();
+          return data.map((e) => ManualCvModel.fromJson(e)).toList();
         }
       }
 
@@ -96,11 +51,49 @@ class AiCvRepository {
     }
   }
 
-  /// Delete a generated CV
+  Future<ManualCvModel> getById(String cvId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiEndpoints.manualCvGet}$cvId',
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return ManualCvModel.fromJson(data);
+      }
+
+      throw Exception('Échec du chargement du CV');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<ManualCvModel> update(String cvId, Map<String, dynamic> data) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '${ApiEndpoints.manualCvUpdate}$cvId',
+        data: data,
+      );
+
+      if (response.statusCode == 200) {
+        final result = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return ManualCvModel.fromJson(result);
+      }
+
+      throw Exception('Échec de la mise à jour du CV');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Future<void> delete(String cvId) async {
     try {
       final response = await _apiClient.dio.delete(
-        '${ApiEndpoints.aiCvDelete}$cvId',
+        '${ApiEndpoints.manualCvDelete}$cvId',
       );
 
       if (response.statusCode != 200) {
@@ -111,10 +104,9 @@ class AiCvRepository {
     }
   }
 
-  /// Download CV as PDF from backend
   Future<Uint8List> downloadPdf(String cvId, {String? primaryColor, String? accentColor, String? fontFamily, String? format}) async {
     try {
-      String url = '${ApiEndpoints.aiCvDownloadPdf}$cvId';
+      String url = '${ApiEndpoints.manualCvDownloadPdf}$cvId';
       final params = <String, String>{};
       if (primaryColor != null) params['primaryColor'] = primaryColor;
       if (accentColor != null) params['accentColor'] = accentColor;
@@ -140,7 +132,30 @@ class AiCvRepository {
         return bytes;
       }
 
-      throw Exception('Échec du téléchargement du PDF (status: ${response.statusCode})');
+      throw Exception('Échec du téléchargement du PDF');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<ManualCvModel> importFromProfile({
+    String format = 'standard',
+    String language = 'fr',
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.manualCvImportProfile,
+        data: {'format': format, 'language': language},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return ManualCvModel.fromJson(data);
+      }
+
+      throw Exception('Échec de l\'import du profil');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -155,7 +170,7 @@ class AiCvRepository {
     }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      return Exception('La génération prend du temps, veuillez réessayer');
+      return Exception('Connexion lente, veuillez réessayer');
     }
     return Exception('Erreur réseau: ${e.message}');
   }

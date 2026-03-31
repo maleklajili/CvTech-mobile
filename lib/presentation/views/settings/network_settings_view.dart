@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:cv_tech/core/config/network_config.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 /// Vue des paramètres réseau
 /// Permet de configurer l'URL du backend dynamiquement
@@ -72,13 +73,7 @@ class _NetworkSettingsViewState extends State<NetworkSettingsView> {
       NetworkConfig.clearCache();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Configuration enregistrée ! Redémarrez l\'application.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        CustomToast.success(context, 'Configuration enregistrée ! Redémarrez l\'application.');
       }
       
       await _loadSettings();
@@ -115,23 +110,12 @@ class _NetworkSettingsViewState extends State<NetworkSettingsView> {
 
       if (mounted) {
         if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Connexion réussie au backend !'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          CustomToast.success(context, '✅ Connexion réussie au backend !');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Échec de connexion: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        CustomToast.error(context, '❌ Échec de connexion: ${e.toString()}');
       }
     } finally {
       setState(() => _isLoading = false);

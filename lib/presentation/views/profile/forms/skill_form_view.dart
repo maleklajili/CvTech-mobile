@@ -13,6 +13,7 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/profile/skill_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class SkillFormView extends StatefulWidget {
   final SkillModel? skill;
@@ -169,9 +170,7 @@ class _SkillFormViewState extends State<SkillFormView> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la sélection: $e')),
-      );
+      CustomToast.error(context, '$e', title: 'Erreur de sélection');
     }
   }
 
@@ -184,12 +183,7 @@ class _SkillFormViewState extends State<SkillFormView> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner une catégorie'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      CustomToast.warning(context, 'Veuillez sélectionner une catégorie');
       return;
     }
 
@@ -230,23 +224,14 @@ class _SkillFormViewState extends State<SkillFormView> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.skill == null
-                  ? 'Compétence ajoutée avec succès'
-                  : 'Compétence modifiée avec succès',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        CustomToast.success(
+          context,
+          widget.skill == null
+              ? 'Compétence ajoutée avec succès'
+              : 'Compétence modifiée avec succès',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.skillsError ?? 'Une erreur est survenue'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, viewModel.skillsError ?? 'Une erreur est survenue');
       }
     }
   }

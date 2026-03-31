@@ -15,6 +15,7 @@ import 'package:cv_tech/data/models/profile/certificate_reference_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class ExperienceFormViewV2 extends StatefulWidget {
   final ExperienceModel? experience;
@@ -177,9 +178,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la sélection: $e')),
-        );
+        CustomToast.error(context, '$e', title: 'Erreur de sélection');
       }
     }
   }
@@ -197,12 +196,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_currentPost && _endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner une date de fin ou cocher "Poste actuel"'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      CustomToast.warning(context, 'Veuillez sélectionner une date de fin ou cocher "Poste actuel"');
       return;
     }
 
@@ -250,23 +244,14 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.experience == null
-                  ? 'Expérience ajoutée avec succès'
-                  : 'Expérience modifiée avec succès',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        CustomToast.success(
+          context,
+          widget.experience == null
+              ? 'Expérience ajoutée avec succès'
+              : 'Expérience modifiée avec succès',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.experienceError ?? 'Une erreur est survenue'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, viewModel.experienceError ?? 'Une erreur est survenue');
       }
     }
   }

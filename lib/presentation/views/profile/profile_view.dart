@@ -20,6 +20,7 @@ import 'package:cv_tech/presentation/views_models/profile/professional_profile_v
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -933,14 +934,11 @@ class _ProfileViewState extends State<ProfileView>
       ProfessionalProfileViewModel viewModel, String id) async {
     final success = await viewModel.deleteExperience(id);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? 'Expérience supprimée'
-              : viewModel.experienceError ?? 'Erreur lors de la suppression'),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+      if (success) {
+        CustomToast.success(context, 'Expérience supprimée');
+      } else {
+        CustomToast.error(context, viewModel.experienceError ?? 'Erreur lors de la suppression');
+      }
     }
   }
 
@@ -948,14 +946,11 @@ class _ProfileViewState extends State<ProfileView>
       ProfessionalProfileViewModel viewModel, String id) async {
     final success = await viewModel.deleteEducation(id);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? 'Formation supprimée'
-              : viewModel.educationError ?? 'Erreur lors de la suppression'),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+      if (success) {
+        CustomToast.success(context, 'Formation supprimée');
+      } else {
+        CustomToast.error(context, viewModel.educationError ?? 'Erreur lors de la suppression');
+      }
     }
   }
 
@@ -963,14 +958,11 @@ class _ProfileViewState extends State<ProfileView>
       ProfessionalProfileViewModel viewModel, String id) async {
     final success = await viewModel.deleteSkill(id);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? 'Compétence supprimée'
-              : viewModel.skillsError ?? 'Erreur lors de la suppression'),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+      if (success) {
+        CustomToast.success(context, 'Compétence supprimée');
+      } else {
+        CustomToast.error(context, viewModel.skillsError ?? 'Erreur lors de la suppression');
+      }
     }
   }
 
@@ -978,14 +970,11 @@ class _ProfileViewState extends State<ProfileView>
       ProfessionalProfileViewModel viewModel, String id) async {
     final success = await viewModel.deleteProject(id);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? 'Projet supprimé'
-              : viewModel.projectsError ?? 'Erreur lors de la suppression'),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+      if (success) {
+        CustomToast.success(context, 'Projet supprimé');
+      } else {
+        CustomToast.error(context, viewModel.projectsError ?? 'Erreur lors de la suppression');
+      }
     }
   }
 
@@ -1027,12 +1016,7 @@ class _ProfileViewState extends State<ProfileView>
       print('🧪 Test - Image selected, reading bytes...');
       
       // Test upload de l'image - utiliser bytes pour compatibilité web
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🧪 Upload d\'image en cours...'),
-          backgroundColor: Colors.blue,
-        ),
-      );
+      CustomToast.info(context, 'Upload d\'image en cours...');
 
       final imageBytes = await image.readAsBytes();
       print('🧪 Test - Image bytes length: ${imageBytes.length}');
@@ -1040,26 +1024,18 @@ class _ProfileViewState extends State<ProfileView>
       bool success = await viewModel.uploadProfileImage(null, imageBytes: imageBytes);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success 
-              ? '✅ Test réussi ! Image uploadée' 
-              : '❌ Test échoué : ${viewModel.errorMessage}'),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
+        if (success) {
+          CustomToast.success(context, 'Test réussi ! Image uploadée');
+        } else {
+          CustomToast.error(context, 'Test échoué : ${viewModel.errorMessage}');
+        }
       }
 
       print('🧪 Test - Upload result: $success');
     } catch (e) {
       print('🧪 Test - Error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Erreur de test: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, 'Erreur de test: $e');
       }
     }
   }

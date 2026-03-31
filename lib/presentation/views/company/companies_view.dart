@@ -14,6 +14,8 @@ import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 
 // ─────────────────────────────────────────────
 // CONSTANTES CATEGORIES
@@ -274,9 +276,7 @@ class _CompaniesViewState extends State<CompaniesView> {
     final id = company.id;
     if (id == null || id.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entreprise invalide: identifiant manquant')),
-      );
+      CustomToast.error(context, 'Entreprise invalide: identifiant manquant');
       return;
     }
     final changed = await Navigator.push<bool>(
@@ -293,9 +293,7 @@ class _CompaniesViewState extends State<CompaniesView> {
   Future<void> _openEdit(CompanyModel company) async {
     if (company.id == null || company.id!.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entreprise invalide: identifiant manquant')),
-      );
+      CustomToast.error(context, 'Entreprise invalide: identifiant manquant');
       return;
     }
     final updated = await Navigator.push<bool>(
@@ -313,41 +311,26 @@ class _CompaniesViewState extends State<CompaniesView> {
     final id = company.id;
     if (id == null || id.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entreprise invalide: identifiant manquant')),
-      );
+      CustomToast.error(context, 'Entreprise invalide: identifiant manquant');
       return;
     }
-    final confirm = await showDialog<bool>(
+    final confirm = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Supprimer la page entreprise'),
-        content: Text('Confirmer la suppression de ${company.name} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      title: 'Supprimer la page entreprise',
+      message: 'Confirmer la suppression de ${company.name} ?',
+      confirmText: 'Supprimer',
+      isDangerous: true,
     );
     if (!mounted) return;
-    if (confirm != true) return;
+    if (!confirm) return;
     try {
       await _repository.delete(id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Entreprise supprimee')));
+      CustomToast.success(context, 'Entreprise supprimee');
       await _loadCompanies(reset: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Suppression impossible: $e')));
+      CustomToast.error(context, 'Suppression impossible: $e');
     }
   }
 
@@ -1877,46 +1860,29 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
   Future<void> _deleteJob(JobModel job) async {
     if (job.id == null || job.id!.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Identifiant offre manquant')),
-      );
+      CustomToast.error(context, 'Identifiant offre manquant');
       return;
     }
 
-    final confirm = await showDialog<bool>(
+    final confirm = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Supprimer l\'offre'),
-        content: Text('Confirmer la suppression de ${job.title} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      title: 'Supprimer l\'offre',
+      message: 'Confirmer la suppression de ${job.title} ?',
+      confirmText: 'Supprimer',
+      isDangerous: true,
     );
     if (!mounted) return;
-    if (confirm != true) return;
+    if (!confirm) return;
 
     try {
       await _jobRepository.delete(job.id!);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Offre supprimee')),
-      );
+      CustomToast.success(context, 'Offre supprimee');
       await _loadCompanyJobs();
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Suppression impossible: $e')),
-      );
+      CustomToast.error(context, 'Suppression impossible: $e');
     }
   }
 
@@ -1942,27 +1908,15 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
     final company = _company;
     if (company == null || company.id == null) return;
 
-    final confirm = await showDialog<bool>(
+    final confirm = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Supprimer l\'entreprise'),
-        content: Text('Confirmer la suppression de ${company.name} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      title: 'Supprimer l\'entreprise',
+      message: 'Confirmer la suppression de ${company.name} ?',
+      confirmText: 'Supprimer',
+      isDangerous: true,
     );
     if (!mounted) return;
-    if (confirm != true) return;
+    if (!confirm) return;
 
     setState(() => _actionLoading = true);
     try {
@@ -1972,9 +1926,7 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _actionLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Suppression impossible: $e')),
-      );
+      CustomToast.error(context, 'Suppression impossible: $e');
     }
   }
 
@@ -1983,10 +1935,7 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
     if (company == null) return;
     if (company.id == null || company.id!.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Impossible de modifier: identifiant manquant')),
-      );
+      CustomToast.error(context, 'Impossible de modifier: identifiant manquant');
       return;
     }
     final updated = await Navigator.push<bool>(
@@ -3528,9 +3477,7 @@ class _JobDetailViewState extends State<_JobDetailView> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Chargement des candidatures impossible: $e')),
-      );
+      CustomToast.error(context, 'Chargement des candidatures impossible: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoadingApplications = false);
@@ -3675,9 +3622,7 @@ class _JobDetailViewState extends State<_JobDetailView> {
     } catch (e) {
       _hideBlockingLoader();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Envoi de candidature impossible: $e')),
-      );
+      CustomToast.error(context, 'Envoi de candidature impossible: $e');
       return;
     } finally {
       _hideBlockingLoader();
@@ -3704,9 +3649,7 @@ class _JobDetailViewState extends State<_JobDetailView> {
       _activeTab = 'applications';
       _syncApplicationsStore();
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Candidature envoyee avec succes')),
-    );
+    CustomToast.success(context, 'Candidature envoyee avec succes');
 
     if (isOwner) {
       await _loadOwnerApplications();
@@ -3749,14 +3692,10 @@ class _JobDetailViewState extends State<_JobDetailView> {
         await _loadOwnerApplications();
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Statut mis a jour: $status')),
-      );
+      CustomToast.success(context, 'Statut mis a jour: $status');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mise a jour impossible: $e')),
-      );
+      CustomToast.error(context, 'Mise a jour impossible: $e');
     }
   }
 
@@ -3779,14 +3718,10 @@ class _JobDetailViewState extends State<_JobDetailView> {
         });
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Candidature retiree')),
-      );
+      CustomToast.success(context, 'Candidature retiree');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Retrait impossible: $e')),
-      );
+      CustomToast.error(context, 'Retrait impossible: $e');
     }
   }
 
@@ -3831,38 +3766,22 @@ class _JobDetailViewState extends State<_JobDetailView> {
         _hideBlockingLoader();
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'CV non disponible localement et identifiant de candidature manquant.',
-            ),
-          ),
-        );
+        CustomToast.warning(context, 'CV non disponible localement et identifiant de candidature manquant.');
         return;
       }
 
       final result = await OpenFilex.open(filePathToOpen);
       if (result.type != ResultType.done && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Impossible d\'ouvrir ce CV: ${result.message}')),
-        );
+        CustomToast.error(context, 'Impossible d\'ouvrir ce CV: ${result.message}');
       }
     } on MissingPluginException {
       _hideBlockingLoader();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Plugin fichier non charge. Redemarrez completement l\'application.',
-          ),
-        ),
-      );
+      CustomToast.error(context, 'Plugin fichier non charge. Redemarrez completement l\'application.');
     } catch (e) {
       _hideBlockingLoader();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur ouverture CV: $e')),
-      );
+      CustomToast.error(context, 'Erreur ouverture CV: $e');
     } finally {
       _hideBlockingLoader();
     }
@@ -4417,9 +4336,7 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_useExistingCv && _cvFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez joindre votre CV (PDF, DOC, DOCX).')),
-      );
+      CustomToast.warning(context, 'Veuillez joindre votre CV (PDF, DOC, DOCX).');
       return;
     }
 
@@ -4448,16 +4365,12 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
     final file = result.files.first;
     final ext = file.extension?.toLowerCase();
     if (ext != 'pdf' && ext != 'doc' && ext != 'docx') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Format non supporte. Utilisez PDF, DOC ou DOCX.')),
-      );
+      CustomToast.warning(context, 'Format non supporte. Utilisez PDF, DOC ou DOCX.');
       return;
     }
     final fileSize = file.size;
     if (fileSize > 5 * 1024 * 1024) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Le fichier ne doit pas depasser 5 Mo.')),
-      );
+      CustomToast.warning(context, 'Le fichier ne doit pas depasser 5 Mo.');
       return;
     }
     setState(() {
@@ -4809,9 +4722,7 @@ class _CreateJobSheetState extends State<_CreateJobSheet> {
       setState(() {
         _submitting = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_isEditing ? 'Mise a jour' : 'Publication'} impossible: $e')),
-      );
+      CustomToast.error(context, '${_isEditing ? 'Mise a jour' : 'Publication'} impossible: $e');
     }
   }
 
@@ -5103,9 +5014,7 @@ class _CompanyFormViewState extends State<CompanyFormView> {
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Operation impossible: $e')),
-      );
+      CustomToast.error(context, 'Operation impossible: $e');
       setState(() => _loading = false);
     }
   }

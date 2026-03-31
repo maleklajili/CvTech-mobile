@@ -12,6 +12,7 @@ import 'package:cv_tech/presentation/views/chat/chat_list_view.dart';
 import 'package:cv_tech/presentation/views/profile/user_search_view.dart';
 import 'package:cv_tech/presentation/views_models/main/app_bar_view_model.dart';
 import 'package:cv_tech/presentation/views_models/main/bottom_navigation_bar_view_model.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class AppBarWidget extends StatelessWidget {
   final AppBarViewModel viewModel;
@@ -77,12 +78,7 @@ class AppBarWidget extends StatelessWidget {
                 weight: 100,
               ),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Notifications disponibles dans le menu latéral'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                CustomToast.info(context, 'Notifications disponibles dans le menu latéral');
               },
             ),
           ],

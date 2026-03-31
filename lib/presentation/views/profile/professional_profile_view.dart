@@ -20,7 +20,9 @@ import 'package:cv_tech/presentation/views/profile/widgets/skills_section.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/presentation/views/profile/ai_cv_view.dart';
+import 'package:cv_tech/presentation/views/profile/manual_cv_view.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class ProfessionalProfileView extends StatefulWidget {
   const ProfessionalProfileView({super.key});
@@ -151,12 +153,9 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
-                    // Scroll down to let the user fill in their profile manually
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Complétez vos sections ci-dessous pour créer votre CV'),
-                        duration: Duration(seconds: 3),
-                      ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ManualCvView()),
                     );
                   },
                 ),
@@ -226,18 +225,11 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
             onDelete: (id) async {
               final success = await viewModel.deleteEducation(id);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Formation supprimée'
-                          : viewModel.educationError ??
-                              'Erreur lors de la suppression',
-                    ),
-                    backgroundColor:
-                        success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  CustomToast.success(context, 'Formation supprimée');
+                } else {
+                  CustomToast.error(context, viewModel.educationError ?? 'Erreur lors de la suppression');
+                }
               }
             },
           ),
@@ -280,18 +272,11 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
             onDelete: (id) async {
               final success = await viewModel.deleteExperience(id);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Expérience supprimée'
-                          : viewModel.experienceError ??
-                              'Erreur lors de la suppression',
-                    ),
-                    backgroundColor:
-                        success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  CustomToast.success(context, 'Expérience supprimée');
+                } else {
+                  CustomToast.error(context, viewModel.experienceError ?? 'Erreur lors de la suppression');
+                }
               }
             },
           ),
@@ -334,18 +319,11 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
             onDelete: (id) async {
               final success = await viewModel.deleteSkill(id);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Compétence supprimée'
-                          : viewModel.skillsError ??
-                              'Erreur lors de la suppression',
-                    ),
-                    backgroundColor:
-                        success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  CustomToast.success(context, 'Compétence supprimée');
+                } else {
+                  CustomToast.error(context, viewModel.skillsError ?? 'Erreur lors de la suppression');
+                }
               }
             },
           ),
@@ -387,18 +365,11 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
             onDelete: (id) async {
               final success = await viewModel.deleteProject(id);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Projet supprimé'
-                          : viewModel.projectsError ??
-                              'Erreur lors de la suppression',
-                    ),
-                    backgroundColor:
-                        success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  CustomToast.success(context, 'Projet supprimé');
+                } else {
+                  CustomToast.error(context, viewModel.projectsError ?? 'Erreur lors de la suppression');
+                }
               }
             },
           ),

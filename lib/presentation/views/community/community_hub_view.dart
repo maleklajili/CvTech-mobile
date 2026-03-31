@@ -16,6 +16,8 @@ import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 
 class CommunityHubView extends StatefulWidget {
   const CommunityHubView({super.key});
@@ -189,38 +191,22 @@ class _CommunityHubViewState extends State<CommunityHubView> {
     final isOwner = _canManageCommunity(community);
     if (isOwner) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Admin: impossible de quitter votre communauté.'),
-        ),
-      );
+      CustomToast.info(context, 'Admin: impossible de quitter votre communauté.');
       return;
     }
 
     final isMember = _memberCommunityIds.contains(community.id);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isMember ? 'Quitter la communaute' : 'Rejoindre la communaute'),
-        content: Text(
-          isMember
-              ? 'Voulez-vous vraiment quitter ${community.title} ?'
-              : 'Voulez-vous rejoindre ${community.title} ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(isMember ? 'Quitter' : 'Rejoindre'),
-          ),
-        ],
-      ),
+      title: isMember ? 'Quitter la communaute' : 'Rejoindre la communaute',
+      message: isMember
+          ? 'Voulez-vous vraiment quitter ${community.title} ?'
+          : 'Voulez-vous rejoindre ${community.title} ?',
+      confirmText: isMember ? 'Quitter' : 'Rejoindre',
+      isDangerous: false,
     );
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     setState(() {
       _membershipActionLoadingIds = {
@@ -248,9 +234,7 @@ class _CommunityHubViewState extends State<CommunityHubView> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Action impossible: $e')),
-      );
+      CustomToast.error(context, 'Action impossible: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -299,38 +283,24 @@ class _CommunityHubViewState extends State<CommunityHubView> {
   }
 
   Future<void> _deleteCommunityFromHub(CommunityModel community) async {
-    final confirm = await showDialog<bool>(
+    final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Supprimer la communaute'),
-        content: Text('Confirmer la suppression de ${community.title} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      title: 'Supprimer la communaute',
+      message: 'Confirmer la suppression de ${community.title} ?',
+      confirmText: 'Supprimer',
+      isDangerous: true,
     );
 
-    if (confirm != true) return;
+    if (!confirmed) return;
 
     try {
       await _repository.delete(community.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Communaute supprimee')),
-      );
+      CustomToast.success(context, 'Communaute supprimee');
       await _loadDiscover();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Suppression impossible: $e')),
-      );
+      CustomToast.error(context, 'Suppression impossible: $e');
     }
   }
 
@@ -773,9 +743,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Action impossible: $e')),
-      );
+      CustomToast.error(context, 'Action impossible: $e');
     }
   }
 
@@ -957,35 +925,21 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
     if (_community == null) return;
     if (_isOwner) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Le createur/admin ne peut pas quitter sa communaute.')),
-      );
+      CustomToast.info(context, 'Le createur/admin ne peut pas quitter sa communaute.');
       return;
     }
 
-    final confirm = await showDialog<bool>(
+    final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_isMember ? 'Quitter la communaute' : 'Rejoindre la communaute'),
-        content: Text(
-          _isMember
-              ? 'Voulez-vous vraiment quitter ${_community!.title} ?'
-              : 'Voulez-vous rejoindre ${_community!.title} ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(_isMember ? 'Quitter' : 'Rejoindre'),
-          ),
-        ],
-      ),
+      title: _isMember ? 'Quitter la communaute' : 'Rejoindre la communaute',
+      message: _isMember
+          ? 'Voulez-vous vraiment quitter ${_community!.title} ?'
+          : 'Voulez-vous rejoindre ${_community!.title} ?',
+      confirmText: _isMember ? 'Quitter' : 'Rejoindre',
+      isDangerous: false,
     );
 
-    if (confirm != true) return;
+    if (!confirmed) return;
 
     setState(() => _isActionLoading = true);
     try {
@@ -1007,9 +961,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isActionLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Action impossible: $e')),
-      );
+      CustomToast.error(context, 'Action impossible: $e');
     }
   }
 
@@ -1113,23 +1065,15 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
   Future<void> _deleteCommunity() async {
     if (_community == null) return;
 
-    final confirm = await showDialog<bool>(
+    final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Supprimer la communaute'),
-        content: Text('Confirmer la suppression de ${_community!.title} ?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Supprimer')),
-        ],
-      ),
+      title: 'Supprimer la communaute',
+      message: 'Confirmer la suppression de ${_community!.title} ?',
+      confirmText: 'Supprimer',
+      isDangerous: true,
     );
 
-    if (confirm != true) return;
+    if (!confirmed) return;
 
     setState(() => _isActionLoading = true);
     try {
@@ -1139,9 +1083,7 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isActionLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Suppression impossible: $e')),
-      );
+      CustomToast.error(context, 'Suppression impossible: $e');
     }
   }
 
@@ -2342,9 +2284,7 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
 
     final categoryToSend = _selectedCategory ?? _normalizeCategory(_initialCategoryRaw) ?? _initialCategoryRaw;
     if ((categoryToSend == null || categoryToSend.trim().isEmpty) && !_editing) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Category obligatoire')),
-      );
+      CustomToast.warning(context, 'Category obligatoire');
       return;
     }
 
@@ -2378,9 +2318,7 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Operation impossible: $e')),
-      );
+      CustomToast.error(context, 'Operation impossible: $e');
       setState(() => _loading = false);
     }
   }

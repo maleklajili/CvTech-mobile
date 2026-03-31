@@ -13,6 +13,7 @@ import 'package:cv_tech/data/models/profile/experience_model.dart';
 import 'package:cv_tech/data/models/profile/skill_reference_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class ExperienceFormView extends StatefulWidget {
   final ExperienceModel? experience;
@@ -188,9 +189,7 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la sélection: $e')),
-      );
+      CustomToast.error(context, '$e', title: 'Erreur de sélection');
     }
   }
 
@@ -251,23 +250,14 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.experience == null
-                  ? 'Expérience ajoutée avec succès'
-                  : 'Expérience modifiée avec succès',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        CustomToast.success(
+          context,
+          widget.experience == null
+              ? 'Expérience ajoutée avec succès'
+              : 'Expérience modifiée avec succès',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.experienceError ?? 'Une erreur est survenue'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, viewModel.experienceError ?? 'Une erreur est survenue');
       }
     }
   }

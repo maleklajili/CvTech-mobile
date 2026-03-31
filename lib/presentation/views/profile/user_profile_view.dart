@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/core/utils/image_url_helper.dart';
 import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/api/api_endpoints.dart';
@@ -987,13 +988,7 @@ class _UserProfileViewState extends State<UserProfileView>
                     );
                   }
                 : () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Cette personne n\'accepte pas les messages hors amis.',
-                        ),
-                      ),
-                    );
+                    CustomToast.info(context, 'Cette personne n\'accepte pas les messages hors amis.');
                   },
             icon: const Icon(Icons.message_outlined, size: 18),
             label: Text(_canSendMessage ? 'Message' : 'Message indisponible'),

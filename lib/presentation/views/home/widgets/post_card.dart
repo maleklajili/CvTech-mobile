@@ -37,34 +37,31 @@ class PostCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Community and author info
-                      Widget _buildDisplayOwnerPost() {
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: Text.rich(
-                                TextSpan(children: [
-                                  TextSpan(
-                                    text: post.author,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                      color: AppTheme.textColor,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: ' • ${post.timeAgo}',
-                                    style: TextStyle(
-                                      color: AppTheme.textMutedColor,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ]),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        );
-                      }
+                      _buildDisplayOwnerPost(),
+                      const SizedBox(height: 8),
+                      _buildTitlePost(context),
+                      if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: _buildImagePost(),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          _buildActionPost(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisplayOwnerPost() {
+    return Row(
+      children: [
+        Expanded(
+          child: Text.rich(
             TextSpan(children: [
               TextSpan(
                 text: post.author,

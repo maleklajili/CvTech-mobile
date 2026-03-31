@@ -15,6 +15,7 @@ import 'package:cv_tech/data/models/profile/certificate_reference_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class EducationFormViewV2 extends StatefulWidget {
   final EducationModel? education;
@@ -163,9 +164,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la sélection: $e')),
-        );
+        CustomToast.error(context, '$e', title: 'Erreur de sélection');
       }
     }
   }
@@ -183,12 +182,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_current && _endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner une date de fin ou cocher "Formation en cours"'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      CustomToast.warning(context, 'Veuillez sélectionner une date de fin ou cocher "Formation en cours"');
       return;
     }
 
@@ -238,23 +232,14 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.education == null
-                  ? 'Formation ajoutée avec succès'
-                  : 'Formation modifiée avec succès',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        CustomToast.success(
+          context,
+          widget.education == null
+              ? 'Formation ajoutée avec succès'
+              : 'Formation modifiée avec succès',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.educationError ?? 'Une erreur est survenue'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, viewModel.educationError ?? 'Une erreur est survenue');
       }
     }
   }

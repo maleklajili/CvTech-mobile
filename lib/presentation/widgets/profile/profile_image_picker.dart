@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 // Project imports:
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class ProfileImagePicker extends StatefulWidget {
   final String? currentImageUrl;
@@ -84,37 +85,23 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.isCover
-                    ? 'Image de couverture mise à jour'
-                    : 'Photo de profil mise à jour',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          CustomToast.success(
+            context,
+            widget.isCover
+                ? 'Image de couverture mise à jour'
+                : 'Photo de profil mise à jour',
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                profileViewModel.errorMessage ??
-                    'Erreur lors de la mise à jour',
-              ),
-              backgroundColor: Colors.red,
-            ),
+          CustomToast.error(
+            context,
+            profileViewModel.errorMessage ?? 'Erreur lors de la mise à jour',
           );
         }
       }
     } catch (e) {
       setState(() => _isUploading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, e.toString());
       }
     }
   }

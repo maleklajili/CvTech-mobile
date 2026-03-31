@@ -204,4 +204,15 @@ class ApiEndpoints {
   static const String aiCvReformulate = '$aiCv/reformulate/'; // + :id
   static const String aiCvMyCvs = '$aiCv/my-cvs';
   static const String aiCvDelete = '$aiCv/delete/'; // + :id
+  static const String aiCvDownloadPdf = '$aiCv/download-pdf/'; // + :id
+
+  // Manual CV endpoints
+  static const String manualCv = '/manual-cv';
+  static const String manualCvCreate = '$manualCv/create';
+  static const String manualCvMyCvs = '$manualCv/my-cvs';
+  static const String manualCvGet = '$manualCv/get/'; // + :id
+  static const String manualCvUpdate = '$manualCv/update/'; // + :id
+  static const String manualCvDelete = '$manualCv/delete/'; // + :id
+  static const String manualCvDownloadPdf = '$manualCv/download-pdf/'; // + :id
+  static const String manualCvImportProfile = '$manualCv/import-profile';
 }

@@ -13,6 +13,7 @@ import 'package:cv_tech/constants/professional_categories.dart';
 import 'package:cv_tech/data/models/auth/user_model.dart';
 import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class EditProfileView extends StatefulWidget {
   final UserModel user;
@@ -172,9 +173,7 @@ class _EditProfileViewState extends State<EditProfileView>
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la sélection: $e')),
-      );
+      CustomToast.error(context, '$e', title: 'Erreur de sélection');
     }
   }
 
@@ -1289,23 +1288,13 @@ class _EditProfileViewState extends State<EditProfileView>
       widget.onProfileUpdated(updatedUser);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil mis à jour avec succès'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        CustomToast.success(context, 'Profil mis à jour avec succès');
         Navigator.pop(context);
       }
     } catch (e) {
       print('❌ Error saving profile: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de la mise à jour: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, '$e', title: 'Mise à jour échouée');
       }
     } finally {
       if (mounted) {

@@ -6,6 +6,7 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 /// Page de création / édition d'un post (style LinkedIn)
 class CreatePostView extends StatefulWidget {
@@ -84,22 +85,12 @@ class _CreatePostViewState extends State<CreatePostView> {
     final content = _contentController.text.trim();
 
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Le titre est obligatoire'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      CustomToast.warning(context, 'Le titre est obligatoire');
       return;
     }
 
     if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Le contenu est obligatoire'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      CustomToast.warning(context, 'Le contenu est obligatoire');
       return;
     }
 
@@ -133,25 +124,16 @@ class _CreatePostViewState extends State<CreatePostView> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing
-                  ? 'Post modifie'
-                  : (widget.communityId != null
-                      ? 'Post publie dans la communaute'
-                      : 'Post publie'),
-            ),
-            backgroundColor: Colors.green,
-          ),
+        CustomToast.success(
+          context,
+          isEditing
+              ? 'Post modifie'
+              : (widget.communityId != null
+                  ? 'Post publie dans la communaute'
+                  : 'Post publie'),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.errorMessage ?? 'Erreur'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, viewModel.errorMessage ?? 'Erreur');
       }
     }
   }

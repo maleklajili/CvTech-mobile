@@ -5,6 +5,7 @@ import 'package:cv_tech/data/models/job_model.dart';
 import 'package:cv_tech/data/repositories/job_application_repository.dart';
 import 'package:cv_tech/data/repositories/job_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 enum _ApplicationFilter { all, pending, interview, accepted, rejected }
 
@@ -70,9 +71,7 @@ class _JobsViewState extends State<JobsView> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Chargement des candidatures impossible: $e')),
-      );
+      CustomToast.error(context, 'Chargement des candidatures impossible: $e');
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -218,9 +217,7 @@ class _JobsViewState extends State<JobsView> {
     final jobId = application.jobId;
     if (jobId == null || jobId.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Job ID introuvable pour cette candidature')),
-      );
+      CustomToast.error(context, 'Job ID introuvable pour cette candidature');
       return;
     }
 
@@ -271,9 +268,7 @@ class _JobsViewState extends State<JobsView> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('GET /jobs/:id impossible: $e')),
-      );
+      CustomToast.error(context, 'GET /jobs/:id impossible: $e');
     }
   }
 

@@ -13,6 +13,8 @@ import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 
 /// Section Posts dans le profil - Affiche les publications de l'utilisateur
 /// Utilise exactement le même design que le Home Feed (FeedPostCard + CreatePostView)
@@ -107,34 +109,17 @@ class _PostsSectionContentState extends State<_PostsSectionContent> {
                       ),
                     ).then((_) => vm.loadMyPosts()),
                     onDelete: () async {
-                      final confirm = await showDialog<bool>(
+                      final confirm = await CustomAlertDialog.showConfirmation(
                         context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Supprimer'),
-                          content: const Text(
-                              'Voulez-vous supprimer cette publication ?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Annuler'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Supprimer',
-                                  style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
+                        title: 'Supprimer',
+                        message: 'Voulez-vous supprimer cette publication ?',
+                        confirmText: 'Supprimer',
+                        isDangerous: true,
                       );
-                      if (confirm == true) {
+                      if (confirm) {
                         final success = await vm.deletePost(post.id!);
                         if (success && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Publication supprimée'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                          CustomToast.success(context, 'Publication supprimée');
                         }
                       }
                     },

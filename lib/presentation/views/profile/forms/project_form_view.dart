@@ -12,6 +12,7 @@ import 'package:cv_tech/core/constants/project_constants.dart';
 import 'package:cv_tech/data/models/profile/project_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class ProjectFormView extends StatefulWidget {
   final ProjectModel? project;
@@ -122,30 +123,15 @@ class _ProjectFormViewState extends State<ProjectFormView> {
 
     // Validation des dropdowns
     if (_selectedCategory == null || _selectedCategory!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner une catégorie'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      CustomToast.warning(context, 'Veuillez sélectionner une catégorie');
       return;
     }
     if (_selectedProjectType == null || _selectedProjectType!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner un type de projet'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      CustomToast.warning(context, 'Veuillez sélectionner un type de projet');
       return;
     }
     if (_technologies.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez ajouter au moins une technologie'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      CustomToast.warning(context, 'Veuillez ajouter au moins une technologie');
       return;
     }
 
@@ -186,23 +172,14 @@ class _ProjectFormViewState extends State<ProjectFormView> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.project == null
-                  ? 'Projet ajouté avec succès'
-                  : 'Projet modifié avec succès',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        CustomToast.success(
+          context,
+          widget.project == null
+              ? 'Projet ajouté avec succès'
+              : 'Projet modifié avec succès',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(viewModel.projectsError ?? 'Une erreur est survenue'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, viewModel.projectsError ?? 'Une erreur est survenue');
       }
     }
   }

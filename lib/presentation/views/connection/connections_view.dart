@@ -8,6 +8,7 @@ import 'package:cv_tech/presentation/views/friend_group/friend_groups_view.dart'
 import 'package:cv_tech/presentation/views/profile/user_profile_view.dart';
 import 'package:cv_tech/presentation/views_models/connection/connection_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 
 class ConnectionsView extends StatelessWidget {
   const ConnectionsView({super.key});
@@ -334,29 +335,17 @@ class _SearchResultTile extends StatelessWidget {
     );
   }
 
-  void _showUnfollowDialog(BuildContext context, NetworkUser user) {
-    showDialog(
+  void _showUnfollowDialog(BuildContext context, NetworkUser user) async {
+    final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Se désabonner'),
-        content: Text(
-            'Voulez-vous vous désabonner de ${user.fullName} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              vm.unfollowUser(user.id);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Se désabonner'),
-          ),
-        ],
-      ),
+      title: 'Se désabonner',
+      message: 'Voulez-vous vous désabonner de ${user.fullName} ?',
+      confirmText: 'Se désabonner',
+      isDangerous: true,
     );
+    if (confirmed) {
+      vm.unfollowUser(user.id);
+    }
   }
 }
 
@@ -564,29 +553,17 @@ class _FriendTile extends StatelessWidget {
   }
 
   void _showUnfollowDialog(
-      BuildContext context, String name, String userId) {
-    showDialog(
+      BuildContext context, String name, String userId) async {
+    final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Se désabonner'),
-        content: Text(
-            'Voulez-vous vous désabonner de $name ? Vous ne serez plus connectés mutuellement.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              vm.unfollowUser(userId);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Se désabonner'),
-          ),
-        ],
-      ),
+      title: 'Se désabonner',
+      message: 'Voulez-vous vous désabonner de $name ? Vous ne serez plus connectés mutuellement.',
+      confirmText: 'Se désabonner',
+      isDangerous: true,
     );
+    if (confirmed) {
+      vm.unfollowUser(userId);
+    }
   }
 }
 
@@ -880,29 +857,17 @@ class _FollowingTile extends StatelessWidget {
     );
   }
 
-  void _showUnfollowDialog(BuildContext context, NetworkUser user) {
-    showDialog(
+  void _showUnfollowDialog(BuildContext context, NetworkUser user) async {
+    final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Se désabonner'),
-        content: Text(
-            'Voulez-vous vous désabonner de ${user.fullName} ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              vm.unfollowUser(user.id);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Se désabonner'),
-          ),
-        ],
-      ),
+      title: 'Se désabonner',
+      message: 'Voulez-vous vous désabonner de ${user.fullName} ?',
+      confirmText: 'Se désabonner',
+      isDangerous: true,
     );
+    if (confirmed) {
+      vm.unfollowUser(user.id);
+    }
   }
 }
 

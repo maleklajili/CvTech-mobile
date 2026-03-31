@@ -6,6 +6,7 @@ import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/data/models/feed/share_model.dart';
 import 'package:cv_tech/data/repositories/share_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 /// Modal bottom sheet for sharing a post (Reddit/LinkedIn style)
 class ShareModal extends StatelessWidget {
@@ -180,21 +181,7 @@ class ShareModal extends StatelessWidget {
   void _copyLink(BuildContext context) {
     Clipboard.setData(ClipboardData(text: _postUrl));
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Lien copié dans le presse-papier'),
-          ],
-        ),
-        backgroundColor: AppColors.primaryColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    CustomToast.success(context, 'Lien copié dans le presse-papier');
   }
 
   void _shareToApps(BuildContext context) {
@@ -210,21 +197,7 @@ class ShareModal extends StatelessWidget {
   void _sendToUser(BuildContext context) {
     Navigator.pop(context);
     // TODO: Navigate to user selection screen for internal chat sharing
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.info_outline, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Fonctionnalité bientôt disponible'),
-          ],
-        ),
-        backgroundColor: Colors.blue,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    CustomToast.info(context, 'Fonctionnalité bientôt disponible');
   }
 
   Future<void> _repost(BuildContext context) async {
@@ -239,40 +212,12 @@ class ShareModal extends StatelessWidget {
         ),
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text('Publication repartagée avec succès !'),
-              ],
-            ),
-            backgroundColor: AppColors.primaryColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        CustomToast.success(context, 'Publication repartagée avec succès !');
       }
       onRepost?.call();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Erreur: ${e.toString().replaceAll("Exception: ", "")}')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        CustomToast.error(context, 'Erreur: ${e.toString().replaceAll("Exception: ", "")}');
       }
     }
   }

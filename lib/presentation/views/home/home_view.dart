@@ -16,6 +16,7 @@ import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/core/services/socket_service.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 
 class HomeView extends StatelessWidget {
   final ScrollController scrollController;
@@ -340,25 +341,14 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
               ),
             ),
             onDelete: () async {
-              final confirm = await showDialog<bool>(
+              final confirm = await CustomAlertDialog.showConfirmation(
                 context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Supprimer'),
-                  content: const Text('Voulez-vous supprimer ce post ?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Annuler'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Supprimer',
-                          style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
+                title: 'Supprimer',
+                message: 'Voulez-vous supprimer ce post ?',
+                confirmText: 'Supprimer',
+                isDangerous: true,
               );
-              if (confirm == true) vm.deletePost(postId);
+              if (confirm) vm.deletePost(postId);
             },
           );
         },
