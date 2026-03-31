@@ -207,10 +207,11 @@ class _PostsSectionContentState extends State<_PostsSectionContent> {
   Widget _buildErrorState(BuildContext context, FeedViewModel vm) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final minH = constraints.maxHeight.isFinite ? constraints.maxHeight : 300.0;
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            constraints: BoxConstraints(minHeight: minH),
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -266,10 +267,11 @@ class _PostsSectionContentState extends State<_PostsSectionContent> {
   Widget _buildEmptyState(BuildContext context, FeedViewModel vm) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final minH = constraints.maxHeight.isFinite ? constraints.maxHeight : 300.0;
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            constraints: BoxConstraints(minHeight: minH),
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),

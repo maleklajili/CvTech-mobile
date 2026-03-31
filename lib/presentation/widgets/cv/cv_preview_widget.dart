@@ -16,7 +16,12 @@ class CvPreviewWidget extends StatelessWidget {
   String? get _photoUrl {
     final raw = cv.personalInfo.photoUrl;
     if (raw == null || raw.isEmpty) return null;
-    return ImageUrlHelper.resolveMaybeUrlSync(raw);
+    // If it's a full URL or contains a path separator, use general resolver
+    if (raw.startsWith('http') || raw.contains('/')) {
+      return ImageUrlHelper.resolveMaybeUrlSync(raw);
+    }
+    // Bare filename — construct proper URL with user-specific upload path
+    return ImageUrlHelper.getImageUrlSync(raw, cv.userId);
   }
 
   @override

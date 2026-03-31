@@ -329,6 +329,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
       CustomToast.info(context, 'Génération du PDF en cours...', title: 'PDF');
 
       final primaryHex = _colorToHex(_selectedColor);
+      debugPrint('>>> CV Download: template=$_selectedTemplate, color=$primaryHex, font=$_selectedFont');
       late final Uint8List pdfBytes;
 
       if (widget.cvType == 'ai') {
