@@ -114,17 +114,14 @@ class AiCvRepository {
   /// Download CV as PDF from backend
   Future<Uint8List> downloadPdf(String cvId, {String? primaryColor, String? accentColor, String? fontFamily, String? format}) async {
     try {
-      String url = '${ApiEndpoints.aiCvDownloadPdf}$cvId';
-      final params = <String, String>{};
-      if (primaryColor != null) params['primaryColor'] = primaryColor;
-      if (accentColor != null) params['accentColor'] = accentColor;
-      if (fontFamily != null) params['fontFamily'] = fontFamily;
-      if (format != null) params['format'] = format;
-      if (params.isNotEmpty) {
-        url += '?${params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
-      }
+      final queryParams = <String, dynamic>{};
+      if (primaryColor != null) queryParams['primaryColor'] = primaryColor;
+      if (accentColor != null) queryParams['accentColor'] = accentColor;
+      if (fontFamily != null) queryParams['fontFamily'] = fontFamily;
+      if (format != null) queryParams['format'] = format;
       final response = await _apiClient.dio.get(
-        url,
+        '${ApiEndpoints.aiCvDownloadPdf}$cvId',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
         options: Options(
           responseType: ResponseType.bytes,
           receiveTimeout: const Duration(seconds: 60),
