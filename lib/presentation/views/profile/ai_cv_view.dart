@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/core/services/pdf_download_service.dart';
 import 'package:cv_tech/presentation/views_models/profile/ai_cv_view_model.dart';
 import 'package:cv_tech/data/models/profile/ai_cv_model.dart';
+import 'package:cv_tech/data/repositories/ai_cv_repository.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 import 'package:cv_tech/presentation/views/profile/cv_customization_screen.dart';
@@ -352,7 +354,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withOpacity(0.1),
+                  color: AppColors.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -406,11 +408,23 @@ class _AiCvContentState extends State<_AiCvContent> {
               ),
               PopupMenuButton<String>(
                 onSelected: (value) {
-                  if (value == 'delete') {
+                  if (value == 'pdf') {
+                    _downloadAsPdf(context, cv);
+                  } else if (value == 'delete') {
                     _showDeleteDialog(context, vm, cv);
                   }
                 },
                 itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'pdf',
+                    child: Row(
+                      children: [
+                        Icon(Icons.picture_as_pdf_outlined, size: 20),
+                        SizedBox(width: 8),
+                        Text('Télécharger PDF'),
+                      ],
+                    ),
+                  ),
                   const PopupMenuItem(
                     value: 'delete',
                     child: Row(
@@ -441,7 +455,7 @@ class _AiCvContentState extends State<_AiCvContent> {
             color: Theme.of(context).cardColor,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -527,7 +541,7 @@ class _AiCvContentState extends State<_AiCvContent> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primaryColor.withOpacity(0.15)
+              ? AppColors.primaryColor.withValues(alpha: 0.15)
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -558,7 +572,7 @@ class _AiCvContentState extends State<_AiCvContent> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primaryColor.withOpacity(0.15)
+              ? AppColors.primaryColor.withValues(alpha: 0.15)
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -625,7 +639,7 @@ class _AiCvContentState extends State<_AiCvContent> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   void _showDeleteDialog(
@@ -637,8 +651,16 @@ class _AiCvContentState extends State<_AiCvContent> {
       confirmText: 'Supprimer',
       isDangerous: true,
     );
-    if (confirmed && cv.id != null) {
-      vm.deleteCv(cv.id!);
+    if (confirmed && cv.id != null && context.mounted) {
+      final success = await vm.deleteCv(cv.id!);
+      if (context.mounted) {
+        if (success) {
+          CustomToast.success(context, 'CV supprimé');
+        } else {
+          CustomToast.error(
+              context, vm.error ?? 'Erreur lors de la suppression');
+        }
+      }
     }
   }
 
@@ -667,16 +689,111 @@ class _AiCvContentState extends State<_AiCvContent> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CvCustomizationScreen(
-          cvId: cv.id!,
-          cvTitle: cv.title,
-          cvType: 'ai',
-          currentFormat: cv.format,
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Télécharger le CV',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.download, color: AppColors.primaryColor),
+                ),
+                title: const Text('Design par défaut',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Télécharger directement avec le template standard'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _quickDownload(context, cv);
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.palette_outlined, color: Colors.orange),
+                ),
+                title: const Text('Personnaliser',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Choisir template, couleur et police avant téléchargement'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CvCustomizationScreen(
+                        cvId: cv.id!,
+                        cvTitle: cv.title,
+                        cvType: 'ai',
+                        currentFormat: cv.format,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _quickDownload(BuildContext context, AiCvModel cv) async {
+    try {
+      CustomToast.info(context, 'Génération du PDF en cours...', title: 'PDF');
+      final repo = AiCvRepository();
+      final pdfBytes = await repo.downloadPdf(
+        cv.id!,
+        primaryColor: '#1e3a8a',
+        fontFamily: 'Arial',
+        format: cv.format.isNotEmpty ? cv.format : 'standard',
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      final filename =
+          '${cv.title.replaceAll(RegExp(r'[^\w\s-]'), '').trim()}.pdf';
+      await PdfDownloadService.shareOrSave(pdfBytes, filename);
+
+      if (context.mounted) {
+        CustomToast.success(context, 'PDF généré avec succès');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        CustomToast.error(context, '$e', title: 'Erreur PDF');
+      }
+    }
   }
 }

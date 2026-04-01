@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/models/group_chat_model.dart';
 import 'package:cv_tech/data/repositories/group_chat_repository.dart';
 
-class GroupChatViewModel extends ChangeNotifier {
+class GroupChatViewModel extends SafeChangeNotifier {
   final GroupChatRepository _repository;
 
   GroupChatViewModel({GroupChatRepository? repository})
@@ -131,8 +131,4 @@ class GroupChatViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }

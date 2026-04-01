@@ -1,20 +1,13 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/models/message/message_model.dart';
 import 'package:cv_tech/data/repositories/message_repository.dart';
 import 'package:cv_tech/core/services/socket_service.dart';
 import 'package:cv_tech/data/api/api_client.dart';
 
 /// ViewModel for a single conversation screen.
-class ConversationViewModel extends ChangeNotifier {
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
-
+class ConversationViewModel extends SafeChangeNotifier {
   final MessageRepository _repo;
   final SocketService _socket = SocketService.instance;
   final String otherUserId;
@@ -65,10 +58,7 @@ class ConversationViewModel extends ChangeNotifier {
           final alreadyExists = _messages.any((m) => m.id == msg.id);
           if (!alreadyExists) {
             _messages.add(msg);
-            if (msg.sender.id == otherUserId && msg.sender.isOnline) {
-              _otherUserOnline = true;
-            }
-            _safeNotify();
+            notifyListeners();
           }
           // Mark as read since we're in the conversation
           if (msg.sender.id == otherUserId && !msg.read) {
@@ -86,10 +76,7 @@ class ConversationViewModel extends ChangeNotifier {
       final isTyping = data['isTyping'] == true;
       if (typingUserId == otherUserId) {
         _otherUserTyping = isTyping;
-        if (isTyping) {
-          _otherUserOnline = true;
-        }
-        _safeNotify();
+        notifyListeners();
       }
     });
 
@@ -106,7 +93,7 @@ class ConversationViewModel extends ChangeNotifier {
             });
           }
         }
-        _safeNotify();
+        notifyListeners();
       }
     });
 
@@ -117,7 +104,7 @@ class ConversationViewModel extends ChangeNotifier {
         final removed = _messages.length;
         _messages.removeWhere((m) => m.id == messageId);
         if (_messages.length != removed) {
-          _safeNotify();
+          notifyListeners();
         }
       }
     });
@@ -129,7 +116,7 @@ class ConversationViewModel extends ChangeNotifier {
         final idx = _messages.indexWhere((m) => m.id == updatedMsg.id);
         if (idx != -1) {
           _messages[idx] = updatedMsg;
-          _safeNotify();
+          notifyListeners();
         }
       } catch (e) {
         if (kDebugMode) print('❌ [Conversation] Error parsing updated message: $e');
@@ -143,14 +130,10 @@ class ConversationViewModel extends ChangeNotifier {
   Future<void> loadMessages() async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _messages = await _repo.getConversation(otherUserId);
-      final fromOther = _messages.where((m) => m.sender.id == otherUserId);
-      if (fromOther.isNotEmpty) {
-        _otherUserOnline = fromOther.last.sender.isOnline;
-      }
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -158,7 +141,7 @@ class ConversationViewModel extends ChangeNotifier {
     }
 
     _isLoading = false;
-    _safeNotify();
+    notifyListeners();
   }
 
   void _markUnreadAsRead() {
@@ -176,7 +159,7 @@ class ConversationViewModel extends ChangeNotifier {
     if (text.trim().isEmpty) return;
 
     _isSending = true;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final msg = await _repo.sendMessage(
@@ -191,7 +174,7 @@ class ConversationViewModel extends ChangeNotifier {
     }
 
     _isSending = false;
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Send a media message
@@ -201,7 +184,7 @@ class ConversationViewModel extends ChangeNotifier {
     String? fileName,
   }) async {
     _isSending = true;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final msg = await _repo.sendMediaMessage(
@@ -217,7 +200,7 @@ class ConversationViewModel extends ChangeNotifier {
     }
 
     _isSending = false;
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Emit typing indicator
@@ -230,7 +213,7 @@ class ConversationViewModel extends ChangeNotifier {
     try {
       await _repo.softDeleteMessage(messageId);
       _messages.removeWhere((m) => m.id == messageId);
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('❌ [Conversation] Delete error: $e');
     }
@@ -247,7 +230,7 @@ class ConversationViewModel extends ChangeNotifier {
       final idx = _messages.indexWhere((m) => m.id == messageId);
       if (idx != -1) {
         _messages[idx] = updated;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
@@ -259,7 +242,6 @@ class ConversationViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _disposed = true;
     _messageSub?.cancel();
     _typingSub?.cancel();
     _readSub?.cancel();

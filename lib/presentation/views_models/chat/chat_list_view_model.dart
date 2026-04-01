@@ -1,20 +1,13 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/models/message/message_model.dart';
 import 'package:cv_tech/data/repositories/message_repository.dart';
 import 'package:cv_tech/core/services/socket_service.dart';
 import 'package:cv_tech/data/api/api_client.dart';
 
 /// ViewModel for the chat list screen (recent conversations).
-class ChatListViewModel extends ChangeNotifier {
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
-
+class ChatListViewModel extends SafeChangeNotifier {
   final MessageRepository _repo;
   final SocketService _socket = SocketService.instance;
 
@@ -55,7 +48,7 @@ class ChatListViewModel extends ChangeNotifier {
   Future<void> loadChats() async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _chats = await _repo.getRecentChats();
@@ -66,7 +59,7 @@ class ChatListViewModel extends ChangeNotifier {
     }
 
     _isLoading = false;
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Masquer une conversation (soft delete pour l'utilisateur courant)
@@ -74,7 +67,7 @@ class ChatListViewModel extends ChangeNotifier {
     try {
       await _repo.softDeleteConversation(otherUserId);
       _chats.removeWhere((c) => c.user.id == otherUserId);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       if (kDebugMode) print('❌ [ChatList] Hide conversation error: $e');
@@ -87,7 +80,7 @@ class ChatListViewModel extends ChangeNotifier {
     try {
       await _repo.deleteConversation(otherUserId);
       _chats.removeWhere((c) => c.user.id == otherUserId);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       if (kDebugMode) print('❌ [ChatList] Delete conversation error: $e');
@@ -99,7 +92,6 @@ class ChatListViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _disposed = true;
     _messageSub?.cancel();
     _deletedConvSub?.cancel();
     super.dispose();

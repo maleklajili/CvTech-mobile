@@ -75,24 +75,44 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
   ];
 
   static const _presetColors = [
+    // Blues
     Color(0xFF1e3a8a),
-    Color(0xFF0f766e),
-    Color(0xFF6D28D9),
-    Color(0xFFDC2626),
-    Color(0xFF166534),
-    Color(0xFF1E293B),
-    Color(0xFFBE185D),
-    Color(0xFF92400E),
-    Color(0xFF4338CA),
     Color(0xFF0369A1),
-    Color(0xFFD97706),
+    Color(0xFF2563EB),
+    Color(0xFF4338CA),
+    // Greens
+    Color(0xFF0f766e),
+    Color(0xFF166534),
     Color(0xFF059669),
+    Color(0xFF15803D),
+    // Reds & Pinks
+    Color(0xFFDC2626),
+    Color(0xFFBE185D),
+    Color(0xFFE11D48),
+    Color(0xFF9F1239),
+    // Purples
+    Color(0xFF6D28D9),
+    Color(0xFF7C3AED),
+    Color(0xFF6B21A8),
+    // Warm tones
+    Color(0xFF92400E),
+    Color(0xFFD97706),
+    Color(0xFFEA580C),
+    // Neutrals
+    Color(0xFF1E293B),
+    Color(0xFF374151),
+    Color(0xFF000000),
+    Color(0xFF475569),
   ];
 
   static const _fonts = [
     'Arial',
     'Times New Roman',
     'Georgia',
+    'Calibri',
+    'Roboto',
+    'Helvetica',
+    'Verdana',
     'Courier New',
   ];
 

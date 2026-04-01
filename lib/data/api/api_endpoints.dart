@@ -75,6 +75,7 @@ class ApiEndpoints {
   static const String jobMyJobs = '$job/my-jobs';
   static const String jobToggleStatus = '$job/toggle-status/'; // + :id
   static const String jobFeature = '$job/feature/'; // + :id
+  static const String jobMatches = '$job/matches'; // AI-powered matches for current user
 
   // Job application endpoints
   static const String jobApplications = '/job-applications';

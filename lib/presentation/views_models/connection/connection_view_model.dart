@@ -1,5 +1,6 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/models/connection/connection_model.dart';
 import 'package:cv_tech/data/repositories/connection_repository.dart';
 import 'package:cv_tech/core/services/socket_service.dart';
@@ -7,15 +8,7 @@ import 'package:cv_tech/core/services/socket_service.dart';
 /// ViewModel pour le système de réseau (follow-based)
 ///
 /// Tabs : 0=Connexions (mutual), 1=Abonnés (followers), 2=Abonnements (following), 3=Suggestions
-class ConnectionViewModel extends ChangeNotifier {
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
-
+class ConnectionViewModel extends SafeChangeNotifier {
   final ConnectionRepository _repo;
   final SocketService _socket = SocketService.instance;
 
@@ -95,7 +88,7 @@ class ConnectionViewModel extends ChangeNotifier {
   // ── Tab management ──
   void setTab(int index) {
     _currentTab = index;
-    _safeNotify();
+    notifyListeners();
     // Lazy load following tab
     if (index == 2 && _following.isEmpty) {
       loadFollowing();
@@ -106,7 +99,7 @@ class ConnectionViewModel extends ChangeNotifier {
   Future<void> loadAll() async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       await Future.wait([
@@ -120,14 +113,14 @@ class ConnectionViewModel extends ChangeNotifier {
     }
 
     _isLoading = false;
-    _safeNotify();
+    notifyListeners();
   }
 
   // ── Friends (mutual connections) ──
   Future<void> loadFriends() async {
     try {
       _friends = await _repo.getFriends();
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('❌ [Connection] Error loading friends: $e');
     }
@@ -137,7 +130,7 @@ class ConnectionViewModel extends ChangeNotifier {
   Future<void> loadFollowers() async {
     try {
       _followers = await _repo.getFollowers();
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('❌ [Connection] Error loading followers: $e');
     }
@@ -147,7 +140,7 @@ class ConnectionViewModel extends ChangeNotifier {
   Future<void> loadFollowing() async {
     try {
       _following = await _repo.getFollowing();
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('❌ [Connection] Error loading following: $e');
     }
@@ -157,7 +150,7 @@ class ConnectionViewModel extends ChangeNotifier {
   Future<void> loadSuggestions() async {
     try {
       _suggestions = await _repo.getSuggestions();
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('❌ [Connection] Error loading suggestions: $e');
     }
@@ -168,13 +161,13 @@ class ConnectionViewModel extends ChangeNotifier {
     _searchQuery = query;
     if (query.length < 2) {
       _searchResults = [];
-      _safeNotify();
+      notifyListeners();
       return;
     }
 
     try {
       _searchResults = await _repo.searchUsers(query);
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('❌ [Connection] Error searching: $e');
     }
@@ -183,7 +176,7 @@ class ConnectionViewModel extends ChangeNotifier {
   void clearSearch() {
     _searchQuery = '';
     _searchResults = [];
-    _safeNotify();
+    notifyListeners();
   }
 
   // ── Actions ──
@@ -198,13 +191,13 @@ class ConnectionViewModel extends ChangeNotifier {
 
       // Retirer des suggestions
       _suggestions.removeWhere((s) => s.id == userId);
-      _safeNotify();
+      notifyListeners();
 
       return true;
     } catch (e) {
       if (kDebugMode) print('❌ [Connection] Error following: $e');
       _error = e.toString();
-      _safeNotify();
+      notifyListeners();
       return false;
     }
   }
@@ -221,12 +214,12 @@ class ConnectionViewModel extends ChangeNotifier {
       // Mettre à jour dans les abonnés (on ne le suit plus)
       _updateUserFollowState(userId, isFollowing: false);
 
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       if (kDebugMode) print('❌ [Connection] Error unfollowing: $e');
       _error = e.toString();
-      _safeNotify();
+      notifyListeners();
       return false;
     }
   }
@@ -246,7 +239,6 @@ class ConnectionViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _disposed = true;
     _connectionRequestSub?.cancel();
     super.dispose();
   }

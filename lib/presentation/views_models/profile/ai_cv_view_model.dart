@@ -1,26 +1,12 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/models/profile/ai_cv_model.dart';
 import 'package:cv_tech/data/repositories/ai_cv_repository.dart';
 
-class AiCvViewModel extends ChangeNotifier {
+class AiCvViewModel extends SafeChangeNotifier {
   final AiCvRepository _repository;
 
   AiCvViewModel({AiCvRepository? repository})
       : _repository = repository ?? AiCvRepository();
-
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 
   // States
   bool _isLoading = false;
@@ -46,29 +32,29 @@ class AiCvViewModel extends ChangeNotifier {
 
   void setLanguage(String language) {
     _selectedLanguage = language;
-    _safeNotify();
+    notifyListeners();
   }
 
   void setSection(String section) {
     _selectedSection = section;
-    _safeNotify();
+    notifyListeners();
   }
 
   void setFormat(String format) {
     _selectedFormat = format;
-    _safeNotify();
+    notifyListeners();
   }
 
   void selectCv(AiCvModel? cv) {
     _selectedCv = cv;
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Load all user's generated CVs
   Future<void> loadCvs() async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _cvs = await _repository.getMyCvs();
@@ -76,7 +62,7 @@ class AiCvViewModel extends ChangeNotifier {
       _error = e.toString().replaceAll('Exception: ', '');
     } finally {
       _isLoading = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -84,7 +70,7 @@ class AiCvViewModel extends ChangeNotifier {
   Future<void> generateCv({String? customPrompt}) async {
     _isGenerating = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final cv = await _repository.generate(
@@ -99,7 +85,7 @@ class AiCvViewModel extends ChangeNotifier {
       _error = e.toString().replaceAll('Exception: ', '');
     } finally {
       _isGenerating = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -107,7 +93,7 @@ class AiCvViewModel extends ChangeNotifier {
   Future<void> reformulateCv(String cvId, {String? instructions}) async {
     _isGenerating = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final cv = await _repository.reformulate(
@@ -120,22 +106,24 @@ class AiCvViewModel extends ChangeNotifier {
       _error = e.toString().replaceAll('Exception: ', '');
     } finally {
       _isGenerating = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
   /// Delete a CV
-  Future<void> deleteCv(String cvId) async {
+  Future<bool> deleteCv(String cvId) async {
     try {
       await _repository.delete(cvId);
       _cvs.removeWhere((cv) => cv.id == cvId);
       if (_selectedCv?.id == cvId) {
         _selectedCv = null;
       }
-      _safeNotify();
+      notifyListeners();
+      return true;
     } catch (e) {
       _error = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
+      return false;
     }
   }
 }

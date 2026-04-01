@@ -1,15 +1,9 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
+import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/models/friend_group_model.dart';
 import 'package:cv_tech/data/repositories/friend_group_repository.dart';
 
-class FriendGroupViewModel extends ChangeNotifier {
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
+class FriendGroupViewModel extends SafeChangeNotifier {
 
   final FriendGroupRepository _repository;
 
@@ -68,19 +62,19 @@ class FriendGroupViewModel extends ChangeNotifier {
   Future<void> loadGroups() async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _groups = await _repository.getAll();
       _error = null;
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error loading groups: $_error');
-      _safeNotify();
+      notifyListeners();
     } finally {
       _isLoading = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -89,11 +83,11 @@ class FriendGroupViewModel extends ChangeNotifier {
     try {
       _selectedGroup = await _repository.getById(groupId);
       _error = null;
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error loading group: $_error');
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -106,7 +100,7 @@ class FriendGroupViewModel extends ChangeNotifier {
   }) async {
     _isCreating = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final newGroup = await _repository.create(
@@ -118,16 +112,16 @@ class FriendGroupViewModel extends ChangeNotifier {
 
       _groups.add(newGroup);
       _error = null;
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error creating group: $_error');
-      _safeNotify();
+      notifyListeners();
       return false;
     } finally {
       _isCreating = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -141,7 +135,7 @@ class FriendGroupViewModel extends ChangeNotifier {
   }) async {
     _isUpdating = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final updated = await _repository.update(
@@ -162,16 +156,16 @@ class FriendGroupViewModel extends ChangeNotifier {
       }
 
       _error = null;
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error updating group: $_error');
-      _safeNotify();
+      notifyListeners();
       return false;
     } finally {
       _isUpdating = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -179,7 +173,7 @@ class FriendGroupViewModel extends ChangeNotifier {
   Future<bool> deleteGroup(String groupId) async {
     _isDeleting = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       await _repository.delete(groupId);
@@ -190,16 +184,16 @@ class FriendGroupViewModel extends ChangeNotifier {
       }
 
       _error = null;
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error deleting group: $_error');
-      _safeNotify();
+      notifyListeners();
       return false;
     } finally {
       _isDeleting = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -210,13 +204,13 @@ class FriendGroupViewModel extends ChangeNotifier {
   ) async {
     if (memberIds.isEmpty) {
       _error = 'Veuillez sélectionner au moins un membre';
-      _safeNotify();
+      notifyListeners();
       return false;
     }
 
     _isAddingMembers = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final updated = await _repository.addMembers(groupId, memberIds);
@@ -231,16 +225,16 @@ class FriendGroupViewModel extends ChangeNotifier {
       }
 
       _error = null;
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error adding members: $_error');
-      _safeNotify();
+      notifyListeners();
       return false;
     } finally {
       _isAddingMembers = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -251,13 +245,13 @@ class FriendGroupViewModel extends ChangeNotifier {
   ) async {
     if (memberIds.isEmpty) {
       _error = 'Veuillez sélectionner au moins un membre à supprimer';
-      _safeNotify();
+      notifyListeners();
       return false;
     }
 
     _isRemovingMembers = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final updated = await _repository.removeMembers(groupId, memberIds);
@@ -272,16 +266,16 @@ class FriendGroupViewModel extends ChangeNotifier {
       }
 
       _error = null;
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error removing members: $_error');
-      _safeNotify();
+      notifyListeners();
       return false;
     } finally {
       _isRemovingMembers = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -292,18 +286,18 @@ class FriendGroupViewModel extends ChangeNotifier {
     if (_searchQuery.isEmpty) {
       _searchResults = [];
       _error = null;
-      _safeNotify();
+      notifyListeners();
       return;
     }
 
     try {
       _searchResults = await _repository.search(_searchQuery);
       _error = null;
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       _error = _extractErrorMessage(e);
       if (kDebugMode) print('❌ [FriendGroup] Error searching groups: $_error');
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -311,12 +305,12 @@ class FriendGroupViewModel extends ChangeNotifier {
     _searchQuery = '';
     _searchResults = [];
     _error = null;
-    _safeNotify();
+    notifyListeners();
   }
 
   void clearError() {
     _error = null;
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Extract error message from different exception types
@@ -342,10 +336,6 @@ class FriendGroupViewModel extends ChangeNotifier {
     return str;
   }
 
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 }
+
 

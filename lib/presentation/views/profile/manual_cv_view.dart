@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
-import 'dart:io' show File;
-import 'dart:typed_data';
 import 'package:provider/provider.dart';
-import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/core/services/pdf_download_service.dart';
 import 'package:cv_tech/data/models/profile/manual_cv_model.dart';
+import 'package:cv_tech/data/repositories/manual_cv_repository.dart';
 import 'package:cv_tech/presentation/views_models/profile/manual_cv_view_model.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 import 'package:cv_tech/presentation/views/profile/manual_cv_form_view.dart';
 import 'package:cv_tech/presentation/views/profile/cv_preview_screen.dart';
-
 import 'package:cv_tech/presentation/views/profile/cv_customization_screen.dart';
 
 class ManualCvView extends StatelessWidget {
@@ -373,16 +368,111 @@ class _ManualCvContent extends StatelessWidget {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CvCustomizationScreen(
-          cvId: cv.id!,
-          cvTitle: cv.title,
-          cvType: 'manual',
-          currentFormat: cv.format,
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Télécharger le CV',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.download, color: AppColors.primaryColor),
+                ),
+                title: const Text('Design par défaut',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Télécharger directement avec le template standard'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _quickDownload(context, cv);
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.palette_outlined, color: Colors.orange),
+                ),
+                title: const Text('Personnaliser',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Choisir template, couleur et police avant téléchargement'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CvCustomizationScreen(
+                        cvId: cv.id!,
+                        cvTitle: cv.title,
+                        cvType: 'manual',
+                        currentFormat: cv.format,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _quickDownload(BuildContext context, ManualCvModel cv) async {
+    try {
+      CustomToast.info(context, 'Génération du PDF en cours...', title: 'PDF');
+      final repo = ManualCvRepository();
+      final pdfBytes = await repo.downloadPdf(
+        cv.id!,
+        primaryColor: '#1e3a8a',
+        fontFamily: 'Arial',
+        format: cv.format.isNotEmpty ? cv.format : 'standard',
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      final filename =
+          '${cv.title.replaceAll(RegExp(r'[^\w\s-]'), '').trim()}.pdf';
+      await PdfDownloadService.shareOrSave(pdfBytes, filename);
+
+      if (context.mounted) {
+        CustomToast.success(context, 'PDF généré avec succès');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        CustomToast.error(context, '$e', title: 'Erreur PDF');
+      }
+    }
   }
 }

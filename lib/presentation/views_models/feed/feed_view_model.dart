@@ -1,5 +1,6 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/data/models/feed/comment_model.dart';
@@ -8,20 +9,7 @@ import 'package:cv_tech/data/repositories/feed_repository.dart';
 
 enum FeedState { initial, loading, loaded, error, loadingMore }
 
-class FeedViewModel extends ChangeNotifier {
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
+class FeedViewModel extends SafeChangeNotifier {
   final FeedRepository _repository;
 
   FeedViewModel({FeedRepository? repository})
@@ -53,7 +41,7 @@ class FeedViewModel extends ChangeNotifier {
     _currentFilter = filter;
     _currentPage = 1;
     _errorMessage = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final response = await _repository.getFeed(
@@ -69,7 +57,7 @@ class FeedViewModel extends ChangeNotifier {
       _state = FeedState.error;
       if (kDebugMode) print('Feed error: $e');
     }
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Load more posts (pagination)
@@ -77,7 +65,7 @@ class FeedViewModel extends ChangeNotifier {
     if (_state == FeedState.loadingMore || !_hasMore) return;
 
     _state = FeedState.loadingMore;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _currentPage++;
@@ -94,7 +82,7 @@ class FeedViewModel extends ChangeNotifier {
       _state = FeedState.loaded;
       if (kDebugMode) print('Load more error: $e');
     }
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Load only the current user's posts (for Profile Posts tab)
@@ -103,7 +91,7 @@ class FeedViewModel extends ChangeNotifier {
     _state = FeedState.loading;
     _currentPage = 1;
     _errorMessage = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final currentUserId = await ApiClient().getUserId();
@@ -123,7 +111,7 @@ class FeedViewModel extends ChangeNotifier {
       _state = FeedState.error;
       if (kDebugMode) print('My posts error: $e');
     }
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Load posts for a specific user (for UserProfileView Posts tab)
@@ -133,7 +121,7 @@ class FeedViewModel extends ChangeNotifier {
     _targetUserId = userId;
     _currentPage = 1;
     _errorMessage = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final response = await _repository.getUserPosts(userId, page: 1, limit: 50);
@@ -145,7 +133,7 @@ class FeedViewModel extends ChangeNotifier {
       _state = FeedState.error;
       if (kDebugMode) print('User posts error: $e');
     }
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Refresh the feed
@@ -167,7 +155,7 @@ class FeedViewModel extends ChangeNotifier {
     try {
       final serverPost = await _repository.getPostById(postId);
       _posts[index] = serverPost;
-      _safeNotify();
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('Sync post error: $e');
     }
@@ -182,7 +170,7 @@ class FeedViewModel extends ChangeNotifier {
     if (_posts[index].commentsCount == safeCount) return;
 
     _posts[index] = _posts[index].copyWith(commentsCount: safeCount);
-    _safeNotify();
+    notifyListeners();
   }
 
   /// Change filter and reload
@@ -238,7 +226,7 @@ class FeedViewModel extends ChangeNotifier {
       userReaction: newReaction,
       clearUserReaction: newReaction == null,
     );
-    _safeNotify();
+    notifyListeners();
 
     try {
       // Pass remove=true if we're toggling off the same reaction
@@ -272,12 +260,12 @@ class FeedViewModel extends ChangeNotifier {
           userReaction: serverReaction,
           clearUserReaction: serverReaction == null,
         );
-        _safeNotify();
+        notifyListeners();
       }
     } catch (e) {
       // Rollback
       _posts[index] = post;
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) print('React to post error: $e');
     }
   }
@@ -307,7 +295,7 @@ class FeedViewModel extends ChangeNotifier {
       isSaved: !wasSaved,
       saves: wasSaved ? post.saves - 1 : post.saves + 1,
     );
-    _safeNotify();
+    notifyListeners();
 
     try {
       if (wasSaved) {
@@ -318,7 +306,7 @@ class FeedViewModel extends ChangeNotifier {
     } catch (e) {
       // Rollback
       _posts[index] = post;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -345,7 +333,7 @@ class FeedViewModel extends ChangeNotifier {
         imageName: imageName,
       );
       _posts.insert(0, newPost);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -375,7 +363,7 @@ class FeedViewModel extends ChangeNotifier {
       final index = _posts.indexWhere((p) => p.id == postId);
       if (index != -1) {
         _posts[index] = updated;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
@@ -389,7 +377,7 @@ class FeedViewModel extends ChangeNotifier {
     try {
       await _repository.deletePost(postId);
       _posts.removeWhere((p) => p.id == postId);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -428,7 +416,7 @@ class FeedViewModel extends ChangeNotifier {
         _posts[index] = _posts[index].copyWith(
           commentsCount: _posts[index].commentsCount + 1,
         );
-        _safeNotify();
+        notifyListeners();
       }
 
       return comment;
@@ -447,7 +435,7 @@ class FeedViewModel extends ChangeNotifier {
         _posts[index] = _posts[index].copyWith(
           commentsCount: (_posts[index].commentsCount - 1).clamp(0, 999999),
         );
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {

@@ -1,5 +1,6 @@
-// Flutter imports:
+﻿// Flutter imports:
 import 'package:flutter/foundation.dart';
+import 'package:cv_tech/core/base/safe_change_notifier.dart';
 
 // Project imports:
 import 'package:cv_tech/data/models/profile/education_model.dart';
@@ -11,7 +12,7 @@ import 'package:cv_tech/data/repositories/experience_repository.dart';
 import 'package:cv_tech/data/repositories/project_repository.dart';
 import 'package:cv_tech/data/repositories/skill_repository.dart';
 
-class ProfessionalProfileViewModel extends ChangeNotifier {
+class ProfessionalProfileViewModel extends SafeChangeNotifier {
   final EducationRepository _educationRepository;
   final ExperienceRepository _experienceRepository;
   final SkillRepository _skillRepository;
@@ -26,21 +27,6 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
         _experienceRepository = experienceRepository ?? ExperienceRepository(),
         _skillRepository = skillRepository ?? SkillRepository(),
         _projectRepository = projectRepository ?? ProjectRepository();
-
-  // Lifecycle management
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 
   // États de chargement
   bool _isLoadingEducation = false;
@@ -80,7 +66,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
   Future<void> loadEducations({String? type}) async {
     _isLoadingEducation = true;
     _educationError = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _educations = await _educationRepository.getAll(type: type);
@@ -97,7 +83,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       }
     } finally {
       _isLoadingEducation = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -105,11 +91,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       final newEducation = await _educationRepository.create(education, null);
       _educations.insert(0, newEducation);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _educationError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de l\'ajout de la formation: $e');
       }
@@ -123,12 +109,12 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       final index = _educations.indexWhere((e) => e.id == id);
       if (index != -1) {
         _educations[index] = updatedEducation;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
       _educationError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la mise à jour de la formation: $e');
       }
@@ -140,11 +126,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       await _educationRepository.delete(id);
       _educations.removeWhere((e) => e.id == id);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _educationError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la suppression de la formation: $e');
       }
@@ -157,7 +143,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
   Future<void> loadExperiences() async {
     _isLoadingExperience = true;
     _experienceError = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _experiences = await _experienceRepository.getAll();
@@ -177,7 +163,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       }
     } finally {
       _isLoadingExperience = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -185,11 +171,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       final newExperience = await _experienceRepository.create(experience, null);
       _experiences.insert(0, newExperience);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _experienceError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de l\'ajout de l\'expérience: $e');
       }
@@ -204,12 +190,12 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       final index = _experiences.indexWhere((e) => e.id == id);
       if (index != -1) {
         _experiences[index] = updatedExperience;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
       _experienceError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la mise à jour de l\'expérience: $e');
       }
@@ -221,11 +207,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       await _experienceRepository.delete(id);
       _experiences.removeWhere((e) => e.id == id);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _experienceError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la suppression de l\'expérience: $e');
       }
@@ -239,11 +225,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       final newExperience = await _experienceRepository.create(experience, certificateFiles);
       _experiences.insert(0, newExperience);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _experienceError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de l\'ajout de l\'expérience: $e');
       }
@@ -267,12 +253,12 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       final index = _experiences.indexWhere((e) => e.id == id);
       if (index != -1) {
         _experiences[index] = updatedExperience;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
       _experienceError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la mise à jour de l\'expérience: $e');
       }
@@ -284,11 +270,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       final newEducation = await _educationRepository.create(education, certificateFiles);
       _educations.insert(0, newEducation);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _educationError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de l\'ajout de la formation: $e');
       }
@@ -312,12 +298,12 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       final index = _educations.indexWhere((e) => e.id == id);
       if (index != -1) {
         _educations[index] = updatedEducation;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
       _educationError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la mise à jour de la formation: $e');
       }
@@ -330,7 +316,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
   Future<void> loadSkills({String? category}) async {
     _isLoadingSkills = true;
     _skillsError = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _skills = await _skillRepository.getAll(category: category);
@@ -348,7 +334,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       }
     } finally {
       _isLoadingSkills = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -356,11 +342,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       final newSkill = await _skillRepository.create(skill);
       _skills.add(newSkill);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _skillsError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de l\'ajout de la compétence: $e');
       }
@@ -374,12 +360,12 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       final index = _skills.indexWhere((e) => e.id == id);
       if (index != -1) {
         _skills[index] = updatedSkill;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
       _skillsError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la mise à jour de la compétence: $e');
       }
@@ -391,11 +377,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       await _skillRepository.delete(id);
       _skills.removeWhere((e) => e.id == id);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _skillsError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la suppression de la compétence: $e');
       }
@@ -408,7 +394,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
   Future<void> loadProjects({bool? featured}) async {
     _isLoadingProjects = true;
     _projectsError = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _projects = await _projectRepository.getAll(featured: featured);
@@ -430,7 +416,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       }
     } finally {
       _isLoadingProjects = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -438,11 +424,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       final newProject = await _projectRepository.create(project);
       _projects.insert(0, newProject);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _projectsError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de l\'ajout du projet: $e');
       }
@@ -456,12 +442,12 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
       final index = _projects.indexWhere((e) => e.id == id);
       if (index != -1) {
         _projects[index] = updatedProject;
-        _safeNotify();
+        notifyListeners();
       }
       return true;
     } catch (e) {
       _projectsError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la mise à jour du projet: $e');
       }
@@ -473,11 +459,11 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     try {
       await _projectRepository.delete(id);
       _projects.removeWhere((e) => e.id == id);
-      _safeNotify();
+      notifyListeners();
       return true;
     } catch (e) {
       _projectsError = e.toString().replaceAll('Exception: ', '');
-      _safeNotify();
+      notifyListeners();
       if (kDebugMode) {
         print('Erreur lors de la suppression du projet: $e');
       }
@@ -502,7 +488,7 @@ class ProfessionalProfileViewModel extends ChangeNotifier {
     _experienceError = null;
     _skillsError = null;
     _projectsError = null;
-    _safeNotify();
+    notifyListeners();
   }
 }
 

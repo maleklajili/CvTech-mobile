@@ -6,6 +6,7 @@ import 'package:cv_tech/data/repositories/job_application_repository.dart';
 import 'package:cv_tech/data/repositories/job_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/presentation/views/job/job_swipe_view.dart';
 
 enum _ApplicationFilter { all, pending, interview, accepted, rejected }
 
@@ -443,6 +444,67 @@ class _JobsViewState extends State<JobsView> {
               style: TextStyle(color: AppTheme.textMutedColor),
             ),
             const SizedBox(height: 12),
+            // ── AI Match Banner ──────────────────────────────
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const JobSwipeView(),
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryColor,
+                      AppColors.primaryColor.withOpacity(0.75),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryColor.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Offres compatibles avec mon profil',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Swipe pour accepter ou ignorer • IA gratuite',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: Colors.white),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // ── End AI Match Banner ───────────────────────────
             Wrap(
               spacing: 8,
               runSpacing: 8,

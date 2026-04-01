@@ -1,4 +1,4 @@
-// Project imports:
+﻿// Project imports:
 import 'package:cv_tech/data/models/auth/user_model.dart';
 import 'package:cv_tech/data/models/language_model.dart';
 import 'package:cv_tech/data/repositories/language_repository.dart';
@@ -10,7 +10,7 @@ enum ProfileState { initial, loading, loaded, error }
 class ProfileViewModel extends ScrollListener {
   bool _disposed = false;
 
-  void _safeNotify() {
+  void notifyListeners() {
     if (!_disposed) {
       notifyListeners();
     }

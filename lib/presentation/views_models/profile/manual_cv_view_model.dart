@@ -1,24 +1,12 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:cv_tech/core/base/safe_change_notifier.dart';
 import 'package:cv_tech/data/models/profile/manual_cv_model.dart';
 import 'package:cv_tech/data/repositories/manual_cv_repository.dart';
 
-class ManualCvViewModel extends ChangeNotifier {
+class ManualCvViewModel extends SafeChangeNotifier {
   final ManualCvRepository _repository;
 
   ManualCvViewModel({ManualCvRepository? repository})
       : _repository = repository ?? ManualCvRepository();
-
-  bool _disposed = false;
-
-  void _safeNotify() {
-    if (!_disposed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 
   // States
   bool _isLoading = false;
@@ -35,13 +23,13 @@ class ManualCvViewModel extends ChangeNotifier {
 
   void selectCv(ManualCvModel? cv) {
     _selectedCv = cv;
-    _safeNotify();
+    notifyListeners();
   }
 
   Future<void> loadCvs() async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       _cvs = await _repository.getMyCvs();
@@ -49,14 +37,14 @@ class ManualCvViewModel extends ChangeNotifier {
       _error = e.toString().replaceAll('Exception: ', '');
     } finally {
       _isLoading = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
   Future<bool> createCv(Map<String, dynamic> data) async {
     _isSaving = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final cv = await _repository.create(data);
@@ -68,14 +56,14 @@ class ManualCvViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isSaving = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
   Future<bool> updateCv(String cvId, Map<String, dynamic> data) async {
     _isSaving = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final updated = await _repository.update(cvId, data);
@@ -90,14 +78,14 @@ class ManualCvViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isSaving = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
   Future<bool> deleteCv(String cvId) async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       await _repository.delete(cvId);
@@ -111,14 +99,14 @@ class ManualCvViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
   Future<List<int>?> downloadPdf(String cvId, {String? primaryColor, String? accentColor, String? fontFamily, String? format}) async {
     _isLoading = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final bytes = await _repository.downloadPdf(cvId, primaryColor: primaryColor, accentColor: accentColor, fontFamily: fontFamily, format: format);
@@ -128,7 +116,7 @@ class ManualCvViewModel extends ChangeNotifier {
       return null;
     } finally {
       _isLoading = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 
@@ -138,7 +126,7 @@ class ManualCvViewModel extends ChangeNotifier {
   }) async {
     _isSaving = true;
     _error = null;
-    _safeNotify();
+    notifyListeners();
 
     try {
       final cv = await _repository.importFromProfile(
@@ -153,7 +141,7 @@ class ManualCvViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isSaving = false;
-      _safeNotify();
+      notifyListeners();
     }
   }
 }
