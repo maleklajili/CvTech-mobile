@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/services/pdf_download_service.dart';
@@ -198,34 +199,34 @@ class _ManualCvContent extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, size: 18),
-                            SizedBox(width: 8),
-                            Text('Modifier'),
+                            const Icon(Icons.edit, size: 18),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context).edit),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'pdf',
                         child: Row(
                           children: [
-                            Icon(Icons.picture_as_pdf, size: 18),
-                            SizedBox(width: 8),
-                            Text('Télécharger PDF'),
+                            const Icon(Icons.picture_as_pdf, size: 18),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context).downloadPdf),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Supprimer',
-                                style: TextStyle(color: Colors.red)),
+                            const Icon(Icons.delete, size: 18, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context).delete,
+                                style: const TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),

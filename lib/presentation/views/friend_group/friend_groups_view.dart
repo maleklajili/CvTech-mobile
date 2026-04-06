@@ -9,6 +9,7 @@ import 'package:cv_tech/presentation/views/friend_group/friend_group_form_sheet.
 import 'package:cv_tech/presentation/views/friend_group/group_chat_view.dart';
 import 'package:cv_tech/presentation/widgets/reddit_feedback_widgets.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class FriendGroupsView extends StatelessWidget {
   const FriendGroupsView({super.key});
@@ -331,24 +332,24 @@ class _FriendGroupsBodyState extends State<_FriendGroupsBody> {
                         }
                       }
                     },
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit_outlined),
-                            SizedBox(width: 8),
-                            Text('Modifier'),
+                            const Icon(Icons.edit_outlined),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(ctx).edit),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Supprimer'),
+                            const Icon(Icons.delete_outline, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(ctx).delete),
                           ],
                         ),
                       ),

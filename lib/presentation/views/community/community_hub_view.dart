@@ -16,6 +16,7 @@ import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 
@@ -1102,9 +1103,9 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
                   _deleteCommunity();
                 }
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+              itemBuilder: (ctx) => [
+                PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(ctx).edit)),
+                PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(ctx).delete)),
               ],
             ),
         ],
@@ -1987,14 +1988,14 @@ class _ModernCommunityCard extends StatelessWidget {
                             onDelete?.call();
                           }
                         },
-                        itemBuilder: (BuildContext context) => const [
+                        itemBuilder: (BuildContext context) => [
                           PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
-                                Icon(Icons.edit_outlined, size: 18),
-                                SizedBox(width: 8),
-                                Text('Modifier'),
+                                const Icon(Icons.edit_outlined, size: 18),
+                                const SizedBox(width: 8),
+                                Text(AppLocalizations.of(context).edit),
                               ],
                             ),
                           ),
@@ -2002,11 +2003,11 @@ class _ModernCommunityCard extends StatelessWidget {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline,
+                                const Icon(Icons.delete_outline,
                                     size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Supprimer',
-                                    style: TextStyle(color: Colors.red)),
+                                const SizedBox(width: 8),
+                                Text(AppLocalizations.of(context).delete,
+                                    style: const TextStyle(color: Colors.red)),
                               ],
                             ),
                           ),
@@ -2423,7 +2424,7 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
                   const SizedBox(width: 8),
                   OutlinedButton(
                     onPressed: _addTechnology,
-                    child: const Text('Ajouter'),
+                    child: Text(AppLocalizations.of(context).add),
                   ),
                 ],
               ),

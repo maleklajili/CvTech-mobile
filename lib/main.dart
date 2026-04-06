@@ -11,8 +11,10 @@ import 'package:cv_tech/app.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
+import 'package:cv_tech/presentation/views_models/app/locale_view_model.dart';
 import 'package:cv_tech/core/utils/image_url_helper.dart';
 import 'core/utils/preferences/theme_preference.dart';
+import 'core/utils/preferences/locale_preference.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +26,7 @@ void main() async {
   await ImageUrlHelper.initialize();
   
   final savedTheme = await ThemePreference.shared.load() ?? ThemeMode.system;
+  final savedLocale = await LocalePreference.shared.load() ?? 'fr';
   
   runApp(
     MultiBlocProvider(
@@ -32,8 +35,15 @@ void main() async {
           create: (context) => AuthBloc()..add(const AuthCheckRequested()),
         ),
       ],
-      child: ChangeNotifierProvider(
-        create: (context) => ThemeViewModel(context, savedTheme),
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+            create: (context) => ThemeViewModel(context, savedTheme),
+          ),
+          ChangeNotifierProvider(
+            create: (context) => LocaleViewModel(context, savedLocale),
+          ),
+        ],
         child: const MyApp(),
       ),
     ),

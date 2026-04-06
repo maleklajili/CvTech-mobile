@@ -16,6 +16,7 @@ import 'package:cv_tech/presentation/views_models/profile/professional_profile_v
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class ExperienceFormViewV2 extends StatefulWidget {
   final ExperienceModel? experience;
@@ -178,7 +179,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
       }
     } catch (e) {
       if (mounted) {
-        CustomToast.error(context, '$e', title: 'Erreur de sélection');
+        CustomToast.error(context, '$e', title: AppLocalizations.of(context).selectionError);
       }
     }
   }
@@ -196,7 +197,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_currentPost && _endDate == null) {
-      CustomToast.warning(context, 'Veuillez sélectionner une date de fin ou cocher "Poste actuel"');
+      CustomToast.warning(context, AppLocalizations.of(context).pleaseSelectEndDateOrCurrentPosition);
       return;
     }
 
@@ -247,11 +248,11 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
         CustomToast.success(
           context,
           widget.experience == null
-              ? 'Expérience ajoutée avec succès'
-              : 'Expérience modifiée avec succès',
+              ? AppLocalizations.of(context).experienceAddedSuccess
+              : AppLocalizations.of(context).experienceModifiedSuccess,
         );
       } else {
-        CustomToast.error(context, viewModel.experienceError ?? 'Une erreur est survenue');
+        CustomToast.error(context, viewModel.experienceError ?? AppLocalizations.of(context).errorOccurred);
       }
     }
   }
@@ -262,8 +263,8 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
       backgroundColor: AppTheme.isLight ? Colors.grey.shade50 : Colors.grey.shade900,
       appBar: AppBar(
         title: Text(widget.experience == null
-            ? 'Ajouter une expérience'
-            : 'Modifier l\'expérience'),
+            ? AppLocalizations.of(context).addExperience
+            : AppLocalizations.of(context).editExperience),
         backgroundColor: AppTheme.isLight ? Colors.white : Colors.grey.shade800,
         elevation: 0,
         actions: [
@@ -335,14 +336,14 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     return TextFormField(
       controller: _postController,
       decoration: InputDecoration(
-        labelText: 'Titre du poste *',
-        hintText: 'Ex: Développeur Full Stack',
+        labelText: AppLocalizations.of(context).jobTitle,
+        hintText: AppLocalizations.of(context).jobTitleHint,
         prefixIcon: const Icon(Icons.work_outline),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Veuillez entrer le titre du poste';
+          return AppLocalizations.of(context).pleaseEnterJobTitle;
         }
         return null;
       },
@@ -353,14 +354,14 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     return TextFormField(
       controller: _entrepriseController,
       decoration: InputDecoration(
-        labelText: 'Entreprise *',
-        hintText: 'Ex: Google',
+        labelText: AppLocalizations.of(context).companyLabel,
+        hintText: AppLocalizations.of(context).companyHint,
         prefixIcon: const Icon(Icons.business),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Veuillez entrer le nom de l\'entreprise';
+          return AppLocalizations.of(context).pleaseEnterCompanyName;
         }
         return null;
       },
@@ -371,14 +372,14 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     return TextFormField(
       controller: _placeController,
       decoration: InputDecoration(
-        labelText: 'Lieu *',
-        hintText: 'Ex: Paris, France',
+        labelText: AppLocalizations.of(context).locationLabel,
+        hintText: AppLocalizations.of(context).locationHint,
         prefixIcon: const Icon(Icons.location_on),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Veuillez entrer le lieu';
+          return AppLocalizations.of(context).pleaseEnterLocation;
         }
         return null;
       },
@@ -398,7 +399,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
                 onTap: () => _selectDate(context, true),
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Date de début *',
+                    labelText: AppLocalizations.of(context).startDate,
                     prefixIcon: const Icon(Icons.calendar_today),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -412,15 +413,15 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
                 onTap: _currentPost ? null : () => _selectDate(context, false),
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Date de fin',
+                    labelText: AppLocalizations.of(context).endDate,
                     prefixIcon: const Icon(Icons.calendar_today),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     enabled: !_currentPost,
                   ),
                   child: Text(
                     _currentPost
-                        ? 'Présent'
-                        : (_endDate != null ? dateFormat.format(_endDate!) : 'Non définie'),
+                        ? AppLocalizations.of(context).present
+                        : (_endDate != null ? dateFormat.format(_endDate!) : AppLocalizations.of(context).notDefined),
                   ),
                 ),
               ),
@@ -429,7 +430,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
         ),
         const SizedBox(height: 12),
         CheckboxListTile(
-          title: const Text('Je travaille actuellement dans ce poste'),
+          title: Text(AppLocalizations.of(context).currentlyWorkingHere),
           value: _currentPost,
           onChanged: (value) {
             setState(() {
@@ -450,8 +451,8 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     return TextFormField(
       controller: _descriptionController,
       decoration: InputDecoration(
-        labelText: 'Description',
-        hintText: 'Décrivez vos responsabilités et réalisations...',
+        labelText: AppLocalizations.of(context).descriptionLabel,
+        hintText: AppLocalizations.of(context).describeResponsibilities,
         prefixIcon: const Icon(Icons.description),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         alignLabelWithHint: true,
@@ -465,9 +466,9 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Compétences utilisées',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Text(
+          AppLocalizations.of(context).usedSkills,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         
@@ -478,7 +479,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
               child: DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 decoration: InputDecoration(
-                  labelText: 'Catégorie',
+                  labelText: AppLocalizations.of(context).categoryLabel,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -497,7 +498,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: 'Compétence',
+                    labelText: AppLocalizations.of(context).skillLabel,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
@@ -533,9 +534,9 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
             }).toList(),
           )
         else
-          const Text(
-            'Aucune compétence ajoutée',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            AppLocalizations.of(context).noSkillAdded,
+            style: const TextStyle(color: Colors.grey),
           ),
       ],
     );
@@ -548,14 +549,14 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Certificats/Attestations',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context).certificatesAttestations,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             ElevatedButton.icon(
               onPressed: _pickCertificate,
               icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text('Ajouter'),
+              label: Text(AppLocalizations.of(context).add),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
@@ -577,8 +578,8 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
                   ),
                   title: Text(cert.name),
                   subtitle: cert.isLocal
-                      ? const Text('Nouveau fichier')
-                      : const Text('Déjà uploadé'),
+                      ? Text(AppLocalizations.of(context).newFile)
+                      : Text(AppLocalizations.of(context).alreadyUploaded),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () => _removeCertificate(cert),
@@ -588,9 +589,9 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
             }).toList(),
           )
         else
-          const Text(
-            'Aucun certificat ajouté',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            AppLocalizations.of(context).noCertificateAdded,
+            style: const TextStyle(color: Colors.grey),
           ),
       ],
     );
@@ -600,9 +601,9 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Réalisations clés (optionnel)',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Text(
+          AppLocalizations.of(context).keyAchievements,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         
@@ -612,7 +613,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
               child: TextFormField(
                 controller: _achievementController,
                 decoration: InputDecoration(
-                  hintText: 'Ajoutez une réalisation...',
+                  hintText: AppLocalizations.of(context).addAchievementHint,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onFieldSubmitted: (_) => _addAchievement(),
@@ -646,9 +647,9 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
             }).toList(),
           )
         else
-          const Text(
-            'Aucune réalisation ajoutée',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            AppLocalizations.of(context).noAchievementAdded,
+            style: const TextStyle(color: Colors.grey),
           ),
       ],
     );
@@ -664,7 +665,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
         ),
         const SizedBox(width: 16),
@@ -686,7 +687,7 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : Text(widget.experience == null ? 'Ajouter' : 'Modifier'),
+                : Text(widget.experience == null ? AppLocalizations.of(context).add : AppLocalizations.of(context).edit),
           ),
         ),
       ],

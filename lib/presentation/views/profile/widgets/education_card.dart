@@ -1,5 +1,6 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 // Package imports:
 import 'package:intl/intl.dart';
@@ -203,13 +204,13 @@ class EducationCard extends StatelessWidget {
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'edit',
                               child: Row(
                                 children: [
-                                  Icon(Icons.edit, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Modifier'),
+                                  const Icon(Icons.edit, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(AppLocalizations.of(context).edit),
                                 ],
                               ),
                             ),
@@ -227,19 +228,19 @@ class EducationCard extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Text(
                                     education.featured == true
-                                        ? 'Retirer des favoris'
-                                        : 'Mettre en avant',
+                                        ? AppLocalizations.of(context).removeFromFavorites
+                                        : AppLocalizations.of(context).highlight,
                                   ),
                                 ],
                               ),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete, size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                  const Icon(Icons.delete, size: 18, color: Colors.red),
+                                  const SizedBox(width: 8),
+                                  Text(AppLocalizations.of(context).delete, style: const TextStyle(color: Colors.red)),
                                 ],
                               ),
                             ),

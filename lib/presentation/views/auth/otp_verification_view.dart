@@ -17,6 +17,7 @@ import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_state.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_button.dart';
 import 'package:cv_tech/presentation/widgets/auth/otp_text_field.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class OtpVerificationView extends StatefulWidget {
   final String email;
@@ -115,7 +116,7 @@ class _OtpVerificationViewState extends State<OtpVerificationView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vérification'),
+        title: const Text(''),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -128,8 +129,8 @@ class _OtpVerificationViewState extends State<OtpVerificationView> {
 
             AuthErrorHandler.showSuccessAlert(
               context,
-              title: '🎉 Bienvenue !',
-              message: 'Votre compte a été créé avec succès !',
+              title: '🎉 ${AppLocalizations.of(context).welcome}!',
+              message: AppLocalizations.of(context).accountCreatedSuccess,
             );
 
             // Show success animation then navigate
@@ -182,7 +183,7 @@ class _OtpVerificationViewState extends State<OtpVerificationView> {
 
                   // Title
                   Text(
-                    'Vérification OTP',
+                    AppLocalizations.of(context).otpVerification,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDark
@@ -294,7 +295,7 @@ class _OtpVerificationViewState extends State<OtpVerificationView> {
 
                   // Verify button
                   AuthButton(
-                    text: 'Vérifier et créer mon compte',
+                    text: AppLocalizations.of(context).verifyCreateAccount,
                     onPressed: _otp.length == 6 ? _verifyOtp : null,
                     isLoading: state is AuthOtpVerifying,
                   ),

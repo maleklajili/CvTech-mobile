@@ -8,6 +8,7 @@ import 'package:cv_tech/presentation/views/friend_group/friend_groups_view.dart'
 import 'package:cv_tech/presentation/views/profile/user_profile_view.dart';
 import 'package:cv_tech/presentation/views_models/connection/connection_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 
 class ConnectionsView extends StatelessWidget {
@@ -316,13 +317,13 @@ class _SearchResultTile extends StatelessWidget {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20)),
         ),
-        child: const Text('Suivi'),
+        child: Text(AppLocalizations.of(context).followed),
       );
     }
     return ElevatedButton.icon(
       onPressed: () => vm.followUser(user.id),
       icon: const Icon(Icons.person_add_outlined, size: 16),
-      label: const Text('Suivre'),
+      label: Text(AppLocalizations.of(context).follow),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
@@ -704,7 +705,7 @@ class _FollowerTile extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: () => vm.followUser(user.id),
               icon: const Icon(Icons.person_add_outlined, size: 16),
-              label: const Text('Suivre'),
+              label: Text(AppLocalizations.of(context).follow),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
@@ -1021,7 +1022,7 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                     if (success) setState(() => _sent = true);
                   },
                   icon: const Icon(Icons.person_add_outlined, size: 16),
-                  label: const Text('Suivre'),
+                  label: Text(AppLocalizations.of(context).follow),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,
                     foregroundColor: Colors.white,

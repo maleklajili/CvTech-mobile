@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 
 // Package imports:
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 // Project imports:
 import 'package:cv_tech/core/constants/app_strings.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_state.dart';
 import 'package:cv_tech/presentation/views/auth/login_view.dart';
 import 'package:cv_tech/presentation/views/main/main_view.dart';
 import 'package:cv_tech/presentation/views/splash/splash_screen.dart';
+import 'package:cv_tech/presentation/views_models/app/locale_view_model.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
@@ -25,14 +28,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeViewModel>(
-      builder: (context, themeViewModel, child) => MaterialApp(
+    return Consumer2<ThemeViewModel, LocaleViewModel>(
+      builder: (context, themeViewModel, localeViewModel, child) => MaterialApp(
         navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,
         title: AppStrings.appName,
         darkTheme: AppTheme.darkTheme,
         theme: AppTheme.lightTheme,
         themeMode: themeViewModel.themeMode,
+        locale: localeViewModel.locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         initialRoute: '/',
         onGenerateInitialRoutes: (String initialRouteName) {
           return [

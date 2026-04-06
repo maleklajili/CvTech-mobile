@@ -1,5 +1,6 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 // Package imports:
 import 'package:url_launcher/url_launcher.dart';
@@ -105,7 +106,7 @@ class _ProjectsCarouselState extends State<ProjectsCarousel> {
             ElevatedButton.icon(
               onPressed: widget.onAdd,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
+              label: Text(AppLocalizations.of(context).add),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange[500],
                 foregroundColor: Colors.white,
@@ -441,7 +442,7 @@ class _ProjectsCarouselState extends State<ProjectsCarousel> {
             ElevatedButton.icon(
               onPressed: widget.onAdd,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
+              label: Text(AppLocalizations.of(context).add),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange[500],
                 foregroundColor: Colors.white,

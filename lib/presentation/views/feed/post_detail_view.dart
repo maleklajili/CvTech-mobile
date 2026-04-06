@@ -8,6 +8,7 @@ import 'package:cv_tech/data/models/feed/reaction_model.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/presentation/views/feed/create_post_view.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/core/services/socket_service.dart';
 import 'package:cv_tech/core/services/sound_service.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
@@ -201,7 +202,7 @@ class _PostDetailViewState extends State<PostDetailView> {
       builder: (context, vm, _) {
         final post = _currentPost;
         return Scaffold(
-          appBar: AppBar(title: const Text('Publication')),
+          appBar: AppBar(title: Text(AppLocalizations.of(context).publication)),
           body: Column(
             children: [
               Expanded(
@@ -221,11 +222,11 @@ class _PostDetailViewState extends State<PostDetailView> {
                           child: Center(child: CircularProgressIndicator()),
                         )
                       else if (_comments.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(32),
+                        Padding(
+                          padding: const EdgeInsets.all(32),
                           child: Center(
                             child: Text(
-                              'Aucun commentaire pour le moment.\nSoyez le premier à commenter !',
+                              '${AppLocalizations.of(context).noCommentsYet}\n${AppLocalizations.of(context).beFirstToComment}',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey),
                             ),
@@ -493,7 +494,7 @@ class _PostDetailViewState extends State<PostDetailView> {
                         Icon(Icons.share_outlined, size: 16, color: AppTheme.textMutedColor),
                         const SizedBox(width: 5),
                         Text(
-                          'Share',
+                          AppLocalizations.of(context).share,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -523,7 +524,7 @@ class _PostDetailViewState extends State<PostDetailView> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Save',
+                          AppLocalizations.of(context).save,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -565,7 +566,7 @@ class _PostDetailViewState extends State<PostDetailView> {
                 child: Row(
                   children: [
                     Text(
-                      'Répondre à $_replyingToName',
+                      AppLocalizations.of(context).replyTo(_replyingToName ?? ''),
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.primaryColor,
@@ -586,7 +587,7 @@ class _PostDetailViewState extends State<PostDetailView> {
                     controller: _commentController,
                     focusNode: _commentFocusNode,
                     decoration: InputDecoration(
-                      hintText: 'Écrire un commentaire...',
+                      hintText: AppLocalizations.of(context).writeComment,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide(color: AppTheme.dividerColor),
@@ -704,7 +705,7 @@ class _CommentTileState extends State<_CommentTile> {
                   MaterialPageRoute(
                     builder: (_) => UserProfileView(
                       userId: comment.author.id,
-                      userName: comment.author.fullName ?? 'Utilisateur',
+                      userName: comment.author.fullName ?? AppLocalizations.of(context).userDefault,
                       userImage: comment.author.image,
                     ),
                   ),
@@ -743,7 +744,7 @@ class _CommentTileState extends State<_CommentTile> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            comment.author.fullName ?? 'Utilisateur',
+                            comment.author.fullName ?? AppLocalizations.of(context).userDefault,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -809,7 +810,7 @@ class _CommentTileState extends State<_CommentTile> {
                         GestureDetector(
                           onTap: widget.onReply,
                           child: Text(
-                            'Répondre',
+                            AppLocalizations.of(context).reply,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -896,7 +897,7 @@ class _ReplyTile extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => UserProfileView(
                   userId: reply.author.id,
-                  userName: reply.author.fullName ?? 'Utilisateur',
+                  userName: reply.author.fullName ?? AppLocalizations.of(context).userDefault,
                   userImage: reply.author.image,
                 ),
               ),
@@ -936,7 +937,7 @@ class _ReplyTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        reply.author.fullName ?? 'Utilisateur',
+                        reply.author.fullName ?? AppLocalizations.of(context).userDefault,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,

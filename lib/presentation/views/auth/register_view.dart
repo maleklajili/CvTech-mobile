@@ -19,6 +19,7 @@ import 'package:cv_tech/presentation/blocs/auth/auth_state.dart';
 import 'package:cv_tech/presentation/views/auth/enter_otp_view.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_button.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_text_field.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -109,7 +110,7 @@ class _RegisterViewState extends State<RegisterView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inscription'),
+        title: const Text(''),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -158,7 +159,7 @@ class _RegisterViewState extends State<RegisterView> {
                   children: [
                     // Title
                     Text(
-                      'Créer un compte',
+                      AppLocalizations.of(context).createAccount,
                       style:
                           Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -169,7 +170,7 @@ class _RegisterViewState extends State<RegisterView> {
                     ),
                     const SizedBox(height: Dimensions.heightSmallVertical),
                     Text(
-                      'Remplissez les informations ci-dessous pour créer votre compte',
+                      AppLocalizations.of(context).translate('fill_info_below'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: isDark
                                 ? AppColors.darkTextMutedColor
@@ -184,7 +185,7 @@ class _RegisterViewState extends State<RegisterView> {
                         Expanded(
                           child: AuthTextField(
                             controller: _firstNameController,
-                            label: 'Prénom *',
+                            label: '${AppLocalizations.of(context).firstName} *',
                             prefixIcon: Icons.person_outline,
                             textInputAction: TextInputAction.next,
                             validator: (value) => FormValidators.validateName(
@@ -197,7 +198,7 @@ class _RegisterViewState extends State<RegisterView> {
                         Expanded(
                           child: AuthTextField(
                             controller: _lastNameController,
-                            label: 'Nom *',
+                            label: '${AppLocalizations.of(context).lastName} *',
                             prefixIcon: Icons.person_outline,
                             textInputAction: TextInputAction.next,
                             validator: (value) => FormValidators.validateName(
@@ -213,7 +214,7 @@ class _RegisterViewState extends State<RegisterView> {
                     // Email
                     AuthTextField(
                       controller: _emailController,
-                      label: 'Email *',
+                      label: '${AppLocalizations.of(context).email} *',
                       hint: 'exemple@email.com',
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
@@ -225,7 +226,7 @@ class _RegisterViewState extends State<RegisterView> {
                     // Password
                     AuthTextField(
                       controller: _passwordController,
-                      label: 'Mot de passe *',
+                      label: '${AppLocalizations.of(context).password} *',
                       hint: 'Min. 6 caractères avec lettres et chiffres',
                       prefixIcon: Icons.lock_outline,
                       isPassword: true,
@@ -241,19 +242,19 @@ class _RegisterViewState extends State<RegisterView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildPasswordRequirement(
-                            'Au moins 6 caractères',
+                            AppLocalizations.of(context).atLeast6Chars,
                             _passwordController.text.length >= 6,
                           ),
                           _buildPasswordRequirement(
-                            'Au moins une lettre majuscule',
+                            AppLocalizations.of(context).atLeastUppercase,
                             RegExp(r'[A-Z]').hasMatch(_passwordController.text),
                           ),
                           _buildPasswordRequirement(
-                            'Au moins une lettre minuscule',
+                            AppLocalizations.of(context).atLeastLowercase,
                             RegExp(r'[a-z]').hasMatch(_passwordController.text),
                           ),
                           _buildPasswordRequirement(
-                            'Au moins un chiffre',
+                            AppLocalizations.of(context).atLeastDigit,
                             RegExp(r'[0-9]').hasMatch(_passwordController.text),
                           ),
                         ],
@@ -264,7 +265,7 @@ class _RegisterViewState extends State<RegisterView> {
                     // Confirm Password
                     AuthTextField(
                       controller: _confirmPasswordController,
-                      label: 'Confirmer le mot de passe *',
+                      label: '${AppLocalizations.of(context).confirmPassword} *',
                       hint: 'Retapez votre mot de passe',
                       prefixIcon: Icons.lock_outline,
                       isPassword: true,
@@ -342,7 +343,7 @@ class _RegisterViewState extends State<RegisterView> {
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         return AuthButton(
-                          text: 'Créer mon compte',
+                          text: AppLocalizations.of(context).createMyAccount,
                           onPressed: _onSendOtp,
                           isLoading:
                               state is AuthLoading || state is AuthSubmitting,
@@ -357,7 +358,7 @@ class _RegisterViewState extends State<RegisterView> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
-                          'Déjà un compte ? ',
+                          AppLocalizations.of(context).alreadyHaveAccount,
                           style: TextStyle(
                             color: isDark
                                 ? AppColors.darkTextMutedColor
@@ -373,7 +374,7 @@ class _RegisterViewState extends State<RegisterView> {
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
-                            'Se connecter',
+                            AppLocalizations.of(context).login,
                             style: TextStyle(
                               color: AppColors.primaryColor,
                               fontWeight: FontWeight.bold,

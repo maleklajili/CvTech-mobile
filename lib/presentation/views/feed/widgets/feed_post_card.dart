@@ -5,6 +5,7 @@ import 'package:cv_tech/data/models/feed/reaction_model.dart';
 import 'package:cv_tech/data/repositories/feed_repository.dart';
 import 'package:cv_tech/presentation/views/profile/user_profile_view.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 /// Reddit-style post card for the feed.
 ///
@@ -916,28 +917,28 @@ class _PostMenu extends StatelessWidget {
               children: [
                 Icon(Icons.edit_outlined, size: 18, color: AppTheme.textColor),
                 const SizedBox(width: 8),
-                const Text('Modifier'),
+                Text(AppLocalizations.of(_).edit),
               ],
             ),
           ),
         if (isOwner)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Supprimer', style: TextStyle(color: Colors.red)),
+                const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(_).delete, style: const TextStyle(color: Colors.red)),
               ],
             ),
           ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'report',
           child: Row(
             children: [
-              Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('Signaler'),
+              const Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
+              const SizedBox(width: 8),
+              Text(AppLocalizations.of(_).report),
             ],
           ),
         ),

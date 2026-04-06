@@ -14,6 +14,7 @@ import 'package:cv_tech/data/models/auth/user_model.dart';
 import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class EditProfileView extends StatefulWidget {
   final UserModel user;
@@ -429,7 +430,7 @@ class _EditProfileViewState extends State<EditProfileView>
       appBar: AppBar(
         backgroundColor: AppTheme.isLight ? Colors.white : Colors.grey.shade800,
         elevation: 0,
-        title: const Text('Modifier mon profil'),
+        title: Text(AppLocalizations.of(context).editProfile),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
@@ -528,7 +529,7 @@ class _EditProfileViewState extends State<EditProfileView>
               Expanded(
                 child: _buildTextFormField(
                   controller: _fullNameController,
-                  label: 'Nom complet',
+                  label: AppLocalizations.of(context).yourFullName,
                   hintText: 'Votre nom complet',
                   required: true,
                   validator: (value) => value?.isEmpty == true
@@ -565,8 +566,8 @@ class _EditProfileViewState extends State<EditProfileView>
           ),
           const SizedBox(height: 16),
           _buildSwitchField(
-            label: 'Disponible pour de nouvelles opportunités',
-            description: 'Afficher votre disponibilité aux recruteurs',
+            label: AppLocalizations.of(context).availableNewOpportunities,
+            description: AppLocalizations.of(context).showAvailabilityRecruiters,
             value: _availability,
             onChanged: (value) {
               setState(() => _availability = value);
@@ -587,8 +588,7 @@ class _EditProfileViewState extends State<EditProfileView>
         children: [
           _buildTextFormField(
             controller: _emailController,
-            label: 'Email',
-            hintText: 'votre.email@exemple.com',
+            label: AppLocalizations.of(context).email,
             keyboardType: TextInputType.emailAddress,
             required: true,
             validator: (value) =>
@@ -615,7 +615,7 @@ class _EditProfileViewState extends State<EditProfileView>
               Expanded(
                 child: _buildTextFormField(
                   controller: _phoneController,
-                  label: 'Téléphone',
+                  label: AppLocalizations.of(context).phone,
                   hintText: '06 12 34 56 78',
                   keyboardType: TextInputType.phone,
                 ),
@@ -629,7 +629,7 @@ class _EditProfileViewState extends State<EditProfileView>
                 flex: 2,
                 child: _buildTextFormField(
                   controller: _cityController,
-                  label: 'Ville',
+                  label: AppLocalizations.of(context).city,
                   hintText: 'Paris',
                 ),
               ),
@@ -647,7 +647,7 @@ class _EditProfileViewState extends State<EditProfileView>
           const SizedBox(height: 16),
           _buildTextFormField(
             controller: _addressController,
-            label: 'Adresse',
+            label: AppLocalizations.of(context).address,
             hintText: '123 Rue de la République',
           ),
           const SizedBox(height: 16),
@@ -1154,9 +1154,9 @@ class _EditProfileViewState extends State<EditProfileView>
                 ),
                 side: BorderSide(color: Colors.grey.shade300),
               ),
-              child: const Text(
-                'Annuler',
-                style: TextStyle(fontSize: 16, color: Colors.black54),
+              child: Text(
+                AppLocalizations.of(context).cancel,
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
               ),
             ),
           ),
@@ -1190,14 +1190,14 @@ class _EditProfileViewState extends State<EditProfileView>
                         Text('Enregistrement...'),
                       ],
                     )
-                  : const Row(
+                  : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.save, size: 18),
-                        SizedBox(width: 8),
+                        const Icon(Icons.save, size: 18),
+                        const SizedBox(width: 8),
                         Text(
-                          'Enregistrer les modifications',
-                          style: TextStyle(
+                          AppLocalizations.of(context).save,
+                          style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -1288,7 +1288,7 @@ class _EditProfileViewState extends State<EditProfileView>
       widget.onProfileUpdated(updatedUser);
 
       if (mounted) {
-        CustomToast.success(context, 'Profil mis à jour avec succès');
+        CustomToast.success(context, AppLocalizations.of(context).profileUpdated);
         Navigator.pop(context);
       }
     } catch (e) {

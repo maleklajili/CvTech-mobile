@@ -2,11 +2,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/job_match_model.dart';
 import 'package:cv_tech/data/models/job_model.dart';
 import 'package:cv_tech/data/repositories/job_match_repository.dart';
+import 'package:cv_tech/data/repositories/job_application_repository.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 class JobSwipeView extends StatefulWidget {
@@ -103,38 +106,52 @@ class _JobSwipeViewState extends State<JobSwipeView>
     });
 
     if (right && job.job.id != null) {
-      _repo.swipeAccept(job.job.id!);
+      _openApplySheet(job);
     }
     _showSnack(right);
   }
 
   void _showSnack(bool accepted) {
     if (!mounted) return;
+    // Don't show snack for accepted — the apply sheet handles feedback
+    if (accepted) return;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
         content: Row(
           children: [
-            Icon(
-              accepted ? Icons.check_circle : Icons.cancel,
+            const Icon(
+              Icons.cancel,
               color: Colors.white,
               size: 18,
             ),
             const SizedBox(width: 8),
-            Text(
-              accepted ? 'Candidature envoyée !' : 'Offre ignorée',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            const Text(
+              'Offre ignorée',
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ],
         ),
-        backgroundColor:
-            accepted ? const Color(0xFF22C55E) : const Color(0xFF6B7280),
+        backgroundColor: const Color(0xFF6B7280),
         duration: const Duration(milliseconds: 1500),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ));
+  }
+
+  Future<void> _openApplySheet(JobMatchModel match) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SwipeApplySheet(job: match.job),
+    );
+    if (!mounted) return;
+    if (result == true) {
+      CustomToast.success(context, 'Candidature envoyée !');
+    }
   }
 
   double get _rotation =>
@@ -159,8 +176,18 @@ class _JobSwipeViewState extends State<JobSwipeView>
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           GestureDetector(
@@ -171,13 +198,13 @@ class _JobSwipeViewState extends State<JobSwipeView>
                 color: AppTheme.isLight
                     ? const Color(0xFFF1F5F9)
                     : AppColors.darkSurfaceColor,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(10),
               ),
               child:
-                  Icon(Icons.arrow_back, size: 20, color: AppTheme.textColor),
+                  Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppTheme.textColor),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,50 +213,72 @@ class _JobSwipeViewState extends State<JobSwipeView>
                   'Offres pour moi',
                   style: TextStyle(
                     color: AppTheme.textColor,
-                    fontSize: 18,
+                    fontSize: 19,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                Text(
-                  'Analysé par IA · swipe pour répondre',
-                  style: TextStyle(
-                    color: AppTheme.textMutedColor,
-                    fontSize: 11,
-                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF22C55E),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Analysé par IA · swipe pour répondre',
+                      style: TextStyle(
+                        color: AppTheme.textMutedColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryColor, Color(0xFFF59E0B)],
-              ),
-              borderRadius: BorderRadius.circular(20),
+              color: AppTheme.isLight
+                  ? const Color(0xFFF1F5F9)
+                  : AppColors.darkSurfaceColor,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check, size: 12, color: Colors.white),
+                const Icon(Icons.check_circle_rounded,
+                    size: 14, color: Color(0xFF22C55E)),
                 const SizedBox(width: 4),
                 Text(
                   '${_accepted.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                  style: TextStyle(
+                    color: AppTheme.textColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
                   ),
                 ),
-                const SizedBox(width: 6),
-                const Icon(Icons.close, size: 12, color: Colors.white70),
+                Container(
+                  width: 1,
+                  height: 14,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: AppTheme.dividerColor,
+                ),
+                const Icon(Icons.cancel_rounded,
+                    size: 14, color: Color(0xFFEF4444)),
                 const SizedBox(width: 4),
                 Text(
                   '${_rejected.length}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                  style: TextStyle(
+                    color: AppTheme.textColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -259,40 +308,48 @@ class _JobSwipeViewState extends State<JobSwipeView>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.primaryColor, Color(0xFFF59E0B)],
+                colors: [Color(0xFF4A6CF7), Color(0xFF7B61FF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF4A6CF7).withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child:
-                const Icon(Icons.auto_awesome, color: Colors.white, size: 36),
+                const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 38),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Text(
             'L\'IA analyse votre profil…',
             style: TextStyle(
               color: AppTheme.textColor,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Calcul de compatibilité en cours',
-            style: TextStyle(color: AppTheme.textMutedColor, fontSize: 13),
+            style: TextStyle(color: AppTheme.textMutedColor, fontSize: 14),
           ),
-          const SizedBox(height: 24),
-          const SizedBox(
-            width: 36,
-            height: 36,
+          const SizedBox(height: 28),
+          SizedBox(
+            width: 40,
+            height: 40,
             child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: AppColors.primaryColor,
+              strokeWidth: 3.5,
+              color: const Color(0xFF4A6CF7),
+              strokeCap: StrokeCap.round,
             ),
           ),
         ],
@@ -347,15 +404,22 @@ class _JobSwipeViewState extends State<JobSwipeView>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(22),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF0FDF4),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF16A34A).withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            child: const Icon(Icons.done_all,
+            child: const Icon(Icons.done_all_rounded,
                 size: 48, color: Color(0xFF16A34A)),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Text(
             'Toutes les offres traitées !',
             style: TextStyle(
@@ -364,16 +428,46 @@ class _JobSwipeViewState extends State<JobSwipeView>
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            '${_accepted.length} candidatures · ${_rejected.length} ignorées',
-            style:
-                TextStyle(color: AppTheme.textMutedColor, fontSize: 14),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.isLight
+                  ? const Color(0xFFF1F5F9)
+                  : AppColors.darkSurfaceColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF22C55E)),
+                const SizedBox(width: 4),
+                Text(
+                  '${_accepted.length} candidatures',
+                  style: TextStyle(
+                    color: AppTheme.textColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Icon(Icons.cancel_rounded, size: 14, color: Color(0xFFEF4444)),
+                const SizedBox(width: 4),
+                Text(
+                  '${_rejected.length} ignorées',
+                  style: TextStyle(
+                    color: AppTheme.textMutedColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 28),
           _PrimaryButton(
               label: 'Recharger les offres',
-              icon: Icons.refresh,
+              icon: Icons.refresh_rounded,
               onTap: _load),
         ],
       ),
@@ -425,39 +519,60 @@ class _JobSwipeViewState extends State<JobSwipeView>
   }
 
   Widget _buildActionBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _ActionButton(
             icon: Icons.close_rounded,
             color: const Color(0xFFEF4444),
-            size: 64,
+            size: 56,
             onTap: () => _confirmSwipe(right: false),
             label: 'Ignorer',
           ),
-          Column(
-            children: [
-              Text(
-                '${_cards.length}',
-                style: TextStyle(
-                  color: AppTheme.textColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.isLight
+                  ? const Color(0xFFF1F5F9)
+                  : AppColors.darkSurfaceColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '${_cards.length}',
+                  style: TextStyle(
+                    color: AppTheme.textColor,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              Text(
-                'offre${_cards.length != 1 ? 's' : ''}',
-                style: TextStyle(
-                    color: AppTheme.textMutedColor, fontSize: 11),
-              ),
-            ],
+                Text(
+                  'offre${_cards.length != 1 ? 's' : ''}',
+                  style: TextStyle(
+                      color: AppTheme.textMutedColor, fontSize: 11),
+                ),
+              ],
+            ),
           ),
           _ActionButton(
             icon: Icons.check_rounded,
             color: const Color(0xFF22C55E),
-            size: 64,
+            size: 56,
             onTap: () => _confirmSwipe(right: true),
             label: 'Postuler',
           ),
@@ -670,10 +785,10 @@ class _CardHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 90,
+      height: 100,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primaryColor, Color(0xFFF2973A)],
+          colors: [Color(0xFF4A6CF7), Color(0xFF7B61FF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -683,43 +798,50 @@ class _CardHero extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(14),
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
             ),
-            child:
-                const Icon(Icons.business, color: Colors.white, size: 28),
+            child: const Icon(Icons.business_rounded, color: Colors.white, size: 28),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  _expLabel(job.experience),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _expLabel(job.experience),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.auto_awesome,
-                        size: 12,
+                    Icon(Icons.auto_awesome_rounded,
+                        size: 13,
                         color: Colors.white.withOpacity(0.9)),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 5),
                     const Text(
                       'Compatibilité IA',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -751,37 +873,50 @@ class _ScoreRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        SizedBox(
-          width: 56,
-          height: 56,
-          child: CircularProgressIndicator(
-            value: score / 100,
-            strokeWidth: 4,
-            backgroundColor: Colors.white.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.1),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 58,
+            height: 58,
+            child: CircularProgressIndicator(
+              value: score / 100,
+              strokeWidth: 5,
+              backgroundColor: Colors.white.withOpacity(0.15),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              strokeCap: StrokeCap.round,
+            ),
           ),
-        ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$score',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$score',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  height: 1,
+                ),
               ),
-            ),
-            const Text(
-              '%',
-              style: TextStyle(color: Colors.white70, fontSize: 9),
-            ),
-          ],
-        ),
-      ],
+              const Text(
+                '%',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -804,29 +939,46 @@ class _OverlayLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
-      child: Align(
-        alignment: side ? Alignment.topLeft : Alignment.topRight,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Opacity(
-            opacity: opacity.clamp(0.0, 1.0),
-            child: RotatedBox(
-              quarterTurns: side ? 1 : -1,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(color: color, width: 3),
-                  borderRadius: BorderRadius.circular(10),
-                  color: color.withOpacity(0.08),
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.5,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          color: color.withOpacity(0.06 * opacity.clamp(0.0, 1.0)),
+        ),
+        child: Align(
+          alignment: side ? Alignment.topLeft : Alignment.topRight,
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Opacity(
+              opacity: opacity.clamp(0.0, 1.0),
+              child: Transform.rotate(
+                angle: side ? -0.2 : 0.2,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: color, width: 3.5),
+                    borderRadius: BorderRadius.circular(12),
+                    color: color.withOpacity(0.12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        side ? Icons.check_rounded : Icons.close_rounded,
+                        color: color,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -986,14 +1138,14 @@ class _PrimaryButton extends StatelessWidget {
             const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppColors.primaryColor, Color(0xFFF59E0B)],
+            colors: [Color(0xFF4A6CF7), Color(0xFF7B61FF)],
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryColor.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF4A6CF7).withOpacity(0.3),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
@@ -1011,6 +1163,295 @@ class _PrimaryButton extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Apply bottom sheet after swipe match ──
+
+class _SwipeApplySheet extends StatefulWidget {
+  final JobModel job;
+  const _SwipeApplySheet({required this.job});
+
+  @override
+  State<_SwipeApplySheet> createState() => _SwipeApplySheetState();
+}
+
+class _SwipeApplySheetState extends State<_SwipeApplySheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _motivationController = TextEditingController();
+  final _appRepo = JobApplicationRepository();
+  PlatformFile? _cvFile;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _motivationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickCvFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'doc', 'docx'],
+      allowMultiple: false,
+      withData: true,
+    );
+    if (!mounted || result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final ext = file.extension?.toLowerCase();
+    if (ext != 'pdf' && ext != 'doc' && ext != 'docx') {
+      CustomToast.warning(context, 'Format non supporté. Utilisez PDF, DOC ou DOCX.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      CustomToast.warning(context, 'Le fichier ne doit pas dépasser 5 Mo.');
+      return;
+    }
+    setState(() => _cvFile = file);
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_cvFile == null) {
+      CustomToast.warning(context, 'Veuillez joindre votre CV.');
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      await _appRepo.applyForJob(
+        jobId: widget.job.id ?? '',
+        coverLetter: _motivationController.text.trim(),
+        cvBytes: _cvFile!.bytes,
+        cvFileName: _cvFile!.name,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      CustomToast.error(context, 'Erreur : $e');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4A6CF7), Color(0xFF7B61FF)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Postuler',
+                          style: TextStyle(
+                            color: AppTheme.textColor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.job.title,
+                          style: TextStyle(
+                            color: AppTheme.textMutedColor,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _motivationController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  labelText: 'Lettre de motivation *',
+                  hintText: 'Expliquez pourquoi vous êtes le candidat idéal...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppTheme.dividerColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.primaryColor, width: 1.5),
+                  ),
+                  alignLabelWithHint: true,
+                  filled: true,
+                  fillColor: AppTheme.isLight
+                      ? const Color(0xFFF8FAFC)
+                      : AppColors.darkSurfaceColor,
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Champ obligatoire';
+                  if (v.trim().length < 30) return 'Minimum 30 caractères';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: _pickCvFile,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _cvFile != null
+                          ? const Color(0xFF22C55E)
+                          : AppTheme.dividerColor,
+                      width: _cvFile != null ? 1.5 : 1,
+                    ),
+                    color: _cvFile != null
+                        ? const Color(0xFFF0FDF4)
+                        : (AppTheme.isLight
+                            ? const Color(0xFFF8FAFC)
+                            : AppColors.darkSurfaceColor),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _cvFile != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                        color: _cvFile != null
+                            ? const Color(0xFF22C55E)
+                            : AppTheme.textMutedColor,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _cvFile != null ? _cvFile!.name : 'Joindre votre CV',
+                              style: TextStyle(
+                                color: _cvFile != null
+                                    ? AppTheme.textColor
+                                    : AppTheme.textMutedColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (_cvFile == null)
+                              Text(
+                                'PDF, DOC ou DOCX • Max 5 Mo',
+                                style: TextStyle(
+                                  color: AppTheme.textMutedColor,
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (_cvFile != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _cvFile = null),
+                          child: Icon(Icons.close_rounded,
+                              size: 18, color: AppTheme.textMutedColor),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _submitting ? null : () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: AppTheme.dividerColor),
+                      ),
+                      child: Text(
+                        'Annuler',
+                        style: TextStyle(
+                          color: AppTheme.textColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _submitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Envoyer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

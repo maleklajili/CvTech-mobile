@@ -12,6 +12,7 @@ import 'package:cv_tech/presentation/views_models/chat/conversation_view_model.d
 import 'package:cv_tech/presentation/views/profile/user_profile_view.dart';
 import 'package:cv_tech/presentation/widgets/reddit_feedback_widgets.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class ConversationView extends StatelessWidget {
   final String otherUserId;
@@ -395,8 +396,8 @@ class _ConversationBodyState extends State<_ConversationBody> {
             if (canEdit)
               ListTile(
                 leading: Icon(Icons.edit_outlined, color: AppColors.primaryColor),
-                title: const Text('Modifier'),
-                subtitle: const Text('Modifier le texte du message'),
+                title: Text(AppLocalizations.of(context).edit),
+                subtitle: Text(AppLocalizations.of(context).editMessageText),
                 onTap: () {
                   Navigator.pop(context);
                   _startEditing(msg);
@@ -404,7 +405,7 @@ class _ConversationBodyState extends State<_ConversationBody> {
               ),
             ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
-              title: const Text('Masquer pour moi'),
+              title: Text(AppLocalizations.of(context).hideForMe),
               onTap: () {
                 Navigator.pop(context);
                 vm.deleteMessage(msg.id);
@@ -412,18 +413,18 @@ class _ConversationBodyState extends State<_ConversationBody> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-              subtitle: const Text('Supprimer définitivement ce message'),
+              title: Text(AppLocalizations.of(context).delete, style: const TextStyle(color: Colors.red)),
+              subtitle: Text(AppLocalizations.of(context).deleteMessagePermanently),
               onTap: () async {
                 Navigator.pop(context);
                 bool confirm = false;
                 await showRedditAlert(
                   context,
-                  title: 'Supprimer le message ?',
-                  body: 'Cette action est irréversible.',
+                  title: AppLocalizations.of(context).deleteMessage,
+                  body: AppLocalizations.of(context).actionIrreversible,
                   type: RedditAlertType.ban,
-                  confirmLabel: 'Supprimer',
-                  cancelLabel: 'Annuler',
+                  confirmLabel: AppLocalizations.of(context).delete,
+                  cancelLabel: AppLocalizations.of(context).cancel,
                   onConfirm: () => confirm = true,
                 );
                 if (confirm) {
@@ -436,7 +437,7 @@ class _ConversationBodyState extends State<_ConversationBody> {
                     if (context.mounted) {
                       RedditToastService.show(
                         context,
-                        message: 'Message supprimé',
+                        message: AppLocalizations.of(context).messageDeleted,
                         type: RedditToastType.mod,
                       );
                     }
@@ -445,7 +446,7 @@ class _ConversationBodyState extends State<_ConversationBody> {
                     if (context.mounted) {
                       RedditToastService.show(
                         context,
-                        message: 'Erreur lors de la suppression',
+                        message: AppLocalizations.of(context).deletionError,
                         type: RedditToastType.error,
                       );
                     }

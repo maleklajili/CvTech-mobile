@@ -16,6 +16,7 @@ import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_state.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_button.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 /// Page simple pour saisir le code de vérification OTP
 class EnterOtpView extends StatefulWidget {
@@ -100,7 +101,7 @@ class _EnterOtpViewState extends State<EnterOtpView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Code de vérification'),
+        title: const Text(''),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -120,9 +121,8 @@ class _EnterOtpViewState extends State<EnterOtpView> {
 
             AuthErrorHandler.showSuccessAlert(
               context,
-              title: '🎉 Félicitations !',
-              message:
-                  'Votre compte a été créé avec succès. Connectez-vous pour commencer.',
+              title: '🎉 ${AppLocalizations.of(context).welcome}!',
+              message: AppLocalizations.of(context).accountCreatedSuccess,
             );
 
             // Rediriger vers la page de login
@@ -194,7 +194,7 @@ class _EnterOtpViewState extends State<EnterOtpView> {
 
                     // Title
                     Text(
-                      'Entrez le code',
+                      AppLocalizations.of(context).verificationCode,
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -349,7 +349,7 @@ class _EnterOtpViewState extends State<EnterOtpView> {
 
                     // Verify Button
                     AuthButton(
-                      text: 'Vérifier le code',
+                      text: AppLocalizations.of(context).verifyCode,
                       onPressed: _verifyOtp,
                       isLoading: state is AuthOtpVerifying,
                     ),
@@ -418,7 +418,7 @@ class _EnterOtpViewState extends State<EnterOtpView> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Vérification réussie !',
+            AppLocalizations.of(context).accountCreatedSuccess,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.green.shade700,

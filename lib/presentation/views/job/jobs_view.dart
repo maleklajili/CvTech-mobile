@@ -278,21 +278,31 @@ class _JobsViewState extends State<JobsView> {
     return GestureDetector(
       onTap: () => setState(() => _activeFilter = filter),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
           color: active ? AppColors.primaryColor : AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: active ? AppColors.primaryColor : AppTheme.dividerColor,
+            width: active ? 1.5 : 1,
           ),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryColor.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
         ),
         child: Text(
           label,
           style: TextStyle(
             color: active ? Colors.white : AppTheme.textColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            fontSize: 13,
           ),
         ),
       ),
@@ -303,147 +313,214 @@ class _JobsViewState extends State<JobsView> {
     final status = _statusLabel(application.status);
     final showInterview = application.status == 'viewed' || application.status == 'shortlisted';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: const Color(0xFFE7F1FF),
-                ),
-                child: Icon(Icons.work_outline, color: AppColors.primaryColor),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      application.jobTitle,
-                      style: TextStyle(
-                        color: AppTheme.textColor,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(Icons.business, size: 13, color: AppTheme.textMutedColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          application.companyName,
-                          style: TextStyle(color: AppTheme.textMutedColor, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _statusBg(application.status),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    color: _statusFg(application.status),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(Icons.location_on_outlined, size: 14, color: AppTheme.textMutedColor),
-              const SizedBox(width: 4),
-              Text(application.location, style: TextStyle(color: AppTheme.textColor, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textMutedColor),
-              const SizedBox(width: 4),
-              Text(
-                'Candidature envoyee le ${_formatDate(application.appliedAt)}',
-                style: TextStyle(color: AppTheme.textColor, fontSize: 12),
-              ),
-              const Spacer(),
-              _Tag(label: application.contractType),
-            ],
-          ),
-          if (showInterview && application.interviewAt != null) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Icon(Icons.schedule, size: 14, color: AppTheme.textMutedColor),
-                const SizedBox(width: 4),
-                Text(
-                  'Entretien le ${_formatDateTime(application.interviewAt)}',
-                  style: TextStyle(color: AppTheme.textColor, fontSize: 12),
-                ),
-              ],
+    return GestureDetector(
+      onTap: () => _openJobById(application),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.dividerColor.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ElevatedButton(
-                onPressed: () => _openJobById(application),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(0, 36),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('Voir les details'),
+        ),
+        child: Column(
+          children: [
+            // Top colored accent bar based on status
+            Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: _statusFg(application.status),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
-            ],
-          ),
-        ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primaryColor.withOpacity(0.15),
+                              AppColors.primaryColor.withOpacity(0.05),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.work_rounded, color: AppColors.primaryColor, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              application.jobTitle,
+                              style: TextStyle(
+                                color: AppTheme.textColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.business_rounded, size: 13, color: AppTheme.textMutedColor),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    application.companyName,
+                                    style: TextStyle(
+                                      color: AppTheme.textMutedColor,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _statusBg(application.status),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _statusIcon(application.status),
+                              size: 12,
+                              color: _statusFg(application.status),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              status,
+                              style: TextStyle(
+                                color: _statusFg(application.status),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Divider(color: AppTheme.dividerColor.withOpacity(0.5), height: 1),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      _InfoChip(
+                        icon: Icons.location_on_outlined,
+                        label: application.location,
+                      ),
+                      const SizedBox(width: 12),
+                      _InfoChip(
+                        icon: Icons.description_outlined,
+                        label: application.contractType,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 13, color: AppTheme.textMutedColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Postulé le ${_formatDate(application.appliedAt)}',
+                        style: TextStyle(color: AppTheme.textMutedColor, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  if (showInterview && application.interviewAt != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2ECFF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.videocam_rounded, size: 14, color: Color(0xFF2F66D0)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Entretien le ${_formatDateTime(application.interviewAt)}',
+                            style: const TextStyle(
+                              color: Color(0xFF2F66D0),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case 'accepted':
+        return Icons.check_circle_rounded;
+      case 'rejected':
+        return Icons.cancel_rounded;
+      case 'viewed':
+      case 'shortlisted':
+        return Icons.event_rounded;
+      case 'withdrawn':
+        return Icons.undo_rounded;
+      default:
+        return Icons.hourglass_top_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final count = _filteredApplications.length;
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Mes candidatures'),
         backgroundColor: AppTheme.cardColor,
         foregroundColor: AppTheme.textColor,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: RefreshIndicator(
         onRefresh: _loadApplications,
+        color: AppColors.primaryColor,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           children: [
-            Text(
-              'Suivez l\'etat de vos candidatures aux offres d\'emploi',
-              style: TextStyle(color: AppTheme.textMutedColor),
-            ),
-            const SizedBox(height: 12),
             // ── AI Match Banner ──────────────────────────────
             GestureDetector(
               onTap: () => Navigator.push(
@@ -453,86 +530,152 @@ class _JobsViewState extends State<JobsView> {
                 ),
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryColor,
-                      AppColors.primaryColor.withOpacity(0.75),
-                    ],
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4A6CF7), Color(0xFF7B61FF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
+                      color: const Color(0xFF4A6CF7).withOpacity(0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: Colors.white, size: 22),
-                    SizedBox(width: 10),
-                    Expanded(
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Offres compatibles avec mon profil',
+                            'Offres compatibles IA',
                             style: TextStyle(
                               color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          SizedBox(height: 3),
                           Text(
-                            'Swipe pour accepter ou ignorer • IA gratuite',
+                            'Swipez pour découvrir les offres adaptées à votre profil',
                             style: TextStyle(
                               color: Colors.white70,
-                              fontSize: 11,
+                              fontSize: 12,
+                              height: 1.3,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Colors.white),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             // ── End AI Match Banner ───────────────────────────
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _filterChip('Toutes', _ApplicationFilter.all),
-                _filterChip('En attente', _ApplicationFilter.pending),
-                _filterChip('Entretien', _ApplicationFilter.interview),
-                _filterChip('Acceptees', _ApplicationFilter.accepted),
-                _filterChip('Refusees', _ApplicationFilter.rejected),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _filterChip('Toutes', _ApplicationFilter.all),
+                  const SizedBox(width: 8),
+                  _filterChip('En attente', _ApplicationFilter.pending),
+                  const SizedBox(width: 8),
+                  _filterChip('Entretien', _ApplicationFilter.interview),
+                  const SizedBox(width: 8),
+                  _filterChip('Acceptées', _ApplicationFilter.accepted),
+                  const SizedBox(width: 8),
+                  _filterChip('Refusées', _ApplicationFilter.rejected),
+                ],
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
+            if (!_loading)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '$count candidature${count > 1 ? 's' : ''}',
+                  style: TextStyle(
+                    color: AppTheme.textMutedColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(child: CircularProgressIndicator()),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Chargement...',
+                      style: TextStyle(color: AppTheme.textMutedColor, fontSize: 14),
+                    ),
+                  ],
+                ),
               )
             else if (_filteredApplications.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.dividerColor),
-                ),
-                child: Text(
-                  'Aucune candidature dans cette categorie.',
-                  style: TextStyle(color: AppTheme.textMutedColor),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 50),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: AppTheme.dividerColor.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.inbox_rounded, size: 32, color: AppTheme.textMutedColor),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Aucune candidature',
+                      style: TextStyle(
+                        color: AppTheme.textColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Aucune candidature dans cette catégorie.',
+                      style: TextStyle(color: AppTheme.textMutedColor, fontSize: 13),
+                    ),
+                  ],
                 ),
               )
             else
@@ -540,6 +683,32 @@ class _JobsViewState extends State<JobsView> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppTheme.textMutedColor),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppTheme.textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -552,16 +721,16 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppTheme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+        color: AppColors.primaryColor.withOpacity(0.08),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: AppTheme.textMutedColor,
-          fontSize: 11,
+          color: AppColors.primaryColor,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
       ),

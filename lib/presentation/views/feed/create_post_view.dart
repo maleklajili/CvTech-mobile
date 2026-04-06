@@ -7,6 +7,7 @@ import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 /// Page de création / édition d'un post (style LinkedIn)
 class CreatePostView extends StatefulWidget {
@@ -144,10 +145,10 @@ class _CreatePostViewState extends State<CreatePostView> {
       appBar: AppBar(
         title: Text(
           isEditing
-              ? 'Modifier le post'
+              ? AppLocalizations.of(context).edit
               : (widget.communityTitle != null && widget.communityTitle!.isNotEmpty
-                  ? 'Publier dans ${widget.communityTitle}'
-                  : 'Creer un post'),
+                  ? '${AppLocalizations.of(context).publish} - ${widget.communityTitle}'
+                  : AppLocalizations.of(context).createPost),
         ),
         actions: [
           Padding(
@@ -170,7 +171,7 @@ class _CreatePostViewState extends State<CreatePostView> {
                         color: Colors.white,
                       ),
                     )
-                  : Text(isEditing ? 'Enregistrer' : 'Publier'),
+                  : Text(isEditing ? AppLocalizations.of(context).save : AppLocalizations.of(context).publish),
             ),
           ),
         ],

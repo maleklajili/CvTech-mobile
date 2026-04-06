@@ -1,5 +1,6 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 // Project imports:
 import 'package:cv_tech/data/models/profile/skill_model.dart';
@@ -171,7 +172,7 @@ class _TechnicalSkillsSectionState extends State<TechnicalSkillsSection> {
             ElevatedButton.icon(
               onPressed: widget.onAdd,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter'),
+              label: Text(AppLocalizations.of(context).add),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange[500],
                 foregroundColor: Colors.white,

@@ -25,6 +25,7 @@ import 'package:cv_tech/presentation/views/profile/profile_view.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
 import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class DrawerWiget extends StatefulWidget {
   const DrawerWiget({
@@ -261,39 +262,40 @@ class _DrawerWigetState extends State<DrawerWiget> {
   }
 
   List<_DrawerMenuItemConfig> _mainMenuItems() {
+    final t = AppLocalizations.of(context);
     return <_DrawerMenuItemConfig>[
-      const _DrawerMenuItemConfig(
-        title: 'Accueil',
+      _DrawerMenuItemConfig(
+        title: t.home,
         icon: Icons.home,
         routeName: '/',
       ),
       _DrawerMenuItemConfig(
-        title: 'Explorer',
+        title: t.explore,
         icon: Icons.explore,
         routeName: '/trends',
         onTap: _navigateToTrends,
       ),
       _DrawerMenuItemConfig(
-        title: 'Reseau',
+        title: t.myNetwork,
         icon: Icons.people,
         routeName: '/friends',
         onTap: _navigateToNetwork,
       ),
       _DrawerMenuItemConfig(
-        title: 'Communautés',
+        title: t.communities,
         icon: Icons.public,
         routeName: '/communities',
         onTap: _navigateToCommunities,
       ),
       _DrawerMenuItemConfig(
-        title: 'Messages',
+        title: t.messages,
         icon: Icons.message,
         routeName: '/messages',
         badge: _badgeValue(_unreadMessages),
         onTap: _navigateToMessages,
       ),
       _DrawerMenuItemConfig(
-        title: 'Notifications',
+        title: t.notifications,
         icon: Icons.notifications,
         routeName: '/notifications',
         badge: _badgeValue(_unreadNotifications),
@@ -399,21 +401,21 @@ class _DrawerWigetState extends State<DrawerWiget> {
             ),
             _buildMenuItem(
               context,
-              'Entreprises',
+              AppLocalizations.of(context).companies,
               Icons.business,
               isActive: ModalRoute.of(context)?.settings.name == '/companies',
               onTap: _navigateToCompanies,
             ),
             _buildMenuItem(
               context,
-              'Offres d\'emploi',
+              AppLocalizations.of(context).jobOffers,
               Icons.work,
               isActive: ModalRoute.of(context)?.settings.name == '/jobs',
               onTap: _navigateToJobs,
             ),
             _buildMenuItem(
               context,
-              'Tendances pro',
+              AppLocalizations.of(context).trending,
               Icons.trending_up,
               isActive: ModalRoute.of(context)?.settings.name == '/trends',
               onTap: _navigateToTrends,
@@ -433,7 +435,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
             ),
             _buildMenuItem(
               context,
-              'Profil',
+              AppLocalizations.of(context).profile,
               Icons.person,
               isActive: ModalRoute.of(context)?.settings.name == '/profile',
               onTap: _navigateToProfile,
@@ -446,7 +448,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
             ),
             _buildMenuItem(
               context,
-              'Paramètres',
+              AppLocalizations.of(context).settings,
               Icons.settings,
               isActive: ModalRoute.of(context)?.settings.name == '/settings',
               onTap: _navigateToSettings,
@@ -459,7 +461,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
                   AppTheme.isLight ? Icons.dark_mode : Icons.light_mode,
                   color: AppTheme.textMutedColor,
                 ),
-                title: Text(AppTheme.isLight ? 'Mode sombre' : 'Mode clair'),
+                title: Text(AppTheme.isLight ? AppLocalizations.of(context).darkMode : AppLocalizations.of(context).lightMode),
                 onTap: () {
                   viewModel.setTheme(
                     viewModel.themeMode == ThemeMode.dark
@@ -477,18 +479,18 @@ class _DrawerWigetState extends State<DrawerWiget> {
                 Icons.logout,
                 color: Colors.red,
               ),
-              title: const Text(
-                'Déconnexion',
-                style: TextStyle(color: Colors.red),
+              title: Text(
+                AppLocalizations.of(context).logout,
+                style: const TextStyle(color: Colors.red),
               ),
               onTap: () {
                 ModernDialog.show(
                   context: context,
-                  title: 'Déconnexion',
-                  message: 'Êtes-vous sûr de vouloir vous déconnecter ?',
+                  title: AppLocalizations.of(context).logout,
+                  message: AppLocalizations.of(context).translate('confirm_logout'),
                   type: DialogType.warning,
-                  confirmText: 'Déconnexion',
-                  cancelText: 'Annuler',
+                  confirmText: AppLocalizations.of(context).logout,
+                  cancelText: AppLocalizations.of(context).cancel,
                   onConfirm: () {
                     context
                         .read<AuthBloc>()

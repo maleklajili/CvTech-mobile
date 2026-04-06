@@ -13,6 +13,7 @@ import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_state.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_button.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_text_field.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
@@ -43,7 +44,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mot de passe oublié'),
+        title: const Text(''),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -89,7 +90,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
 
                   // Title
                   Text(
-                    'Réinitialiser le mot de passe',
+                    AppLocalizations.of(context).resetPassword,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -99,7 +100,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
 
                   // Description
                   Text(
-                    'Entrez votre adresse email pour recevoir un lien de réinitialisation',
+                    AppLocalizations.of(context).enterEmailReset,
                     style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -108,15 +109,15 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   // Email field
                   AuthTextField(
                     controller: _emailController,
-                    label: 'Email',
-                    hint: 'Entrez votre email',
+                    label: AppLocalizations.of(context).email,
+                    hint: AppLocalizations.of(context).email,
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _onSendResetLink(),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Ce champ est requis';
+                        return AppLocalizations.of(context).requiredField;
                       }
                       if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                           .hasMatch(value)) {
@@ -131,7 +132,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
                       return AuthButton(
-                        text: 'Envoyer le lien',
+                        text: AppLocalizations.of(context).resetPassword,
                         onPressed: _onSendResetLink,
                         isLoading:
                             state is AuthLoading || state is AuthSubmitting,
@@ -144,7 +145,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text(
-                      'Retour à la connexion',
+                      AppLocalizations.of(context).backToLogin,
                       style: TextStyle(
                         color: AppColors.primaryColor,
                         fontWeight: FontWeight.w500,

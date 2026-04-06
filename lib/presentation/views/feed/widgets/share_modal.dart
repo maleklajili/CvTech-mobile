@@ -6,6 +6,7 @@ import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/data/models/feed/share_model.dart';
 import 'package:cv_tech/data/repositories/share_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 /// Modal bottom sheet for sharing a post (Reddit/LinkedIn style)
@@ -105,7 +106,7 @@ class ShareModal extends StatelessWidget {
                 minLines: 1,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Ajouter un commentaire (optionnel)',
+                  hintText: AppLocalizations.of(context).addCommentOptional,
                   filled: true,
                   fillColor: isDark
                       ? Colors.white.withOpacity(0.05)

@@ -16,6 +16,7 @@ import 'package:cv_tech/presentation/views_models/profile/professional_profile_v
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class EducationFormViewV2 extends StatefulWidget {
   final EducationModel? education;
@@ -164,7 +165,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
       }
     } catch (e) {
       if (mounted) {
-        CustomToast.error(context, '$e', title: 'Erreur de sélection');
+        CustomToast.error(context, '$e', title: AppLocalizations.of(context).selectionError);
       }
     }
   }
@@ -182,7 +183,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_current && _endDate == null) {
-      CustomToast.warning(context, 'Veuillez sélectionner une date de fin ou cocher "Formation en cours"');
+      CustomToast.warning(context, AppLocalizations.of(context).pleaseSelectEndDateOrCurrentTraining);
       return;
     }
 
@@ -235,11 +236,11 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
         CustomToast.success(
           context,
           widget.education == null
-              ? 'Formation ajoutée avec succès'
-              : 'Formation modifiée avec succès',
+              ? AppLocalizations.of(context).educationAddedSuccess
+              : AppLocalizations.of(context).educationModifiedSuccess,
         );
       } else {
-        CustomToast.error(context, viewModel.educationError ?? 'Une erreur est survenue');
+        CustomToast.error(context, viewModel.educationError ?? AppLocalizations.of(context).errorOccurred);
       }
     }
   }
@@ -250,8 +251,8 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
       backgroundColor: AppTheme.isLight ? Colors.grey.shade50 : Colors.grey.shade900,
       appBar: AppBar(
         title: Text(widget.education == null
-            ? 'Ajouter une formation'
-            : 'Modifier la formation'),
+            ? AppLocalizations.of(context).addEducation
+            : AppLocalizations.of(context).editEducation),
         backgroundColor: AppTheme.isLight ? Colors.white : Colors.grey.shade800,
         elevation: 0,
         actions: [
@@ -327,14 +328,14 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return DropdownButtonFormField<EducationType>(
       value: _type,
       decoration: InputDecoration(
-        labelText: 'Type de formation *',
+        labelText: AppLocalizations.of(context).educationType,
         prefixIcon: const Icon(Icons.category),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      items: const [
-        DropdownMenuItem(value: EducationType.diploma, child: Text('Diplôme')),
-        DropdownMenuItem(value: EducationType.certification, child: Text('Certification')),
-        DropdownMenuItem(value: EducationType.course, child: Text('Formation/Cours')),
+      items: [
+        DropdownMenuItem(value: EducationType.diploma, child: Text(AppLocalizations.of(context).diplomaLabel)),
+        DropdownMenuItem(value: EducationType.certification, child: Text(AppLocalizations.of(context).certificationLabel)),
+        DropdownMenuItem(value: EducationType.course, child: Text(AppLocalizations.of(context).courseTraining)),
       ],
       onChanged: (value) {
         if (value != null) {
@@ -348,14 +349,14 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return TextFormField(
       controller: _degreeController,
       decoration: InputDecoration(
-        labelText: 'Diplôme/Certification *',
-        hintText: 'Ex: Master en Informatique',
+        labelText: AppLocalizations.of(context).diplomaCertification,
+        hintText: AppLocalizations.of(context).diplomaHint,
         prefixIcon: const Icon(Icons.school),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Veuillez entrer le nom du diplôme';
+          return AppLocalizations.of(context).pleaseEnterDiplomaName;
         }
         return null;
       },
@@ -366,14 +367,14 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return TextFormField(
       controller: _schoolController,
       decoration: InputDecoration(
-        labelText: 'École/Institution *',
-        hintText: 'Ex: Université de Paris',
+        labelText: AppLocalizations.of(context).schoolInstitution,
+        hintText: AppLocalizations.of(context).schoolHint,
         prefixIcon: const Icon(Icons.business),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Veuillez entrer le nom de l\'école';
+          return AppLocalizations.of(context).pleaseEnterSchoolName;
         }
         return null;
       },
@@ -384,14 +385,14 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return TextFormField(
       controller: _locationController,
       decoration: InputDecoration(
-        labelText: 'Lieu *',
-        hintText: 'Ex: Paris, France',
+        labelText: AppLocalizations.of(context).locationLabel,
+        hintText: AppLocalizations.of(context).locationHint,
         prefixIcon: const Icon(Icons.location_on),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Veuillez entrer le lieu';
+          return AppLocalizations.of(context).pleaseEnterLocation;
         }
         return null;
       },
@@ -402,8 +403,8 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return TextFormField(
       controller: _gradeController,
       decoration: InputDecoration(
-        labelText: 'Mention/Note (optionnel)',
-        hintText: 'Ex: Très Bien, 15/20',
+        labelText: AppLocalizations.of(context).gradeOptional,
+        hintText: AppLocalizations.of(context).gradeHint,
         prefixIcon: const Icon(Icons.grade),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -414,8 +415,8 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return TextFormField(
       controller: _urlController,
       decoration: InputDecoration(
-        labelText: 'Lien web (optionnel)',
-        hintText: 'Ex: https://mon-diplome.com',
+        labelText: AppLocalizations.of(context).webLinkOptional,
+        hintText: AppLocalizations.of(context).webLinkHint,
         prefixIcon: const Icon(Icons.link),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -436,7 +437,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
                 onTap: () => _selectDate(context, true),
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Date de début *',
+                    labelText: AppLocalizations.of(context).startDate,
                     prefixIcon: const Icon(Icons.calendar_today),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -450,15 +451,15 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
                 onTap: _current ? null : () => _selectDate(context, false),
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Date de fin',
+                    labelText: AppLocalizations.of(context).endDate,
                     prefixIcon: const Icon(Icons.calendar_today),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     enabled: !_current,
                   ),
                   child: Text(
                     _current
-                        ? 'En cours'
-                        : (_endDate != null ? dateFormat.format(_endDate!) : 'Non définie'),
+                        ? AppLocalizations.of(context).inProgress
+                        : (_endDate != null ? dateFormat.format(_endDate!) : AppLocalizations.of(context).notDefined),
                   ),
                 ),
               ),
@@ -467,7 +468,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
         ),
         const SizedBox(height: 12),
         CheckboxListTile(
-          title: const Text('Formation en cours'),
+          title: Text(AppLocalizations.of(context).trainingInProgress),
           value: _current,
           onChanged: (value) {
             setState(() {
@@ -488,8 +489,8 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return TextFormField(
       controller: _descriptionController,
       decoration: InputDecoration(
-        labelText: 'Description',
-        hintText: 'Décrivez la formation, les matières étudiées...',
+        labelText: AppLocalizations.of(context).descriptionLabel,
+        hintText: AppLocalizations.of(context).describeTraining,
         prefixIcon: const Icon(Icons.description),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         alignLabelWithHint: true,
@@ -503,9 +504,9 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Compétences acquises',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Text(
+          AppLocalizations.of(context).acquiredSkills,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         
@@ -516,7 +517,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
               child: DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 decoration: InputDecoration(
-                  labelText: 'Catégorie',
+                  labelText: AppLocalizations.of(context).categoryLabel,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -535,7 +536,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: 'Compétence',
+                    labelText: AppLocalizations.of(context).skillLabel,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
@@ -571,9 +572,9 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
             }).toList(),
           )
         else
-          const Text(
-            'Aucune compétence ajoutée',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            AppLocalizations.of(context).noSkillAdded,
+            style: const TextStyle(color: Colors.grey),
           ),
       ],
     );
@@ -586,14 +587,14 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Certificats/Diplômes',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context).certificatesDiplomas,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             ElevatedButton.icon(
               onPressed: _pickCertificate,
               icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text('Ajouter'),
+              label: Text(AppLocalizations.of(context).add),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
@@ -615,8 +616,8 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
                   ),
                   title: Text(cert.name),
                   subtitle: cert.isLocal
-                      ? const Text('Nouveau fichier')
-                      : const Text('Déjà uploadé'),
+                      ? Text(AppLocalizations.of(context).newFile)
+                      : Text(AppLocalizations.of(context).alreadyUploaded),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () => _removeCertificate(cert),
@@ -626,9 +627,9 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
             }).toList(),
           )
         else
-          const Text(
-            'Aucun certificat ajouté',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            AppLocalizations.of(context).noCertificateAdded,
+            style: const TextStyle(color: Colors.grey),
           ),
       ],
     );
@@ -644,7 +645,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
         ),
         const SizedBox(width: 16),
@@ -666,7 +667,7 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : Text(widget.education == null ? 'Ajouter' : 'Modifier'),
+                : Text(widget.education == null ? AppLocalizations.of(context).add : AppLocalizations.of(context).edit),
           ),
         ),
       ],

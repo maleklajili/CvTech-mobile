@@ -21,6 +21,7 @@ import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dar
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -34,19 +35,25 @@ class _ProfileViewState extends State<ProfileView>
   late TabController _tabController;
   bool _showFullBio = false;
 
-  final List<_TabItem> _tabs = [
-    _TabItem(label: 'Expérience', icon: Icons.work_outline),
-    _TabItem(label: 'Formation', icon: Icons.school_outlined),
-    _TabItem(label: 'Compétences', icon: Icons.psychology_outlined),
-    _TabItem(label: 'Projets', icon: Icons.folder_outlined),
-    _TabItem(label: 'Posts', icon: Icons.article_outlined),
-    _TabItem(label: 'Sauvegardés', icon: Icons.bookmark_outline),
+  static const List<IconData> _tabIcons = [
+    Icons.work_outline,
+    Icons.school_outlined,
+    Icons.psychology_outlined,
+    Icons.folder_outlined,
+    Icons.article_outlined,
+    Icons.bookmark_outline,
   ];
+
+  List<_TabItem> _getTabs(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final labels = [t.experience, t.education, t.skills, t.projects, t.posts, t.saved];
+    return List.generate(_tabIcons.length, (i) => _TabItem(label: labels[i], icon: _tabIcons[i]));
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(length: _tabIcons.length, vsync: this);
   }
 
   @override
@@ -73,7 +80,7 @@ class _ProfileViewState extends State<ProfileView>
               icon: const Icon(Icons.arrow_back),
               onPressed: () => Navigator.of(context).pop(),
             ),
-            title: const Text('Profil'),
+            title: Text(AppLocalizations.of(context).profile),
             centerTitle: true,
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -116,7 +123,7 @@ class _ProfileViewState extends State<ProfileView>
                           fontWeight: FontWeight.normal,
                           fontSize: 14,
                         ),
-                        tabs: _tabs
+                        tabs: _getTabs(context)
                             .map((tab) => Tab(
                                   text: tab.label,
                                 ))
@@ -551,7 +558,7 @@ class _ProfileViewState extends State<ProfileView>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _showFullBio ? 'Voir moins' : 'Voir plus',
+                        _showFullBio ? AppLocalizations.of(context).seeLess : AppLocalizations.of(context).seeMore,
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.primaryColor,
@@ -631,7 +638,7 @@ class _ProfileViewState extends State<ProfileView>
               child: ElevatedButton.icon(
                 onPressed: () => _navigateToEditProfile(context, viewModel),
                 icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Modifier le profil'),
+                label: Text(AppLocalizations.of(context).editProfile),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
                   foregroundColor: Colors.white,
@@ -729,9 +736,9 @@ class _ProfileViewState extends State<ProfileView>
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildStatCard('${viewModel.postsCount}', 'Posts'),
-            _buildStatCard('${viewModel.followersCount}', 'Abonnés'),
-            _buildStatCard('${viewModel.followingCount}', 'Abonne.'),
+            _buildStatCard('${viewModel.postsCount}', AppLocalizations.of(context).posts),
+            _buildStatCard('${viewModel.followersCount}', AppLocalizations.of(context).followers),
+            _buildStatCard('${viewModel.followingCount}', AppLocalizations.of(context).following),
           ],
         ),
       ],
@@ -935,7 +942,7 @@ class _ProfileViewState extends State<ProfileView>
     final success = await viewModel.deleteExperience(id);
     if (context.mounted) {
       if (success) {
-        CustomToast.success(context, 'Expérience supprimée');
+        CustomToast.success(context, AppLocalizations.of(context).experienceDeleted);
       } else {
         CustomToast.error(context, viewModel.experienceError ?? 'Erreur lors de la suppression');
       }
@@ -947,7 +954,7 @@ class _ProfileViewState extends State<ProfileView>
     final success = await viewModel.deleteEducation(id);
     if (context.mounted) {
       if (success) {
-        CustomToast.success(context, 'Formation supprimée');
+        CustomToast.success(context, AppLocalizations.of(context).educationDeleted);
       } else {
         CustomToast.error(context, viewModel.educationError ?? 'Erreur lors de la suppression');
       }
@@ -959,7 +966,7 @@ class _ProfileViewState extends State<ProfileView>
     final success = await viewModel.deleteSkill(id);
     if (context.mounted) {
       if (success) {
-        CustomToast.success(context, 'Compétence supprimée');
+        CustomToast.success(context, AppLocalizations.of(context).skillDeleted);
       } else {
         CustomToast.error(context, viewModel.skillsError ?? 'Erreur lors de la suppression');
       }
@@ -971,7 +978,7 @@ class _ProfileViewState extends State<ProfileView>
     final success = await viewModel.deleteProject(id);
     if (context.mounted) {
       if (success) {
-        CustomToast.success(context, 'Projet supprimé');
+        CustomToast.success(context, AppLocalizations.of(context).projectDeleted);
       } else {
         CustomToast.error(context, viewModel.projectsError ?? 'Erreur lors de la suppression');
       }

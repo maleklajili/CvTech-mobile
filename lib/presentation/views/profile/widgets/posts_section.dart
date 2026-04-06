@@ -1,5 +1,6 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 // Package imports:
 import 'package:provider/provider.dart';
@@ -186,7 +187,7 @@ class _PostsSectionContentState extends State<_PostsSectionContent> {
           ElevatedButton.icon(
             onPressed: () => _navigateToCreatePost(context, vm),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Publier'),
+            label: Text(AppLocalizations.of(context).publish),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryColor,
               foregroundColor: Colors.white,

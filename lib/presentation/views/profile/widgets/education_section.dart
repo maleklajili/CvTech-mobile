@@ -1,5 +1,6 @@
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 // Package imports:
 import 'package:intl/intl.dart';
@@ -52,7 +53,7 @@ class EducationSection extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onAdd,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Ajouter'),
+                label: Text(AppLocalizations.of(context).add),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange[500],
                   foregroundColor: Colors.white,
@@ -265,24 +266,24 @@ class _EducationCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, size: 18),
-                            SizedBox(width: 8),
-                            Text('Modifier'),
+                            const Icon(Icons.edit, size: 18),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context).edit),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Supprimer',
-                                style: TextStyle(color: Colors.red)),
+                            const Icon(Icons.delete, size: 18, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context).delete,
+                                style: const TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),

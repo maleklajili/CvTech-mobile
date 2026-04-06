@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 // Project imports:
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/presentation/views_models/main/bottom_navigation_bar_view_model.dart';
 
 class BottomNavigationBarWidget extends StatelessWidget {
@@ -14,20 +15,21 @@ class BottomNavigationBarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return BottomNavigationBar(
       currentIndex: viewModel.currentIndex,
       type: BottomNavigationBarType.fixed,
       items: [
         BottomNavigationBarItem(
           icon: const Icon(Icons.home),
-          label: 'Home',
+          label: t.home,
         ),
         BottomNavigationBarItem(
           icon: _buildIconWithBadge(
             const Icon(Icons.people_outline_rounded),
             viewModel.networkCount,
           ),
-          label: 'Réseau',
+          label: t.connections,
         ),
         BottomNavigationBarItem(
           icon: const Icon(Icons.description_outlined),
@@ -35,11 +37,11 @@ class BottomNavigationBarWidget extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: const Icon(Icons.work_outline),
-          label: 'Offre d\'emploi',
+          label: t.jobs,
         ),
         BottomNavigationBarItem(
           icon: const Icon(Icons.person_outline),
-          label: 'Profil',
+          label: t.profile,
         ),
       ],
       onTap: viewModel.changeCurrentIndex,

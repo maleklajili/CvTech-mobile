@@ -104,13 +104,14 @@ class ManualCvRepository {
     }
   }
 
-  Future<Uint8List> downloadPdf(String cvId, {String? primaryColor, String? accentColor, String? fontFamily, String? format}) async {
+  Future<Uint8List> downloadPdf(String cvId, {String? primaryColor, String? accentColor, String? fontFamily, String? format, String? lang}) async {
     try {
       final queryParams = <String, dynamic>{};
       if (primaryColor != null) queryParams['primaryColor'] = primaryColor;
       if (accentColor != null) queryParams['accentColor'] = accentColor;
       if (fontFamily != null) queryParams['fontFamily'] = fontFamily;
       if (format != null) queryParams['format'] = format;
+      if (lang != null) queryParams['lang'] = lang;
       final response = await _apiClient.dio.get(
         '${ApiEndpoints.manualCvDownloadPdf}$cvId',
         queryParameters: queryParams.isNotEmpty ? queryParams : null,

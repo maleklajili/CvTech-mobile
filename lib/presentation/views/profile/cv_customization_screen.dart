@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/data/repositories/ai_cv_repository.dart';
 import 'package:cv_tech/data/repositories/manual_cv_repository.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
@@ -39,7 +40,25 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
   late String _selectedTemplate;
   Color _selectedColor = const Color(0xFF1e3a8a);
   String _selectedFont = 'Arial';
+  String _selectedLang = 'fr';
   bool _isDownloading = false;
+
+  static const _languages = {
+    'fr': 'Français',
+    'en': 'English',
+    'ar': 'العربية',
+    'es': 'Español',
+    'de': 'Deutsch',
+    'it': 'Italiano',
+    'pt': 'Português',
+    'tr': 'Türkçe',
+    'zh': '中文',
+    'ja': '日本語',
+    'ko': '한국어',
+    'ru': 'Русский',
+    'nl': 'Nederlands',
+    'hi': 'हिन्दी',
+  };
 
   static const _templates = [
     _TemplateOption(
@@ -130,9 +149,10 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Personnaliser le CV'),
+        title: Text(t.customizeCv),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -141,30 +161,39 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Template picker
-            const Text(
-              'Template',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            Text(
+              t.cvTemplate,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             _buildTemplatePicker(),
             const SizedBox(height: 24),
 
             // Color picker
-            const Text(
-              'Couleur principale',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            Text(
+              t.primaryColor,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             _buildColorPicker(),
             const SizedBox(height: 24),
 
             // Font picker
-            const Text(
-              'Police',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            Text(
+              t.font,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             _buildFontPicker(),
+            const SizedBox(height: 24),
+
+            // Language picker
+            Text(
+              t.cvLanguage,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            _buildLanguagePicker(),
             const SizedBox(height: 32),
 
             // Download button
@@ -192,8 +221,8 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
                     : const Icon(Icons.download),
                 label: Text(
                   _isDownloading
-                      ? 'Génération en cours...'
-                      : 'Télécharger le PDF',
+                      ? t.pdfGenerating
+                      : t.downloadPdf,
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -342,11 +371,46 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
     );
   }
 
+  Widget _buildLanguagePicker() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _languages.entries.map((entry) {
+        final isSelected = _selectedLang == entry.key;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedLang = entry.key),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? _selectedColor.withValues(alpha: 0.12)
+                  : Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? _selectedColor : Colors.grey.shade300,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Text(
+              entry.value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? _selectedColor : null,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Future<void> _downloadPdf() async {
     setState(() => _isDownloading = true);
 
     try {
-      CustomToast.info(context, 'Génération du PDF en cours...', title: 'PDF');
+      CustomToast.info(context, AppLocalizations.of(context).pdfGenerating, title: 'PDF');
 
       final primaryHex = _colorToHex(_selectedColor);
       debugPrint('>>> CV Download: template=$_selectedTemplate, color=$primaryHex, font=$_selectedFont');
@@ -359,6 +423,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
           primaryColor: primaryHex,
           fontFamily: _selectedFont,
           format: _selectedTemplate,
+          lang: _selectedLang,
         );
       } else {
         final repo = ManualCvRepository();
@@ -367,6 +432,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
           primaryColor: primaryHex,
           fontFamily: _selectedFont,
           format: _selectedTemplate,
+          lang: _selectedLang,
         );
       }
 
@@ -393,12 +459,12 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
       }
 
       if (mounted) {
-        CustomToast.success(context, 'PDF généré avec succès');
+        CustomToast.success(context, AppLocalizations.of(context).pdfSuccess);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        CustomToast.error(context, '$e', title: 'Erreur PDF');
+        CustomToast.error(context, '$e', title: AppLocalizations.of(context).error);
       }
     } finally {
       if (mounted) {

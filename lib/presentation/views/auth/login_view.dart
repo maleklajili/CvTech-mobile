@@ -18,6 +18,7 @@ import 'package:cv_tech/presentation/views/test/api_test_view.dart';
 import 'package:cv_tech/presentation/views/test/auth_debug_view.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_button.dart';
 import 'package:cv_tech/presentation/widgets/auth/auth_text_field.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -106,8 +107,8 @@ class _LoginViewState extends State<LoginView> {
                 'Login successful - AuthWrapper will handle navigation to home');
             AuthErrorHandler.showSuccessAlert(
               context,
-              title: '✅ Connexion réussie',
-              message: 'Bienvenue ! Vous êtes maintenant connecté.',
+              title: '✅ ${AppLocalizations.of(context).loginSuccess}',
+              message: '${AppLocalizations.of(context).welcome}!',
             );
           } else if (state is AuthError) {
             // Utiliser le gestionnaire d'erreur personnalisé
@@ -135,7 +136,7 @@ class _LoginViewState extends State<LoginView> {
 
                     // Title
                     Text(
-                      'Bienvenue',
+                      AppLocalizations.of(context).welcome,
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -145,7 +146,7 @@ class _LoginViewState extends State<LoginView> {
                     const SizedBox(height: Dimensions.heightSmallVertical),
 
                     Text(
-                      'Connectez-vous pour continuer',
+                      AppLocalizations.of(context).translate('login_to_continue'),
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -154,13 +155,13 @@ class _LoginViewState extends State<LoginView> {
                     // Email/Username field
                     AuthTextField(
                       controller: _identifierController,
-                      label: 'Email ou nom d\'utilisateur',
-                      hint: 'Entrez votre email ou username',
+                      label: AppLocalizations.of(context).email,
+                      hint: AppLocalizations.of(context).email,
                       prefixIcon: Icons.person_outline,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Ce champ est requis';
+                          return AppLocalizations.of(context).requiredField;
                         }
                         return null;
                       },
@@ -170,15 +171,15 @@ class _LoginViewState extends State<LoginView> {
                     // Password field
                     AuthTextField(
                       controller: _passwordController,
-                      label: 'Mot de passe',
-                      hint: 'Entrez votre mot de passe',
+                      label: AppLocalizations.of(context).password,
+                      hint: AppLocalizations.of(context).password,
                       prefixIcon: Icons.lock_outline,
                       isPassword: true,
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _onLogin(),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Le mot de passe est requis';
+                          return AppLocalizations.of(context).requiredField;
                         }
                         return null;
                       },
@@ -191,7 +192,7 @@ class _LoginViewState extends State<LoginView> {
                       child: TextButton(
                         onPressed: _navigateToForgotPassword,
                         child: Text(
-                          'Mot de passe oublié ?',
+                          AppLocalizations.of(context).forgotPassword,
                           style: TextStyle(
                             color: AppColors.primaryColor,
                             fontWeight: FontWeight.w500,
@@ -205,7 +206,7 @@ class _LoginViewState extends State<LoginView> {
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         return AuthButton(
-                          text: 'Se connecter',
+                          text: AppLocalizations.of(context).login,
                           onPressed: _onLogin,
                           isLoading:
                               state is AuthLoading || state is AuthSubmitting,
@@ -218,8 +219,8 @@ class _LoginViewState extends State<LoginView> {
                     Wrap(
                       alignment: WrapAlignment.center,
                       children: [
-                        const Text(
-                          'Pas encore de compte ? ',
+                        Text(
+                          AppLocalizations.of(context).dontHaveAccount,
                         ),
                         TextButton(
                           onPressed: _navigateToRegister,
@@ -229,7 +230,7 @@ class _LoginViewState extends State<LoginView> {
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
-                            'S\'inscrire',
+                            AppLocalizations.of(context).register,
                             style: TextStyle(
                               color: AppColors.primaryColor,
                               fontWeight: FontWeight.bold,

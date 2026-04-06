@@ -12,6 +12,7 @@ import 'package:cv_tech/data/repositories/job_application_repository.dart';
 import 'package:cv_tech/data/repositories/job_repository.dart';
 import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
@@ -311,14 +312,14 @@ class _CompaniesViewState extends State<CompaniesView> {
     final id = company.id;
     if (id == null || id.isEmpty) {
       if (!mounted) return;
-      CustomToast.error(context, 'Entreprise invalide: identifiant manquant');
+      CustomToast.error(context, AppLocalizations.of(context).invalidCompany);
       return;
     }
     final confirm = await CustomAlertDialog.showConfirmation(
       context: context,
-      title: 'Supprimer la page entreprise',
-      message: 'Confirmer la suppression de ${company.name} ?',
-      confirmText: 'Supprimer',
+      title: AppLocalizations.of(context).deleteCompanyPage,
+      message: AppLocalizations.of(context).confirmDeletion(company.name ?? ''),
+      confirmText: AppLocalizations.of(context).delete,
       isDangerous: true,
     );
     if (!mounted) return;
@@ -326,11 +327,11 @@ class _CompaniesViewState extends State<CompaniesView> {
     try {
       await _repository.delete(id);
       if (!mounted) return;
-      CustomToast.success(context, 'Entreprise supprimee');
+      CustomToast.success(context, AppLocalizations.of(context).companyDeleted);
       await _loadCompanies(reset: true);
     } catch (e) {
       if (!mounted) return;
-      CustomToast.error(context, 'Suppression impossible: $e');
+      CustomToast.error(context, '${AppLocalizations.of(context).deletionFailed}: $e');
     }
   }
 
@@ -1481,10 +1482,10 @@ class _MyCompanyCard extends StatelessWidget {
                       if (value == 'edit') onEdit();
                       if (value == 'delete') onDelete();
                     },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(ctx).edit)),
                       PopupMenuItem(
-                          value: 'delete', child: Text('Supprimer')),
+                          value: 'delete', child: Text(AppLocalizations.of(ctx).delete)),
                     ],
                     child: Container(
                       width: 34,
@@ -1664,7 +1665,7 @@ class _MyCompanyCard extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: onEdit,
                         icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: const Text('Modifier'),
+                        label: Text(AppLocalizations.of(context).edit),
                       ),
                     ),
                   ],
@@ -1866,9 +1867,9 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
 
     final confirm = await CustomAlertDialog.showConfirmation(
       context: context,
-      title: 'Supprimer l\'offre',
-      message: 'Confirmer la suppression de ${job.title} ?',
-      confirmText: 'Supprimer',
+      title: AppLocalizations.of(context).deleteOffer,
+      message: AppLocalizations.of(context).confirmDeletion(job.title ?? ''),
+      confirmText: AppLocalizations.of(context).delete,
       isDangerous: true,
     );
     if (!mounted) return;
@@ -1877,12 +1878,12 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
     try {
       await _jobRepository.delete(job.id!);
       if (!mounted) return;
-      CustomToast.success(context, 'Offre supprimee');
+      CustomToast.success(context, AppLocalizations.of(context).offerDeleted);
       await _loadCompanyJobs();
       await _load();
     } catch (e) {
       if (!mounted) return;
-      CustomToast.error(context, 'Suppression impossible: $e');
+      CustomToast.error(context, '${AppLocalizations.of(context).deletionFailed}: $e');
     }
   }
 
@@ -1910,9 +1911,9 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
 
     final confirm = await CustomAlertDialog.showConfirmation(
       context: context,
-      title: 'Supprimer l\'entreprise',
-      message: 'Confirmer la suppression de ${company.name} ?',
-      confirmText: 'Supprimer',
+      title: AppLocalizations.of(context).deleteCompany,
+      message: AppLocalizations.of(context).confirmDeletion(company.name ?? ''),
+      confirmText: AppLocalizations.of(context).delete,
       isDangerous: true,
     );
     if (!mounted) return;
@@ -1926,7 +1927,7 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _actionLoading = false);
-      CustomToast.error(context, 'Suppression impossible: $e');
+      CustomToast.error(context, '${AppLocalizations.of(context).deletionFailed}: $e');
     }
   }
 
@@ -1963,9 +1964,9 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
                 if (value == 'edit') _edit();
                 if (value == 'delete') _delete();
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+              itemBuilder: (ctx) => [
+                PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(ctx).edit)),
+                PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(ctx).delete)),
               ],
             ),
         ],
@@ -1975,7 +1976,7 @@ class _CompanyDetailViewState extends State<CompanyDetailView> {
           : _error != null
               ? _ErrorState(message: _error!, onRetry: _load)
               : _company == null
-                  ? const Center(child: Text('Entreprise introuvable'))
+                  ? Center(child: Text(AppLocalizations.of(context).companyNotFound))
                   : _CompanyDetailBody(
                       company: _company!,
                       isOwner: _isOwner,
@@ -3011,9 +3012,9 @@ class _JobItemCard extends StatelessWidget {
                     if (value == 'edit') onEdit?.call();
                     if (value == 'delete') onDelete?.call();
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                    PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                  itemBuilder: (ctx) => [
+                    PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(ctx).edit)),
+                    PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(ctx).delete)),
                   ],
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -4194,7 +4195,7 @@ class _JobDetailViewState extends State<_JobDetailView> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   icon: const Icon(Icons.send_outlined),
-                  label: const Text('Postuler'),
+                  label: Text(AppLocalizations.of(context).applyNow),
                 ),
               ),
             ),
@@ -4309,11 +4310,11 @@ class _ApplicationIdsDialogState extends State<_ApplicationIdsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
+          child: Text(AppLocalizations.of(context).cancel),
         ),
         ElevatedButton(
           onPressed: _submit,
-          child: const Text('Valider'),
+          child: Text(AppLocalizations.of(context).validate),
         ),
       ],
     );
@@ -4543,7 +4544,7 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
                   const Spacer(),
                   TextButton(
                     onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
-                    child: const Text('Annuler'),
+                    child: Text(AppLocalizations.of(context).cancel),
                   ),
                   const SizedBox(width: 6),
                   ElevatedButton(
@@ -4875,7 +4876,7 @@ class _CreateJobSheetState extends State<_CreateJobSheet> {
                             FocusManager.instance.primaryFocus?.unfocus();
                             Navigator.of(context).pop(false);
                           },
-                    child: const Text('Annuler'),
+                    child: Text(AppLocalizations.of(context).cancel),
                   ),
                   const SizedBox(width: 6),
                   ElevatedButton(

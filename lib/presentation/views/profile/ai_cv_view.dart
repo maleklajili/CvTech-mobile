@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
@@ -425,13 +426,13 @@ class _AiCvContentState extends State<_AiCvContent> {
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        SizedBox(width: 8),
-                        Text('Supprimer', style: TextStyle(color: Colors.red)),
+                        const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        Text(AppLocalizations.of(context).delete, style: const TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
