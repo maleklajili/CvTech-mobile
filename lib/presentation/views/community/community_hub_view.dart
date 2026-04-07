@@ -1278,7 +1278,13 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
                     children: [
                       Expanded(flex: 7, child: _buildCommunityFeedSection(c)),
                       const SizedBox(width: 16),
-                      SizedBox(width: 340, child: _buildWebSidebarWithoutMembers()),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minWidth: 220,
+                          maxWidth: 340,
+                        ),
+                        child: _buildWebSidebarWithoutMembers(),
+                      ),
                     ],
                   )
                 : Column(

@@ -154,4 +154,33 @@ class Dimensions {
 
   /// SizedBox with width of 35
   static const widthHuge = SizedBox(width: xxxl);
+
+  // ── Responsive helpers ──────────────────────────────────────────────── //
+
+  /// Returns a fraction of the screen width (0.0–1.0 = 0–100%).
+  /// e.g. Dimensions.wp(context, 0.5) → half the screen width
+  static double wp(BuildContext context, double fraction) =>
+      MediaQuery.sizeOf(context).width * fraction;
+
+  /// Returns a fraction of the screen height (0.0–1.0 = 0–100%).
+  static double hp(BuildContext context, double fraction) =>
+      MediaQuery.sizeOf(context).height * fraction;
+
+  /// Scales a base font-size for small phones (< 360 dp) down by 15 %
+  /// and for tablets / large screens (≥ 600 dp) up by 10 %.
+  /// Returns [base] unchanged for typical phones (360–600 dp).
+  static double sp(BuildContext context, double base) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width < 360) return base * 0.85;
+    if (width >= 600) return base * 1.10;
+    return base;
+  }
+
+  /// Whether the current screen qualifies as a tablet (≥ 600 dp wide).
+  static bool isTablet(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= 600;
+
+  /// Whether the current screen qualifies as a small phone (< 360 dp wide).
+  static bool isSmallPhone(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < 360;
 }

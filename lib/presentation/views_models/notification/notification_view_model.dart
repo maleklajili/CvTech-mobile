@@ -30,6 +30,19 @@ class NotificationViewModel extends SafeChangeNotifier {
 
   Timer? _pollTimer;
 
+  // Exponential backoff tracking
+  int _consecutiveFailures = 0;
+  static const int _maxFailures = 5;
+  static const Duration _baseInterval = Duration(seconds: 30);
+  static const Duration _maxInterval = Duration(minutes: 5);
+
+  Duration get _currentInterval {
+    if (_consecutiveFailures <= 0) return _baseInterval;
+    final factor = 1 << _consecutiveFailures.clamp(0, 4); // 1,2,4,8,16
+    final ms = _baseInterval.inMilliseconds * factor;
+    return Duration(milliseconds: ms.clamp(0, _maxInterval.inMilliseconds));
+  }
+
   /// Load notifications (initial / refresh)
   Future<void> loadNotifications() async {
     _state = NotificationState.loading;
@@ -42,6 +55,7 @@ class NotificationViewModel extends SafeChangeNotifier {
       _notifications = results;
       _hasMore = results.length >= 20;
       _state = NotificationState.loaded;
+      _consecutiveFailures = 0;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       _state = NotificationState.error;
@@ -71,13 +85,15 @@ class NotificationViewModel extends SafeChangeNotifier {
     notifyListeners();
   }
 
-  /// Fetch unread count only (lightweight)
+  /// Fetch unread count only (lightweight — used by AppBar badge)
   Future<void> fetchUnreadCount() async {
     try {
       _unreadCount = await _repository.getUnreadCount();
+      _consecutiveFailures = 0;
       notifyListeners();
-    } catch (e) {
-      if (kDebugMode) print('Unread count error: $e');
+    } catch (_) {
+      // Silently track failures; suppress log after max threshold to avoid spam.
+      _consecutiveFailures++;
     }
   }
 
@@ -167,11 +183,36 @@ class NotificationViewModel extends SafeChangeNotifier {
     }
   }
 
-  /// Start polling unread count periodically
-  void startPolling({Duration interval = const Duration(seconds: 30)}) {
+  /// Start polling unread count with a configurable initial delay
+  /// and adaptive backoff on repeated failures.
+  void startPolling({
+    Duration initialDelay = const Duration(seconds: 5),
+  }) {
     _pollTimer?.cancel();
-    fetchUnreadCount();
-    _pollTimer = Timer.periodic(interval, (_) => fetchUnreadCount());
+    // Delay the first fetch so the app can establish the connection first
+    Future.delayed(initialDelay, () {
+      if (!_disposed) {
+        _schedulePoll();
+      }
+    });
+  }
+
+  void _schedulePoll() {
+    if (_disposed) return;
+    fetchUnreadCount().then((_) {
+      if (_disposed) return;
+      // Only schedule next poll if failures are below max threshold
+      if (_consecutiveFailures < _maxFailures) {
+        _pollTimer = Timer(_currentInterval, _schedulePoll);
+      }
+      // If too many failures, stop polling silently until app restarts
+    });
+  }
+
+  /// Resume polling (reset failure count and restart)
+  void resumePolling() {
+    _consecutiveFailures = 0;
+    startPolling(initialDelay: Duration.zero);
   }
 
   /// Stop polling
@@ -180,8 +221,12 @@ class NotificationViewModel extends SafeChangeNotifier {
     _pollTimer = null;
   }
 
+  // ignore: prefer_final_fields
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     _pollTimer?.cancel();
     super.dispose();
   }
