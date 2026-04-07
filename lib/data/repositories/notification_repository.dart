@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/api/api_endpoints.dart';
 import 'package:cv_tech/data/models/notification_model.dart';
 
 class NotificationRepository {
   final ApiClient _apiClient;
+
+  // Reusable option: receive raw text, never auto-decode JSON
+  static final _plainOpts = Options(responseType: ResponseType.plain);
 
   NotificationRepository({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
@@ -17,23 +22,26 @@ class NotificationRepository {
     final response = await _apiClient.dio.get(
       ApiEndpoints.notifications,
       queryParameters: {'take': limit, 'skip': skip},
+      options: _plainOpts,
     );
-    final data = response.data;
+    final data = _safeDecodeJson(response.data);
     final list = _extractList(data, 'notifications');
-    return list.map((e) => NotificationModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(NotificationModel.fromJson)
+        .toList();
   }
 
   /// Get unread count
   Future<int> getUnreadCount() async {
     final response = await _apiClient.dio.get(
       ApiEndpoints.notificationsUnreadCount,
+      options: _plainOpts,
     );
-    final data = response.data;
+    final data = _safeDecodeJson(response.data);
     if (data is Map) {
       final nested = data['data'] ?? data;
-      if (nested is Map) {
-        return _toInt(nested['unreadCount']);
-      }
+      if (nested is Map) return _toInt(nested['unreadCount']);
     }
     return 0;
   }
@@ -42,18 +50,23 @@ class NotificationRepository {
   Future<List<NotificationModel>> getUnreadNotifications() async {
     final response = await _apiClient.dio.get(
       ApiEndpoints.notificationsUnreadList,
+      options: _plainOpts,
     );
-    final data = response.data;
+    final data = _safeDecodeJson(response.data);
     final list = _extractList(data, null);
-    return list.map((e) => NotificationModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(NotificationModel.fromJson)
+        .toList();
   }
 
   /// Mark a single notification as read
   Future<bool> markAsRead(String notificationId) async {
     final response = await _apiClient.dio.put(
       '${ApiEndpoints.notifications}/$notificationId/read',
+      options: _plainOpts,
     );
-    final data = response.data;
+    final data = _safeDecodeJson(response.data);
     if (data is Map) {
       final nested = data['data'] ?? data;
       if (nested is Map) return nested['marked'] == true;
@@ -65,6 +78,7 @@ class NotificationRepository {
   Future<bool> markAllAsRead() async {
     final response = await _apiClient.dio.put(
       ApiEndpoints.notificationMarkAllRead,
+      options: _plainOpts,
     );
     return response.statusCode == 200;
   }
@@ -73,6 +87,7 @@ class NotificationRepository {
   Future<bool> deleteNotification(String notificationId) async {
     final response = await _apiClient.dio.delete(
       '${ApiEndpoints.notifications}/$notificationId',
+      options: _plainOpts,
     );
     return response.statusCode == 200;
   }
@@ -81,11 +96,26 @@ class NotificationRepository {
   Future<bool> deleteAllNotifications() async {
     final response = await _apiClient.dio.delete(
       ApiEndpoints.notifications,
+      options: _plainOpts,
     );
     return response.statusCode == 200;
   }
 
-  // Helpers
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Safely decodes a JSON string. Returns null instead of throwing on
+  /// empty bodies, HTML error pages, or any other non-JSON content.
+  dynamic _safeDecodeJson(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is Map || raw is List) return raw; // already decoded
+    final text = raw.toString().trim();
+    if (text.isEmpty) return null;
+    try {
+      return jsonDecode(text);
+    } catch (_) {
+      return null;
+    }
+  }
 
   List<dynamic> _extractList(dynamic data, String? key) {
     if (data is Map) {
