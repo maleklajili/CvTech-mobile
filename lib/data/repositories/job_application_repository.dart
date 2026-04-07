@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 
 import 'package:cv_tech/data/api/api_client.dart';
@@ -56,14 +57,18 @@ class JobApplicationRepository {
       };
 
       if (cvBytes != null && cvBytes.isNotEmpty) {
+        final name = cvFileName ?? 'cv.pdf';
         formMap['cv'] = MultipartFile.fromBytes(
           cvBytes,
-          filename: cvFileName ?? 'cv.pdf',
+          filename: name,
+          contentType: _mimeFromName(name),
         );
       } else if (cvPath != null && cvPath.isNotEmpty) {
+        final name = cvFileName ?? cvPath.split(Platform.pathSeparator).last;
         formMap['cv'] = await MultipartFile.fromFile(
           cvPath,
-          filename: cvFileName,
+          filename: name,
+          contentType: _mimeFromName(name),
         );
       }
 
@@ -237,6 +242,19 @@ class JobApplicationRepository {
     return fallback.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
   }
 
+  static MediaType _mimeFromName(String name) {
+    final ext = name.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'doc':
+        return MediaType('application', 'msword');
+      case 'docx':
+        return MediaType('application',
+            'vnd.openxmlformats-officedocument.wordprocessingml.document');
+      default:
+        return MediaType('application', 'pdf');
+    }
+  }
+
   Exception _handleDioError(DioException error) {
     if (error.response?.data != null && error.response?.data is Map) {
       final data = error.response!.data as Map;
@@ -244,5 +262,28 @@ class JobApplicationRepository {
       return Exception(message.toString());
     }
     return Exception(error.message ?? 'Erreur de connexion');
+  }
+
+  /// Returns applicants for a job ranked by NLP TF-IDF match score (descending).
+  Future<List<Map<String, dynamic>>> getRankedCandidates({
+    required String jobId,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiEndpoints.jobApplications}/job/$jobId/ranked-candidates',
+      );
+
+      final list = _extractList(response.data);
+      return list.map((item) {
+        final normalized = Map<String, dynamic>.from(item);
+        normalized['_id'] = _asObjectIdString(item['_id']) ?? item['_id'];
+        normalized['jobId'] = _asObjectIdString(item['jobId']) ?? item['jobId'];
+        normalized['userId'] = _asObjectIdString(item['userId']) ?? item['userId'];
+        normalized['score'] = (item['score'] as num?)?.toInt();
+        return normalized;
+      }).toList();
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
   }
 }

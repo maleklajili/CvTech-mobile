@@ -12,6 +12,7 @@ import 'package:cv_tech/presentation/views/main/widgets/body_widget.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/presentation/views_models/main/app_bar_view_model.dart';
 import 'package:cv_tech/presentation/views_models/main/bottom_navigation_bar_view_model.dart';
+import 'package:cv_tech/presentation/views_models/notification/notification_view_model.dart';
 import '../../../core/constants/app_colors.dart';
 import 'widgets/app_bar_widget.dart';
 import 'widgets/bottom_navigation_bar_widget.dart';
@@ -29,6 +30,9 @@ class MainView extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) => AppBarViewModel(context),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => NotificationViewModel()..startPolling(),
         ),
       ],
       child: Consumer2<BottomNavigationBarViewModel, AppBarViewModel>(

@@ -17,6 +17,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
+import 'package:cv_tech/presentation/views/job/job_ranked_candidates_view.dart';
 
 // ─────────────────────────────────────────────
 // CONSTANTES CATEGORIES
@@ -3080,6 +3081,27 @@ class _JobItemCard extends StatelessWidget {
                   style: TextStyle(color: AppTheme.textMutedColor),
                 ),
               ),
+              if (isOwner && job.id != null)
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => JobRankedCandidatesView(
+                          jobId: job.id!,
+                          jobTitle: job.title,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.auto_awesome, size: 14),
+                  label: const Text('Matching IA'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primaryColor,
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
               TextButton(
                 onPressed: onView,
                 child: const Text('Voir l\'offre'),

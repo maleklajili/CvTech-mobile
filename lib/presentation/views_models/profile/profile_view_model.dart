@@ -10,9 +10,10 @@ enum ProfileState { initial, loading, loaded, error }
 class ProfileViewModel extends ScrollListener {
   bool _disposed = false;
 
+  @override
   void notifyListeners() {
     if (!_disposed) {
-      notifyListeners();
+      super.notifyListeners();
     }
   }
 
@@ -62,7 +63,10 @@ class ProfileViewModel extends ScrollListener {
   List<LanguageModel> get languages => _languages;
 
   // Informations de l'utilisateur
-  String get fullName => _user?.fullName ?? 'Utilisateur';
+  String get fullName {
+    final raw = '${_user?.firstName ?? ''} ${_user?.lastName ?? ''}'.trim();
+    return raw.isNotEmpty ? raw : (_user?.userName ?? 'Utilisateur');
+  }
   String get userName => _user?.userName ?? '';
   String get email => _user?.email ?? '';
   String get professionalTitle => _user?.professionalTitle ?? '';

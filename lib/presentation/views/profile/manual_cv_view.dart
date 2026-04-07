@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/services/pdf_download_service.dart';
@@ -9,7 +8,6 @@ import 'package:cv_tech/presentation/views_models/profile/manual_cv_view_model.d
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
 import 'package:cv_tech/presentation/views/profile/manual_cv_form_view.dart';
-import 'package:cv_tech/presentation/views/profile/cv_preview_screen.dart';
 import 'package:cv_tech/presentation/views/profile/cv_customization_screen.dart';
 
 class ManualCvView extends StatelessWidget {
@@ -24,38 +22,41 @@ class ManualCvView extends StatelessWidget {
   }
 }
 
-class _ManualCvContent extends StatelessWidget {
+class _ManualCvContent extends StatefulWidget {
   const _ManualCvContent();
 
   @override
+  State<_ManualCvContent> createState() => _ManualCvContentState();
+}
+
+class _ManualCvContentState extends State<_ManualCvContent> {
+  String _searchQuery = '';
+
+  List<ManualCvModel> _filtered(List<ManualCvModel> cvs) {
+    if (_searchQuery.isEmpty) return cvs;
+    final q = _searchQuery.toLowerCase();
+    return cvs
+        .where((cv) =>
+            cv.title.toLowerCase().contains(q) ||
+            cv.personalInfo.fullName.toLowerCase().contains(q) ||
+            cv.format.toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? null : const Color(0xFFF8F9FB),
       appBar: AppBar(
-        title: const Text('Mes CVs'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<ManualCvViewModel>().loadCvs(),
-          ),
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'import',
-            backgroundColor: AppColors.secondaryColor,
-            onPressed: () => _importFromProfile(context),
-            child: const Icon(Icons.download_rounded, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          FloatingActionButton(
-            heroTag: 'create',
-            backgroundColor: AppColors.primaryColor,
-            onPressed: () => _navigateToForm(context),
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ],
+        title: const Text(
+          'Mes CVs',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+        ),
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0.5,
       ),
       body: Consumer<ManualCvViewModel>(
         builder: (context, vm, _) {
@@ -63,20 +64,134 @@ class _ManualCvContent extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (vm.cvs.isEmpty) {
-            return _buildEmptyState(context);
-          }
+          final shown = _filtered(vm.cvs);
 
           return RefreshIndicator(
             onRefresh: vm.loadCvs,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: vm.cvs.length,
-              itemBuilder: (context, index) =>
-                  _buildCvCard(context, vm, vm.cvs[index]),
+            child: CustomScrollView(
+              slivers: [
+                // --- Header with Create button ---
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: _buildCreateButton(context),
+                  ),
+                ),
+
+                // --- Search bar ---
+                if (vm.cvs.length > 1)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      child: TextField(
+                        onChanged: (v) => setState(() => _searchQuery = v),
+                        decoration: InputDecoration(
+                          hintText: 'Rechercher un CV...',
+                          hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                          prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey.shade400),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? GestureDetector(
+                                  onTap: () => setState(() => _searchQuery = ''),
+                                  child: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: isDark ? Colors.grey.shade900 : Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.primaryColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // --- CV count ---
+                if (vm.cvs.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
+                      child: Text(
+                        '${shown.length} CV${shown.length > 1 ? 's' : ''}${_searchQuery.isNotEmpty ? ' trouvé${shown.length > 1 ? 's' : ''}' : ''}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // --- CVs or Empty state ---
+                if (shown.isEmpty && _searchQuery.isNotEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Aucun résultat pour "$_searchQuery"',
+                            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (vm.cvs.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildEmptyState(context),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) =>
+                            _buildCvCard(context, vm, shown[index]),
+                        childCount: shown.length,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCreateButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: const Text(
+          'Créer un CV',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        onPressed: () => _navigateToForm(context),
       ),
     );
   }
@@ -88,43 +203,29 @@ class _ManualCvContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.description_outlined,
-                size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.description_outlined,
+                  size: 48, color: AppColors.primaryColor),
+            ),
+            const SizedBox(height: 20),
             const Text(
-              'Aucun CV manuel',
+              'Aucun CV pour le moment',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'Créez votre CV manuellement ou importez les données de votre profil.',
+              'Commencez par créer votre premier CV\npour mettre en valeur votre profil.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.download_rounded, size: 18),
-                  label: const Text('Importer profil'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryColor,
-                    side: BorderSide(color: AppColors.primaryColor),
-                  ),
-                  onPressed: () => _importFromProfile(context),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Créer un CV'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () => _navigateToForm(context),
-                ),
-              ],
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -136,26 +237,34 @@ class _ManualCvContent extends StatelessWidget {
       BuildContext context, ManualCvViewModel vm, ManualCvModel cv) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _navigateToForm(context, cv: cv),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        children: [
+          // --- Header row ---
+          InkWell(
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(14)),
+            onTap: () => _navigateToForm(context, cv: cv),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: AppColors.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(11),
                     ),
-                    child: Icon(Icons.description,
+                    child: Icon(Icons.description_outlined,
                         color: AppColors.primaryColor, size: 22),
                   ),
                   const SizedBox(width: 12),
@@ -179,87 +288,116 @@ class _ManualCvContent extends StatelessWidget {
                               : 'Sans nom',
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (action) =>
-                        _handleAction(context, vm, cv, action),
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'preview',
-                        child: Row(
-                          children: [
-                            Icon(Icons.visibility, size: 18),
-                            SizedBox(width: 8),
-                            Text('Aperçu'),
-                          ],
-                        ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      cv.format.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryColor,
                       ),
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.edit, size: 18),
-                            const SizedBox(width: 8),
-                            Text(AppLocalizations.of(context).edit),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'pdf',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.picture_as_pdf, size: 18),
-                            const SizedBox(width: 8),
-                            Text(AppLocalizations.of(context).downloadPdf),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.delete, size: 18, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Text(AppLocalizations.of(context).delete,
-                                style: const TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
+            ),
+          ),
+
+          // --- Info chips ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                _buildChip(cv.language.toUpperCase(), Icons.language),
+                _buildChip(
+                    '${cv.experiences.length} exp.', Icons.work_outline),
+                _buildChip(
+                    '${cv.educations.length} form.', Icons.school_outlined),
+                _buildChip('${cv.skills.length} comp.', Icons.star_outline),
+              ],
+            ),
+          ),
+
+          if (cv.updatedAt != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+              child: Row(
                 children: [
-                  _buildChip(cv.format.toUpperCase(), Icons.style),
-                  _buildChip(cv.language.toUpperCase(), Icons.language),
-                  _buildChip('${cv.experiences.length} exp.', Icons.work_outline),
-                  _buildChip('${cv.educations.length} form.', Icons.school_outlined),
-                  _buildChip('${cv.skills.length} comp.', Icons.star_outline),
+                  Icon(Icons.access_time,
+                      size: 12, color: Colors.grey.shade500),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Modifié le ${_formatDate(cv.updatedAt!)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
                 ],
               ),
-              if (cv.updatedAt != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Modifié le ${_formatDate(cv.updatedAt!)}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                  ),
+            ),
+
+          // --- Action buttons bar ---
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+            child: Row(
+              children: [
+                _buildActionBtn(
+                  icon: Icons.edit_outlined,
+                  label: 'Modifier',
+                  onTap: () => _navigateToForm(context, cv: cv),
+                ),
+                _buildActionBtn(
+                  icon: Icons.picture_as_pdf_outlined,
+                  label: 'PDF',
+                  onTap: () => _downloadPdf(context, vm, cv),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(Icons.delete_outline,
+                      color: Colors.red.shade400, size: 20),
+                  tooltip: 'Supprimer',
+                  onPressed: () => _deleteCv(context, vm, cv),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildActionBtn({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return TextButton.icon(
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.primaryColor,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      onPressed: onTap,
     );
   }
 
@@ -267,7 +405,7 @@ class _ManualCvContent extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: 0.08),
+        color: AppColors.primaryColor.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -277,7 +415,10 @@ class _ManualCvContent extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 11, color: AppColors.primaryColor),
+            style: TextStyle(
+                fontSize: 11,
+                color: AppColors.primaryColor,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -295,70 +436,30 @@ class _ManualCvContent extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => ManualCvFormView(existingCv: cv, viewModel: vm),
       ),
-    );
+    ).then((_) {
+      if (context.mounted) vm.loadCvs();
+    });
   }
 
-  void _importFromProfile(BuildContext context) async {
-    final vm = context.read<ManualCvViewModel>();
-    if (vm.isSaving) return;
-
+  Future<void> _deleteCv(
+      BuildContext context, ManualCvViewModel vm, ManualCvModel cv) async {
     final confirmed = await CustomAlertDialog.showConfirmation(
       context: context,
-      title: 'Importer le profil',
-      message:
-          'Les informations de votre profil (expériences, formations, compétences) seront importées dans un nouveau CV.',
-      confirmText: 'Importer',
+      title: 'Supprimer le CV',
+      message: 'Voulez-vous vraiment supprimer "${cv.title}" ?',
+      confirmText: 'Supprimer',
+      isDangerous: true,
     );
-
-    if (!confirmed || !context.mounted) return;
-
-    final success = await vm.importFromProfile();
-    if (!context.mounted) return;
-
-    if (success) {
-      CustomToast.success(context, 'Profil importé avec succès');
-    } else {
-      CustomToast.error(context, vm.error ?? 'Erreur lors de l\'import');
-    }
-  }
-
-  void _handleAction(BuildContext context, ManualCvViewModel vm,
-      ManualCvModel cv, String action) async {
-    switch (action) {
-      case 'preview':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CvPreviewScreen(cv: cv),
-          ),
-        );
-        break;
-      case 'edit':
-        _navigateToForm(context, cv: cv);
-        break;
-      case 'pdf':
-        _downloadPdf(context, vm, cv);
-        break;
-      case 'delete':
-        final confirmed = await CustomAlertDialog.showConfirmation(
-          context: context,
-          title: 'Supprimer le CV',
-          message: 'Voulez-vous vraiment supprimer "${cv.title}" ?',
-          confirmText: 'Supprimer',
-          isDangerous: true,
-        );
-        if (confirmed && context.mounted) {
-          final success = await vm.deleteCv(cv.id!);
-          if (context.mounted) {
-            if (success) {
-              CustomToast.success(context, 'CV supprimé');
-            } else {
-              CustomToast.error(
-                  context, vm.error ?? 'Erreur lors de la suppression');
-            }
-          }
+    if (confirmed && context.mounted) {
+      final success = await vm.deleteCv(cv.id!);
+      if (context.mounted) {
+        if (success) {
+          CustomToast.success(context, 'CV supprimé');
+        } else {
+          CustomToast.error(
+              context, vm.error ?? 'Erreur lors de la suppression');
         }
-        break;
+      }
     }
   }
 
@@ -406,7 +507,8 @@ class _ManualCvContent extends StatelessWidget {
                 ),
                 title: const Text('Design par défaut',
                     style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Télécharger directement avec le template standard'),
+                subtitle: const Text(
+                    'Télécharger directement avec le template standard'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _quickDownload(context, cv);
@@ -421,11 +523,13 @@ class _ManualCvContent extends StatelessWidget {
                     color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.palette_outlined, color: Colors.orange),
+                  child: const Icon(Icons.palette_outlined,
+                      color: Colors.orange),
                 ),
                 title: const Text('Personnaliser',
                     style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Choisir template, couleur et police avant téléchargement'),
+                subtitle: const Text(
+                    'Choisir template, couleur et police avant téléchargement'),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(

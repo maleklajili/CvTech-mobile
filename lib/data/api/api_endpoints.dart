@@ -216,4 +216,13 @@ class ApiEndpoints {
   static const String manualCvDelete = '$manualCv/delete/'; // + :id
   static const String manualCvDownloadPdf = '$manualCv/download-pdf/'; // + :id
   static const String manualCvImportProfile = '$manualCv/import-profile';
+
+  // Notification endpoints
+  static const String notifications = '/notifications';
+  static const String notificationsUnreadCount = '$notifications/unread';
+  static const String notificationsUnreadList = '$notifications/unread/list';
+  static const String notificationById = '$notifications/'; // + :id
+  static const String notificationsByType = '$notifications/type/'; // + :type
+  static const String notificationMarkRead = '$notifications/'; // + :id/read (PUT)
+  static const String notificationMarkAllRead = '$notifications/read/all';
 }

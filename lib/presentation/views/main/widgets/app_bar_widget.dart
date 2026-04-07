@@ -9,10 +9,11 @@ import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/constants/app_strings.dart';
 import 'package:cv_tech/core/constants/dimension.dart';
 import 'package:cv_tech/presentation/views/chat/chat_list_view.dart';
+import 'package:cv_tech/presentation/views/notification/notification_view.dart';
 import 'package:cv_tech/presentation/views/profile/user_search_view.dart';
 import 'package:cv_tech/presentation/views_models/main/app_bar_view_model.dart';
 import 'package:cv_tech/presentation/views_models/main/bottom_navigation_bar_view_model.dart';
-import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
+import 'package:cv_tech/presentation/views_models/notification/notification_view_model.dart';
 
 class AppBarWidget extends StatelessWidget {
   final AppBarViewModel viewModel;
@@ -25,6 +26,7 @@ class AppBarWidget extends StatelessWidget {
 
   AppBar _buildAppBarWidget(BuildContext context) {
     final bottomNavViewModel = context.watch<BottomNavigationBarViewModel>();
+    final notificationViewModel = context.watch<NotificationViewModel>();
 
     return AppBar(
       title: const Text(
@@ -78,9 +80,14 @@ class AppBarWidget extends StatelessWidget {
                 weight: 100,
               ),
               onPressed: () {
-                CustomToast.info(context, 'Notifications disponibles dans le menu latéral');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationView()),
+                ).then((_) => notificationViewModel.fetchUnreadCount());
               },
             ),
+            if (notificationViewModel.unreadCount > 0)
+              _buildBadge(notificationViewModel.unreadCount),
           ],
         ),
         Dimensions.widthMedium,
