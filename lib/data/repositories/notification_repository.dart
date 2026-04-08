@@ -10,6 +10,9 @@ class NotificationRepository {
   // Reusable option: receive raw text, never auto-decode JSON
   static final _plainOpts = Options(responseType: ResponseType.plain);
 
+  // Backend registers the list route with a trailing slash: GET /notifications/
+  String get _listUrl => '${ApiEndpoints.notifications}/';
+
   NotificationRepository({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
@@ -20,7 +23,7 @@ class NotificationRepository {
   }) async {
     final skip = (page - 1) * limit;
     final response = await _apiClient.dio.get(
-      ApiEndpoints.notifications,
+      _listUrl,
       queryParameters: {'take': limit, 'skip': skip},
       options: _plainOpts,
     );
@@ -95,7 +98,7 @@ class NotificationRepository {
   /// Delete all notifications
   Future<bool> deleteAllNotifications() async {
     final response = await _apiClient.dio.delete(
-      ApiEndpoints.notifications,
+      _listUrl,
       options: _plainOpts,
     );
     return response.statusCode == 200;
