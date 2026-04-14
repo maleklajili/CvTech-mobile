@@ -98,6 +98,23 @@ class _CvBuilderViewState extends State<CvBuilderView>
   bool _aiFixLoading = false;
   final Set<String> _aiFixedSections = {};
 
+  // Backend score cache
+  Map<String, dynamic>? _backendScore;
+  bool _loadingBackendScore = false;
+
+  Future<void> _fetchBackendScore() async {
+    if (_importedCv?.id == null || _loadingBackendScore) return;
+    setState(() => _loadingBackendScore = true);
+    try {
+      final score = await _manualRepo.getScore(_importedCv!.id!);
+      if (mounted) setState(() => _backendScore = score);
+    } catch (_) {
+      // Fallback to local score on error
+    } finally {
+      if (mounted) setState(() => _loadingBackendScore = false);
+    }
+  }
+
   // Spinner animation
   late AnimationController _spinCtrl;
 
@@ -774,6 +791,18 @@ class _CvBuilderViewState extends State<CvBuilderView>
   // SCORE HELPERS
   // ═══════════════════════════════════════════════════════════════════
 
+  IconData _sectionIcon(String key) {
+    switch (key) {
+      case 'info': return Icons.person_outline_rounded;
+      case 'bio': return Icons.description_outlined;
+      case 'experiences': return Icons.work_outline_rounded;
+      case 'skills': return Icons.psychology_outlined;
+      case 'educations': return Icons.school_outlined;
+      case 'languages': return Icons.translate_rounded;
+      default: return Icons.help_outline;
+    }
+  }
+
   List<_ScoreSection> _calculateScore(ManualCvModel cv) {
     final raw = _calculateRawScore(cv);
     // Override AI-fixed sections: give max points
@@ -1170,9 +1199,37 @@ class _CvBuilderViewState extends State<CvBuilderView>
       return const Center(child: CircularProgressIndicator(color: _kBlue));
     }
 
-    final sections = _calculateScore(_importedCv!);
-    final totalEarned = sections.fold<int>(0, (s, e) => s + e.earnedPoints);
-    final pct = totalEarned / 100;
+    // Trigger backend score fetch once
+    if (_backendScore == null && !_loadingBackendScore) {
+      _fetchBackendScore();
+    }
+
+    // Use backend score if available, otherwise fall back to local
+    List<_ScoreSection> sections;
+    int totalEarned;
+    double pct;
+
+    if (_backendScore != null) {
+      totalEarned = _backendScore!['totalScore'] as int;
+      pct = ((_backendScore!['percentage'] as int) / 100).clamp(0.0, 1.0);
+      final backendSections = _backendScore!['sections'] as List<dynamic>;
+      sections = backendSections.map((s) {
+        final m = s as Map<String, dynamic>;
+        return _ScoreSection(
+          key: m['key'] as String,
+          name: m['name'] as String,
+          icon: _sectionIcon(m['key'] as String),
+          maxPoints: m['maxPoints'] as int,
+          earnedPoints: m['earnedPoints'] as int,
+          priority: m['priority'] as String,
+          tips: (m['tips'] as List<dynamic>).cast<String>(),
+        );
+      }).toList();
+    } else {
+      sections = _calculateScore(_importedCv!);
+      totalEarned = sections.fold<int>(0, (s, e) => s + e.earnedPoints);
+      pct = totalEarned / 100;
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

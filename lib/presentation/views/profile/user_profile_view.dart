@@ -1431,6 +1431,16 @@ class _UserProfileViewState extends State<UserProfileView>
                           ),
                         ),
                       ).then((_) => vm.syncPostById(post.id!)),
+                      onReport: (reason, description) async {
+                        final success = await vm.reportPost(post.id!, reason: reason, description: description);
+                        if (context.mounted) {
+                          if (success) {
+                            CustomToast.success(context, 'Signalement envoyé avec succès');
+                          } else {
+                            CustomToast.error(context, 'Erreur lors du signalement');
+                          }
+                        }
+                      },
                     );
                   },
                 ),

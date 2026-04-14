@@ -1,4 +1,5 @@
 // Dart imports:
+import 'dart:async';
 import 'dart:io';
 
 // Package imports:
@@ -14,6 +15,12 @@ class ApiClient {
   static ApiClient? _instance;
   late final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  /// Stream that emits when session expires (401 + refresh failed).
+  /// AuthBloc listens to this to force logout.
+  static final StreamController<void> _sessionExpiredController =
+      StreamController<void>.broadcast();
+  static Stream<void> get onSessionExpired => _sessionExpiredController.stream;
 
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
@@ -109,7 +116,7 @@ class ApiClient {
             // Try to refresh token
             final refreshed = await _refreshToken();
             if (refreshed) {
-              // Retry the request
+              // Retry the request with new token
               final opts = error.requestOptions;
               final token = await getAccessToken();
               opts.headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
@@ -119,6 +126,11 @@ class ApiClient {
               } catch (e) {
                 return handler.next(error);
               }
+            } else {
+              // Refresh failed → session expired, force logout
+              await clearTokens();
+              _sessionExpiredController.add(null);
+              print('🔴 Session expired: token refresh failed, forcing logout');
             }
           }
           return handler.next(error);

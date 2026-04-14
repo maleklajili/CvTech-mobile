@@ -306,6 +306,7 @@ class _ChatTile extends StatelessWidget {
                   backgroundImage: chat.user.image != null
                       ? NetworkImage(chat.user.image!)
                       : null,
+                  onBackgroundImageError: chat.user.image != null ? (_, __) {} : null,
                   child: chat.user.image == null
                       ? Text(
                           _initials(chat.user),

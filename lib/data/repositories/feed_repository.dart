@@ -719,6 +719,33 @@ class FeedRepository {
     return;
   }
 
+  // ==================== REPORTS ====================
+
+  /// Report a post for moderation
+  Future<void> reportPost(
+    String postId, {
+    required String reason,
+    String description = '',
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.reportCreate,
+        data: {
+          'reportedItemId': postId,
+          'reportedItemType': 'post',
+          'reason': reason,
+          'description': description,
+        },
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Erreur lors du signalement');
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   // ==================== ERROR HANDLING ====================
 
   Exception _handleDioError(DioException e) {

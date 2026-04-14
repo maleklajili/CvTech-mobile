@@ -385,6 +385,17 @@ class FeedViewModel extends SafeChangeNotifier {
     }
   }
 
+  /// Report a post
+  Future<bool> reportPost(String postId, {required String reason, String description = ''}) async {
+    try {
+      await _repository.reportPost(postId, reason: reason, description: description);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      return false;
+    }
+  }
+
   // ==================== COMMENTS ====================
 
   /// Get comments for a post

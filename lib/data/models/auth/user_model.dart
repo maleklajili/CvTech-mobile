@@ -23,6 +23,9 @@ class UserModel extends BaseModel {
   final String? currentDomain;
   final String? professionalCategory;
   final String? keywords;
+  final bool isAdmin;
+  final String plan; // 'free', 'pro', 'gold'
+  final DateTime? planExpiry;
 
   const UserModel({
     super.id,
@@ -46,7 +49,23 @@ class UserModel extends BaseModel {
     this.currentDomain,
     this.professionalCategory,
     this.keywords,
+    this.isAdmin = false,
+    this.plan = 'free',
+    this.planExpiry,
   });
+
+  /// Whether the user has an active premium plan (pro or gold)
+  bool get isPremium {
+    if (plan == 'free') return false;
+    if (planExpiry == null) return false;
+    return planExpiry!.isAfter(DateTime.now());
+  }
+
+  /// Whether the user has an active gold plan
+  bool get isGold => plan == 'gold' && isPremium;
+
+  /// Whether the user has an active pro plan
+  bool get isPro => plan == 'pro' && isPremium;
 
   String get fullName => '$firstName $lastName';
   
@@ -89,6 +108,11 @@ class UserModel extends BaseModel {
       currentDomain: json['currentDomain'],
       professionalCategory: json['professionalCategory'],
       keywords: json['keywords'],
+      isAdmin: json['isAdmin'] == true,
+      plan: json['plan'] as String? ?? 'free',
+      planExpiry: json['planExpiry'] != null
+          ? DateTime.tryParse(json['planExpiry'].toString())
+          : null,
     );
   }
 
@@ -116,6 +140,9 @@ class UserModel extends BaseModel {
       'currentDomain': currentDomain,
       'professionalCategory': professionalCategory,
       'keywords': keywords,
+      'isAdmin': isAdmin,
+      'plan': plan,
+      'planExpiry': planExpiry?.toIso8601String(),
     };
   }
 
@@ -141,6 +168,9 @@ class UserModel extends BaseModel {
     String? currentDomain,
     String? professionalCategory,
     String? keywords,
+    bool? isAdmin,
+    String? plan,
+    DateTime? planExpiry,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -164,6 +194,9 @@ class UserModel extends BaseModel {
       currentDomain: currentDomain ?? this.currentDomain,
       professionalCategory: professionalCategory ?? this.professionalCategory,
       keywords: keywords ?? this.keywords,
+      isAdmin: isAdmin ?? this.isAdmin,
+      plan: plan ?? this.plan,
+      planExpiry: planExpiry ?? this.planExpiry,
     );
   }
 }

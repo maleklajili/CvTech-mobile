@@ -1060,6 +1060,7 @@ class _UserAvatar extends StatelessWidget {
       radius: size / 2,
       backgroundColor: AppColors.primaryColor.withValues(alpha: 0.1),
       backgroundImage: url != null ? NetworkImage(url) : null,
+      onBackgroundImageError: url != null ? (_, __) {} : null,
       child: url == null
           ? Icon(Icons.person,
               size: size * 0.5, color: AppColors.primaryColor)

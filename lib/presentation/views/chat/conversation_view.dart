@@ -245,6 +245,7 @@ class _ConversationBodyState extends State<_ConversationBody> {
                 backgroundImage: resolvedOtherImage != null
                   ? NetworkImage(resolvedOtherImage)
                     : null,
+                onBackgroundImageError: resolvedOtherImage != null ? (_, __) {} : null,
                 child: resolvedOtherImage == null
                     ? Text(
                         widget.otherUserName.isNotEmpty
@@ -758,7 +759,14 @@ class _MessageBubble extends StatelessWidget {
           ),
           body: Center(
             child: InteractiveViewer(
-              child: Image.network(url),
+              child: Image.network(
+                url,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+              ),
             ),
           ),
         ),

@@ -16,7 +16,7 @@ class GroupChatRepository {
   }) async {
     try {
       final response = await _apiClient.dio.get(
-        '/group-chats/$groupId/messages',
+        '/messages/groups/$groupId',
         queryParameters: {'limit': limit, 'offset': offset},
       );
 
@@ -41,8 +41,8 @@ class GroupChatRepository {
   ) async {
     try {
       final response = await _apiClient.dio.post(
-        '/group-chats/$groupId/messages',
-        data: {'content': content},
+        '/messages/groups/$groupId',
+        data: {'text': content},
       );
 
       final data = _extractData(response.data);
@@ -73,7 +73,7 @@ class GroupChatRepository {
       Response<dynamic> response;
       try {
         response = await _apiClient.dio.post(
-          '/group-chats/$groupId/messages/media',
+          '/messages/groups/$groupId/media',
           data: formData,
           options: Options(contentType: 'multipart/form-data'),
         );
@@ -81,7 +81,7 @@ class GroupChatRepository {
         final status = e.response?.statusCode ?? 0;
         if (status == 404 || status == 405) {
           response = await _apiClient.dio.post(
-            '/group-chats/$groupId/messages',
+            '/messages/groups/$groupId',
             data: formData,
             options: Options(contentType: 'multipart/form-data'),
           );
@@ -100,9 +100,9 @@ class GroupChatRepository {
   /// Mark messages as seen
   Future<void> markMessagesAsSeen(String groupId, List<String> messageIds) async {
     try {
-      await _apiClient.dio.put(
-        '/group-chats/$groupId/messages/seen',
-        data: {'messageIds': messageIds},
+      await _apiClient.dio.patch(
+        '/messages/read',
+        data: {'groupId': groupId, 'messageIds': messageIds},
       );
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -113,7 +113,7 @@ class GroupChatRepository {
   Future<void> deleteMessage(String groupId, String messageId) async {
     try {
       await _apiClient.dio.delete(
-        '/group-chats/$groupId/messages/$messageId',
+        '/messages/groups/$groupId/self',
       );
     } on DioException catch (e) {
       throw _handleDioError(e);

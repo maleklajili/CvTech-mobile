@@ -92,20 +92,24 @@ class UserRepository {
     try {
       final response = await _apiClient.dio.get(ApiEndpoints.currentUser);
 
-      print('GetCurrentUser Response Status: ${response.statusCode}');
-      print('GetCurrentUser Response Data: ${response.data}');
+      print('🔵 GetCurrentUser Response Status: ${response.statusCode}');
+      print('🔵 GetCurrentUser Response Data: ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data is Map && response.data.containsKey('data')
             ? response.data['data'] as Map<String, dynamic>
             : response.data as Map<String, dynamic>;
 
-        return UserModel.fromJson(data);
+        print('🔵 GetCurrentUser parsed data: isAdmin=${data['isAdmin']}, id=${data['_id']}');
+        final user = UserModel.fromJson(data);
+        print('🟢 GetCurrentUser UserModel created: isAdmin=${user.isAdmin}');
+        return user;
       }
 
       throw Exception(
           response.data['error'] ?? 'Échec de la récupération du profil');
     } on DioException catch (e) {
+      print('🟡 GetCurrentUser DioException: ${e.type} - ${e.message}');
       if (_isTransientConnectionIssue(e)) {
         try {
           await _apiClient.refreshBaseUrl();
@@ -116,13 +120,18 @@ class UserRepository {
                 ? retryResponse.data['data'] as Map<String, dynamic>
                 : retryResponse.data as Map<String, dynamic>;
 
+            print('🔵 GetCurrentUser retry parsed data: isAdmin=${data['isAdmin']}');
             return UserModel.fromJson(data);
           }
         } on DioException catch (retryError) {
+          print('🔴 GetCurrentUser retry failed: $retryError');
           throw _handleDioError(retryError);
         }
       }
       throw _handleDioError(e);
+    } catch (e) {
+      print('🔴 GetCurrentUser unexpected error: $e');
+      rethrow;
     }
   }
 

@@ -1,0 +1,131 @@
+class ModerationStats {
+  final int flaggedPosts;
+  final int flaggedUsers;
+  final int totalPosts;
+  final int totalUsers;
+  final double toxicityRate;
+  final double fakeUserRate;
+
+  const ModerationStats({
+    this.flaggedPosts = 0,
+    this.flaggedUsers = 0,
+    this.totalPosts = 0,
+    this.totalUsers = 0,
+    this.toxicityRate = 0,
+    this.fakeUserRate = 0,
+  });
+
+  factory ModerationStats.fromJson(Map<String, dynamic> json) {
+    return ModerationStats(
+      flaggedPosts: json['flaggedPosts'] ?? 0,
+      flaggedUsers: json['flaggedUsers'] ?? 0,
+      totalPosts: json['totalPosts'] ?? 0,
+      totalUsers: json['totalUsers'] ?? 0,
+      toxicityRate: (json['toxicityRate'] ?? 0).toDouble(),
+      fakeUserRate: (json['fakeUserRate'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class FlaggedPost {
+  final String id;
+  final String? userId;
+  final String? userName;
+  final String? content;
+  final String? moderationStatus;
+  final double? toxicityScore;
+  final List<String> toxicityCategories;
+  final DateTime createdAt;
+
+  const FlaggedPost({
+    required this.id,
+    this.userId,
+    this.userName,
+    this.content,
+    this.moderationStatus,
+    this.toxicityScore,
+    this.toxicityCategories = const [],
+    required this.createdAt,
+  });
+
+  factory FlaggedPost.fromJson(Map<String, dynamic> json) {
+    final categories = json['toxicityCategories'];
+    return FlaggedPost(
+      id: json['_id']?.toString() ?? '',
+      userId: json['userId']?.toString(),
+      userName: _extractAuthor(json['author'] ?? json['user']),
+      content: json['content'] ?? json['text'] ?? '',
+      moderationStatus: json['moderationStatus'],
+      toxicityScore: (json['toxicityScore'] ?? json['fakeScore'] ?? 0).toDouble(),
+      toxicityCategories: categories is List
+          ? categories.map((e) => e.toString()).toList()
+          : [],
+      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+    );
+  }
+
+  static String? _extractAuthor(dynamic author) {
+    if (author is Map) {
+      final first = author['firstName'] ?? '';
+      final last = author['lastName'] ?? '';
+      return '$first $last'.trim();
+    }
+    return null;
+  }
+
+  String get statusLabel {
+    switch (moderationStatus) {
+      case 'approved':
+        return 'Approuvé';
+      case 'rejected':
+        return 'Rejeté';
+      default:
+        return 'En attente';
+    }
+  }
+}
+
+class FlaggedUser {
+  final String id;
+  final String firstName;
+  final String lastName;
+  final String email;
+  final String? image;
+  final bool isFlagged;
+  final bool isBanned;
+  final String? banReason;
+  final double fakeScore;
+  final DateTime? createdAt;
+
+  const FlaggedUser({
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    this.image,
+    this.isFlagged = false,
+    this.isBanned = false,
+    this.banReason,
+    this.fakeScore = 0,
+    this.createdAt,
+  });
+
+  String get fullName => '$firstName $lastName'.trim();
+
+  factory FlaggedUser.fromJson(Map<String, dynamic> json) {
+    return FlaggedUser(
+      id: json['_id']?.toString() ?? '',
+      firstName: json['firstName'] ?? '',
+      lastName: json['lastName'] ?? '',
+      email: json['email'] ?? '',
+      image: json['image'],
+      isFlagged: json['isFlagged'] == true,
+      isBanned: json['isBanned'] == true,
+      banReason: json['banReason'],
+      fakeScore: (json['fakeScore'] ?? 0).toDouble(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'])
+          : null,
+    );
+  }
+}

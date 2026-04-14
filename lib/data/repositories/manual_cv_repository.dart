@@ -159,6 +159,27 @@ class ManualCvRepository {
     }
   }
 
+  /// Get the CV completeness score from backend.
+  /// Returns a Map with: totalScore, maxScore, percentage, label, sections.
+  Future<Map<String, dynamic>> getScore(String cvId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        '${ApiEndpoints.manualCvScore}$cvId',
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return Map<String, dynamic>.from(data as Map);
+      }
+
+      throw Exception('Échec du calcul du score');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Exception _handleDioError(DioException e) {
     if (e.response?.data is Map) {
       final error = e.response!.data['error'];

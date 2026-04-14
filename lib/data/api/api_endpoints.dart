@@ -87,6 +87,14 @@ class ApiEndpoints {
   static const String transactionBalance = '$transaction/balance';
   static const String transactionByType = '$transaction/'; // + :type
   
+  // Payment endpoints
+  static const String payment = '/payment';
+  static const String paymentInitiate = '$payment/initiate';
+  static const String paymentPlan = '$payment/plan';
+  static const String paymentBankInfo = '$payment/bank-info';
+  static const String paymentStatus = '$payment/status/'; // + :paymentId
+  static const String paymentHistory = '$payment/history';
+  
   // Language endpoints
   static const String language = '/languages';
   static const String languageGetAll = '$language/getAll';
@@ -216,6 +224,49 @@ class ApiEndpoints {
   static const String manualCvDelete = '$manualCv/delete/'; // + :id
   static const String manualCvDownloadPdf = '$manualCv/download-pdf/'; // + :id
   static const String manualCvImportProfile = '$manualCv/import-profile';
+  static const String manualCvScore = '$manualCv/score/'; // + :id
+
+  // Admin endpoints
+  static const String admin = '/admin';
+  static const String adminStats = '$admin/stats';
+  static const String adminActivity = '$admin/activity';
+  static const String adminCoinsStats = '$admin/coins-stats';
+  static const String adminCoinsTransactions = '$admin/coins-transactions';
+  static const String adminTopStats = '$admin/top-stats';
+
+  // Report endpoints
+  static const String reports = '/reports';
+  static const String reportCreate = '$reports/create';
+  static const String reportStats = '$reports/stats';
+  static const String reportById = '$reports/'; // + :id
+  static const String reportUpdateStatus = '$reports/'; // + :id/status
+  static const String reportDelete = '$reports/'; // + :id
+
+  // Admin Payment endpoints
+  static const String paymentPending = '$payment/pending';
+  static const String paymentApprove = '$payment/'; // + :paymentId/approve
+  static const String paymentReject = '$payment/'; // + :paymentId/reject
+
+  // Admin Job endpoints
+  static const String jobAdminAll = '$job/admin/all';
+
+  // Admin Transaction endpoints
+  static const String transactionAll = '$transaction/all';
+
+  // Moderation endpoints
+  static const String moderation = '/moderation';
+  static const String moderationFlaggedPosts = '$moderation/flagged-posts';
+  static const String moderationFlaggedUsers = '$moderation/flagged-users';
+  static const String moderationStats = '$moderation/stats';
+  static const String moderationPostApprove = '$moderation/post/'; // + :id/approve
+  static const String moderationPostReject = '$moderation/post/'; // + :id/reject
+  static const String moderationUserBan = '$moderation/user/'; // + :id/ban
+  static const String moderationUserUnban = '$moderation/user/'; // + :id/unban
+  static const String moderationCheckText = '$moderation/check-text';
+
+  // Company admin endpoints
+  static const String adminCompanyGetAll = '$company/getAll';
+  static const String companyStats = '$company/stats';
 
   // Notification endpoints
   static const String notifications = '/notifications';

@@ -10,7 +10,9 @@ import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_strings.dart';
 import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
+import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_state.dart';
+import 'package:cv_tech/presentation/views/admin/admin_panel_view.dart';
 import 'package:cv_tech/presentation/views/auth/login_view.dart';
 import 'package:cv_tech/presentation/views/main/main_view.dart';
 import 'package:cv_tech/presentation/views/splash/splash_screen.dart';
@@ -93,13 +95,28 @@ class AuthWrapper extends StatefulWidget {
   State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _AuthWrapperState extends State<AuthWrapper> {
+class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   bool _splashCompleted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _startSplashTimer();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.resumed) {
+      // Re-check session validity when app comes back to foreground
+      context.read<AuthBloc>().add(const AuthCheckRequested());
+    }
   }
 
   void _startSplashTimer() {
@@ -122,6 +139,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         if (state is AuthAuthenticated) {
+          // Admin → panneau admin directement (espace dédié)
+          if (state.user.isAdmin) {
+            print('🔵 AuthWrapper: isAdmin=true → AdminPanelView');
+            return const AdminPanelView();
+          }
+          print('🔵 AuthWrapper: isAdmin=false → MainView');
           return const MainView();
         }
 

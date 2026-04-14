@@ -36,6 +36,7 @@ class FeedPostCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onTap;
+  final void Function(String reason, String description)? onReport;
 
   const FeedPostCard({
     super.key,
@@ -51,6 +52,7 @@ class FeedPostCard extends StatefulWidget {
     this.onEdit,
     this.onDelete,
     this.onTap,
+    this.onReport,
   });
 
   @override
@@ -196,6 +198,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                     sharedFromName: _isQuoteShare ? widget.post.authorName : null,
                     onEdit: widget.onEdit,
                     onDelete: widget.onDelete,
+                    onReport: widget.onReport,
                   ),
                   const SizedBox(height: 10),
 
@@ -261,6 +264,7 @@ class _PostHeader extends StatelessWidget {
   final String? sharedFromName;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final void Function(String reason, String description)? onReport;
 
   const _PostHeader({
     required this.post,
@@ -269,6 +273,7 @@ class _PostHeader extends StatelessWidget {
     this.sharedFromName,
     this.onEdit,
     this.onDelete,
+    this.onReport,
   });
 
   @override
@@ -292,23 +297,29 @@ class _PostHeader extends StatelessWidget {
               ),
             ),
           ),
-          child: CircleAvatar(
-            radius: 16,
-            backgroundColor: AppColors.primaryColor.withOpacity(0.15),
-            backgroundImage: post.author.image != null
-                ? NetworkImage(post.author.image!)
-                : null,
-            child: post.author.image == null
-                ? Text(
-                    _initials(post.authorName),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryColor,
-                    ),
-                  )
-                : null,
-          ),
+          child: Builder(builder: (context) {
+            final authorImg = post.author.image;
+            return CircleAvatar(
+              radius: 16,
+              backgroundColor: AppColors.primaryColor.withOpacity(0.15),
+              backgroundImage: (authorImg != null && authorImg.isNotEmpty)
+                  ? NetworkImage(authorImg)
+                  : null,
+              onBackgroundImageError: (authorImg != null && authorImg.isNotEmpty)
+                  ? (_, __) {}
+                  : null,
+child: (authorImg == null || authorImg.isEmpty)
+                  ? Text(
+                      _initials(post.authorName),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryColor,
+                      ),
+                    )
+                  : null,
+            );
+          }),
         ),
         const SizedBox(width: 10),
 
@@ -406,6 +417,7 @@ class _PostHeader extends StatelessWidget {
           isOwner: isOwner,
           onEdit: onEdit,
           onDelete: onDelete,
+          onReport: onReport,
         ),
       ],
     );
@@ -478,6 +490,7 @@ class _NestedOriginalCard extends StatelessWidget {
               backgroundImage: post.author.image != null
                   ? NetworkImage(post.author.image!)
                   : null,
+              onBackgroundImageError: post.author.image != null ? (_, __) {} : null,
               child: post.author.image == null
                   ? Text(
                       (post.authorName.isNotEmpty ? post.authorName[0] : '?').toUpperCase(),
@@ -887,11 +900,13 @@ class _PostMenu extends StatelessWidget {
   final bool isOwner;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final void Function(String reason, String description)? onReport;
 
   const _PostMenu({
     required this.isOwner,
     this.onEdit,
     this.onDelete,
+    this.onReport,
   });
 
   @override
@@ -908,6 +923,7 @@ class _PostMenu extends StatelessWidget {
       onSelected: (v) {
         if (v == 'edit') onEdit?.call();
         if (v == 'delete') onDelete?.call();
+        if (v == 'report') _showReportDialog(context);
       },
       itemBuilder: (_) => [
         if (isOwner)
@@ -943,6 +959,150 @@ class _PostMenu extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    String selectedReason = 'spam';
+    final descController = TextEditingController();
+
+    const reasons = <String, String>{
+      'spam': 'Spam',
+      'abuse': 'Abus',
+      'harassment': 'Harcèlement',
+      'hate_speech': 'Discours haineux',
+      'misinformation': 'Désinformation',
+      'explicit_content': 'Contenu explicite',
+      'copyright': 'Droits d\'auteur',
+      'scam': 'Arnaque',
+      'violence': 'Violence',
+      'other': 'Autre',
+    };
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Signaler cette publication',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Sélectionnez la raison du signalement',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textMutedColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: reasons.entries.map((e) {
+                      final isSelected = selectedReason == e.key;
+                      return GestureDetector(
+                        onTap: () => setModalState(() => selectedReason = e.key),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.orange.withOpacity(0.15)
+                                : AppTheme.isLight
+                                    ? const Color(0xFFF1F5F9)
+                                    : Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? Colors.orange : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            e.value,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              color: isSelected ? Colors.orange : AppTheme.textColor,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Description (optionnel)',
+                      hintStyle: TextStyle(color: AppTheme.textMutedColor),
+                      filled: true,
+                      fillColor: AppTheme.isLight
+                          ? const Color(0xFFF1F5F9)
+                          : Colors.white.withOpacity(0.06),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onReport?.call(selectedReason, descController.text.trim());
+                      },
+                      icon: const Icon(Icons.flag_rounded, size: 18),
+                      label: const Text('Envoyer le signalement'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

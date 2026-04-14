@@ -311,6 +311,7 @@ class _PostDetailViewState extends State<PostDetailView> {
                     backgroundImage: post.author.image != null
                         ? NetworkImage(post.author.image!)
                         : null,
+                    onBackgroundImageError: post.author.image != null ? (_, __) {} : null,
                     backgroundColor:
                         AppColors.primaryColor.withOpacity(0.1),
                     child: post.author.image == null
@@ -715,6 +716,7 @@ class _CommentTileState extends State<_CommentTile> {
                   backgroundImage: comment.author.image != null
                       ? NetworkImage(comment.author.image!)
                       : null,
+                  onBackgroundImageError: comment.author.image != null ? (_, __) {} : null,
                   backgroundColor: AppColors.primaryColor.withOpacity(0.1),
                   child: comment.author.image == null
                       ? Text(
@@ -907,6 +909,7 @@ class _ReplyTile extends StatelessWidget {
               backgroundImage: reply.author.image != null
                   ? NetworkImage(reply.author.image!)
                   : null,
+              onBackgroundImageError: reply.author.image != null ? (_, __) {} : null,
               backgroundColor: AppColors.primaryColor.withOpacity(0.1),
               child: reply.author.image == null
                   ? Text(

@@ -152,13 +152,15 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
           image: DecorationImage(
             image: NetworkImage(widget.currentImageUrl!),
             fit: BoxFit.cover,
+            onError: (_, __) {},
           ),
         ),
       );
     } else {
       return CircleAvatar(
         radius: 60,
-        backgroundImage: NetworkImage(widget.currentImageUrl!),
+        backgroundImage: widget.currentImageUrl != null ? NetworkImage(widget.currentImageUrl!) : null,
+        onBackgroundImageError: widget.currentImageUrl != null ? (_, __) {} : null,
       );
     }
   }

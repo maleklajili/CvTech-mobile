@@ -912,6 +912,18 @@ class _CommunityDetailViewState extends State<CommunityDetailView> {
                     onSave: postId == null || postId.isEmpty
                         ? null
                         : () => vm.toggleSavePost(postId),
+                    onReport: postId == null || postId.isEmpty
+                        ? null
+                        : (reason, description) async {
+                            final success = await vm.reportPost(postId, reason: reason, description: description);
+                            if (context.mounted) {
+                              if (success) {
+                                CustomToast.success(context, 'Signalement envoyé avec succès');
+                              } else {
+                                CustomToast.error(context, 'Erreur lors du signalement');
+                              }
+                            }
+                          },
                   ),
                 ],
               );

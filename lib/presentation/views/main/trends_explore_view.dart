@@ -5,6 +5,7 @@ import 'package:cv_tech/presentation/views/feed/post_detail_view.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
 enum TrendPeriod { day, week, month }
@@ -178,6 +179,16 @@ class _TrendsExploreBodyState extends State<_TrendsExploreBody> {
         onRepost: () => vm.loadFeed(filter: 'popular'),
       ),
       onSave: () => vm.toggleSavePost(postId),
+      onReport: (reason, description) async {
+        final success = await vm.reportPost(postId, reason: reason, description: description);
+        if (context.mounted) {
+          if (success) {
+            CustomToast.success(context, 'Signalement envoyé avec succès');
+          } else {
+            CustomToast.error(context, 'Erreur lors du signalement');
+          }
+        }
+      },
     );
   }
 

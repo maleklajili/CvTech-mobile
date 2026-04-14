@@ -15,6 +15,8 @@ import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/views/chat/chat_list_view.dart';
+import 'package:cv_tech/presentation/views/coin/coin_main_view.dart';
+import 'package:cv_tech/presentation/views/payment/premium_main_view.dart';
 import 'package:cv_tech/presentation/views/community/community_hub_view.dart';
 import 'package:cv_tech/presentation/views/company/companies_view.dart';
 import 'package:cv_tech/presentation/views/connection/connections_view.dart';
@@ -22,6 +24,7 @@ import 'package:cv_tech/presentation/views/job/jobs_view.dart';
 import 'package:cv_tech/presentation/views/main/settings_view.dart';
 import 'package:cv_tech/presentation/views/main/trends_explore_view.dart';
 import 'package:cv_tech/presentation/views/profile/profile_view.dart';
+import 'package:cv_tech/presentation/views/admin/admin_panel_view.dart';
 import 'package:cv_tech/presentation/views_models/app/theme_view_model.dart';
 import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 import 'package:cv_tech/theme/app_theme.dart';
@@ -71,7 +74,9 @@ class _DrawerWigetState extends State<DrawerWiget> {
 
   Future<void> _loadCurrentUser() async {
     try {
+      print('🔵 Drawer: _loadCurrentUser started');
       final user = await _userRepository.getCurrentUser();
+      print('🔵 Drawer: getCurrentUser result - user=${user != null}, isAdmin=${user?.isAdmin}');
       if (mounted) {
         setState(() {
           _currentUser = user;
@@ -79,6 +84,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
         });
       }
     } catch (e) {
+      print('🔴 Drawer: _loadCurrentUser error: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -223,6 +229,18 @@ class _DrawerWigetState extends State<DrawerWiget> {
 
   Future<void> _navigateToSettings() async {
     await _openPage(const SettingsView(), '/settings');
+  }
+
+  Future<void> _navigateToAdmin() async {
+    await _openPage(const AdminPanelView(), '/admin');
+  }
+
+  Future<void> _navigateToCoins() async {
+    await _openPage(const CoinMainView(), '/coins');
+  }
+
+  Future<void> _navigateToPremium() async {
+    await _openPage(const PremiumMainView(), '/premium');
   }
 
   Future<void> _navigateToMessages() async {
@@ -445,6 +463,14 @@ class _DrawerWigetState extends State<DrawerWiget> {
               'Mes coins',
               Icons.monetization_on,
               isActive: ModalRoute.of(context)?.settings.name == '/coins',
+              onTap: _navigateToCoins,
+            ),
+            _buildMenuItem(
+              context,
+              'Premium',
+              Icons.workspace_premium,
+              isActive: ModalRoute.of(context)?.settings.name == '/premium',
+              onTap: _navigateToPremium,
             ),
             _buildMenuItem(
               context,
@@ -453,6 +479,26 @@ class _DrawerWigetState extends State<DrawerWiget> {
               isActive: ModalRoute.of(context)?.settings.name == '/settings',
               onTap: _navigateToSettings,
             ),
+            if (_currentUser?.isAdmin == true) ...[              const Divider(),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'ADMINISTRATION',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMutedColor,
+                  ),
+                ),
+              ),
+              _buildMenuItem(
+                context,
+                'Panneau Admin',
+                Icons.admin_panel_settings,
+                isActive: ModalRoute.of(context)?.settings.name == '/admin',
+                onTap: _navigateToAdmin,
+              ),
+            ],
             const Divider(),
             // Thème
             Consumer<ThemeViewModel>(
@@ -594,6 +640,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
               radius: 30,
               backgroundColor: AppColors.primaryColor,
               backgroundImage: hasImage ? NetworkImage(user.imageUrl!) : null,
+              onBackgroundImageError: hasImage ? (_, __) {} : null,
               child: hasImage
                   ? null
                   : Text(
@@ -627,6 +674,8 @@ class _DrawerWigetState extends State<DrawerWiget> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
+                  // Plan / role badge
+                  if (user != null) _buildRoleBadge(user),
                   if (user?.professionalTitle != null &&
                       user!.professionalTitle!.isNotEmpty)
                     Text(
@@ -657,6 +706,39 @@ class _DrawerWigetState extends State<DrawerWiget> {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return parts[0][0].toUpperCase();
+  }
+
+  Widget _buildRoleBadge(UserModel user) {
+    if (user.isAdmin) {
+      return _badge('Admin', Colors.red.shade700, Colors.red.shade50);
+    }
+    if (user.isGold) {
+      return _badge('Gold', const Color(0xFFB8860B), const Color(0xFFFFF8E1));
+    }
+    if (user.isPro) {
+      return _badge('Pro', const Color(0xFF0A66C2), const Color(0xFFE3F2FD));
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _badge(String label, Color textColor, Color bgColor) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: textColor.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
+    );
   }
 }
 

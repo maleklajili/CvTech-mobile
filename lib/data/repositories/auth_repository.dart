@@ -251,7 +251,15 @@ class AuthRepository {
       );
 
       if (response.statusCode == 200) {
-        return UserModel.fromJson(response.data['data']);
+        // Le backend peut renvoyer l'objet user directement ou dans { data: ... }
+        final responseData = response.data;
+        final Map<String, dynamic> json;
+        if (responseData is Map<String, dynamic> && responseData.containsKey('_id')) {
+          json = responseData;
+        } else {
+          json = responseData['data'] as Map<String, dynamic>;
+        }
+        return UserModel.fromJson(json);
       }
       return null;
     } on DioException {

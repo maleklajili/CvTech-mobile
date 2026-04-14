@@ -523,6 +523,7 @@ class _ManualCvFormViewState extends State<ManualCvFormView> {
                         ? DecorationImage(
                             image: NetworkImage(_photoUrl!),
                             fit: BoxFit.cover,
+                            onError: (_, __) {},
                           )
                         : null,
               ),

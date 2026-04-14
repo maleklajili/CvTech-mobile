@@ -24,9 +24,18 @@ class TransactionRepository {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
+        final raw = response.data;
+        final data = raw is Map && raw.containsKey('data')
+            ? raw['data']
+            : raw;
+
+        // Backend returns { transactions: [...], currentBalance, page, limit }
+        if (data is Map && data.containsKey('transactions')) {
+          final list = data['transactions'];
+          if (list is List) {
+            return list.map((e) => TransactionModel.fromJson(e)).toList();
+          }
+        }
 
         if (data is List) {
           return data.map((e) => TransactionModel.fromJson(e)).toList();
@@ -47,16 +56,22 @@ class TransactionRepository {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data is Map && response.data.containsKey('balance')
-            ? response.data['balance']
-            : response.data;
+        final raw = response.data;
+        // Backend returns { success: true, data: { balance: N, ... } }
+        final data = raw is Map && raw.containsKey('data')
+            ? raw['data']
+            : raw;
 
-        return data as int;
+        if (data is Map && data.containsKey('balance')) {
+          return (data['balance'] as num).toInt();
+        }
+        if (data is int) return data;
+        if (data is num) return data.toInt();
       }
 
-      throw Exception('Échec de la récupération du solde');
-    } on DioException catch (e) {
-      throw _handleDioError(e);
+      return 0;
+    } on DioException catch (_) {
+      return 0;
     }
   }
 

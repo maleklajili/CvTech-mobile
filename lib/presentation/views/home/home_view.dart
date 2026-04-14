@@ -8,15 +8,26 @@ import 'package:provider/provider.dart';
 // Project imports:
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/feed/feed_post_model.dart';
+import 'package:cv_tech/data/models/feed/reaction_model.dart';
 import 'package:cv_tech/data/repositories/community_repository.dart';
 import 'package:cv_tech/presentation/views/feed/create_post_view.dart';
 import 'package:cv_tech/presentation/views/feed/post_detail_view.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
+import 'package:cv_tech/presentation/views/home/widgets/stories_bar_widget.dart';
+import 'package:cv_tech/presentation/views/home/widgets/coins_mini_bar_widget.dart';
+import 'package:cv_tech/presentation/views/home/widgets/job_suggestions_widget.dart';
+import 'package:cv_tech/presentation/views/home/widgets/people_suggestions_widget.dart';
+import 'package:cv_tech/presentation/views/home/widgets/shared_job_card.dart';
+import 'package:cv_tech/presentation/views/coin/coin_main_view.dart';
+import 'package:cv_tech/presentation/views/connection/connections_view.dart';
+import 'package:cv_tech/presentation/views/job/jobs_view.dart';
+import 'package:cv_tech/presentation/views_models/home/home_feed_view_model.dart';
 import 'package:cv_tech/presentation/views_models/feed/feed_view_model.dart';
 import 'package:cv_tech/core/services/socket_service.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_alert_dialog.dart';
+import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 
 class HomeView extends StatelessWidget {
   final ScrollController scrollController;
@@ -28,7 +39,7 @@ class HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => FeedViewModel()..loadFeed(filter: 'friends'),
+      create: (_) => HomeFeedViewModel()..loadFeed(),
       child: _HomeContent(scrollController: scrollController),
     );
   }
@@ -43,7 +54,7 @@ class _HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver {
-  static const Duration _autoRefreshInterval = Duration(seconds: 8);
+  static const Duration _autoRefreshInterval = Duration(seconds: 30);
   Timer? _autoRefreshTimer;
   StreamSubscription<Map<String, dynamic>>? _notificationSub;
   final CommunityRepository _communityRepository = CommunityRepository();
@@ -119,8 +130,8 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
     _autoRefreshTimer?.cancel();
     _autoRefreshTimer = Timer.periodic(_autoRefreshInterval, (_) {
       if (!mounted) return;
-      final vm = context.read<FeedViewModel>();
-      if (vm.state == FeedState.loading || vm.state == FeedState.loadingMore) {
+      final vm = context.read<HomeFeedViewModel>();
+      if (vm.state == HomeFeedState.loading || vm.state == HomeFeedState.loadingMore) {
         return;
       }
       vm.refreshFeed();
@@ -131,8 +142,8 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
     if (!mounted) return;
     await _loadMemberships();
     if (!mounted) return;
-    final vm = context.read<FeedViewModel>();
-    if (vm.state == FeedState.loading || vm.state == FeedState.loadingMore) {
+    final vm = context.read<HomeFeedViewModel>();
+    if (vm.state == HomeFeedState.loading || vm.state == HomeFeedState.loadingMore) {
       return;
     }
     await vm.refreshFeed();
@@ -148,27 +159,27 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
   void _onScroll() {
     final sc = widget.scrollController;
     if (sc.position.pixels >= sc.position.maxScrollExtent - 200) {
-      context.read<FeedViewModel>().loadMore();
+      context.read<HomeFeedViewModel>().loadMore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<FeedViewModel>(
+    return Consumer<HomeFeedViewModel>(
       builder: (context, vm, _) {
         return Column(
           children: [
-            // Filter tabs (Facebook-style)
+            // Filter tabs
             _buildFilterTabs(context, vm),
-            // Posts list
-            Expanded(child: _buildPostsList(context, vm)),
+            // Mixed feed
+            Expanded(child: _buildMixedFeed(context, vm)),
           ],
         );
       },
     );
   }
 
-  Widget _buildFilterTabs(BuildContext context, FeedViewModel vm) {
+  Widget _buildFilterTabs(BuildContext context, HomeFeedViewModel vm) {
     final filters = [
       {'key': 'friends', 'label': 'Amis', 'icon': Icons.people},
       {'key': 'all', 'label': 'Tous', 'icon': Icons.public},
@@ -219,13 +230,11 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
     );
   }
 
-  Widget _buildPostsList(BuildContext context, FeedViewModel vm) {
-    final visiblePosts = vm.posts.where(_canAccessPost).toList();
-
-    if (vm.state == FeedState.loading && vm.posts.isEmpty) {
+  Widget _buildMixedFeed(BuildContext context, HomeFeedViewModel vm) {
+    if (vm.state == HomeFeedState.loading && vm.feedItems.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (vm.state == FeedState.error && vm.posts.isEmpty) {
+    if (vm.state == HomeFeedState.error && vm.feedItems.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -249,7 +258,7 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
         ),
       );
     }
-    if (visiblePosts.isEmpty) {
+    if (vm.feedItems.isEmpty && vm.state == HomeFeedState.loaded) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -257,32 +266,36 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
             Icon(Icons.article_outlined, size: 64, color: AppTheme.textMutedColor),
             const SizedBox(height: 16),
             Text(
-              vm.posts.isNotEmpty
-                  ? 'Aucune publication visible'
-                  : (vm.currentFilter == 'friends'
-                      ? 'Aucune publication de vos amis'
-                      : 'Aucune publication pour le moment'),
-              style: TextStyle(
-                color: AppTheme.textMutedColor,
-                fontSize: 16,
-              ),
+              vm.currentFilter == 'friends'
+                  ? 'Aucune publication de vos amis'
+                  : 'Aucune publication pour le moment',
+              style: TextStyle(color: AppTheme.textMutedColor, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              vm.posts.isNotEmpty
-                  ? 'Rejoignez la communaute correspondante pour consulter et reagir.'
-                  : (vm.currentFilter == 'friends'
-                      ? 'Suivez des personnes pour voir leurs publications !'
-                      : 'Soyez le premier a publier !'),
-              style: TextStyle(
-                color: AppTheme.textMutedColor,
-                fontSize: 14,
-              ),
+              vm.currentFilter == 'friends'
+                  ? 'Suivez des personnes pour voir leurs publications !'
+                  : 'Soyez le premier à publier !',
+              style: TextStyle(color: AppTheme.textMutedColor, fontSize: 14),
             ),
           ],
         ),
       );
     }
+
+    // Build stories from friends
+    final stories = StoriesBarWidget.fromNetworkUsers(
+      vm.friends,
+      currentUserName: vm.currentUserName,
+      currentUserImage: vm.currentUserImage,
+      currentUserId: vm.currentUserId,
+    );
+
+    // Count items: stories + coins + feed items + loading indicator
+    final headerCount = 2; // stories bar + coins bar
+    final totalCount = headerCount + vm.feedItems.length +
+        (vm.state == HomeFeedState.loadingMore ? 1 : 0);
+
     return RefreshIndicator(
       onRefresh: vm.refreshFeed,
       child: Container(
@@ -290,70 +303,160 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
         child: ListView.builder(
           controller: widget.scrollController,
           padding: EdgeInsets.zero,
-          itemCount: visiblePosts.length + (vm.state == FeedState.loadingMore ? 1 : 0),
+          itemCount: totalCount,
           itemBuilder: (context, index) {
-          if (index >= visiblePosts.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final post = visiblePosts[index];
-          final postId = post.id;
-          if (postId == null || postId.isEmpty) {
-            return const SizedBox.shrink();
-          }
-          return FeedPostCard(
-            post: post,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChangeNotifierProvider.value(
-                  value: vm,
-                  child: PostDetailView(post: post),
-                ),
-              ),
-            ).then((_) => vm.syncPostById(postId)),
-            onLike: () => vm.likePost(postId),
-            onReaction: (type) => vm.reactToPost(postId, type),
-            onComment: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChangeNotifierProvider.value(
-                  value: vm,
-                  child: PostDetailView(post: post, focusComment: true),
-                ),
-              ),
-            ).then((_) => vm.syncPostById(postId)),
-            onShare: () => ShareModal.show(
-              context,
-              post,
-              onRepost: () => _refreshNow(),
-            ),
-            onSave: () => vm.toggleSavePost(postId),
-            onEdit: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChangeNotifierProvider.value(
-                  value: vm,
-                  child: CreatePostView(post: post),
-                ),
-              ),
-            ),
-            onDelete: () async {
-              final confirm = await CustomAlertDialog.showConfirmation(
-                context: context,
-                title: 'Supprimer',
-                message: 'Voulez-vous supprimer ce post ?',
-                confirmText: 'Supprimer',
-                isDangerous: true,
+            // Stories bar
+            if (index == 0) {
+              return StoriesBarWidget(
+                stories: stories,
+                onAddStory: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChangeNotifierProvider(
+                        create: (_) => FeedViewModel()..loadFeed(),
+                        child: const CreatePostView(),
+                      ),
+                    ),
+                  );
+                },
               );
-              if (confirm) vm.deletePost(postId);
-            },
-          );
-        },
+            }
+
+            // Coins mini bar
+            if (index == 1) {
+              return CoinsMiniBarWidget(
+                balance: vm.coinBalance,
+                earnedToday: 50,
+                onEarnMore: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CoinMainView()),
+                  );
+                },
+              );
+            }
+
+            // Feed items
+            final feedIndex = index - headerCount;
+            if (feedIndex >= vm.feedItems.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final item = vm.feedItems[feedIndex];
+
+            if (item is PostFeedItem) {
+              return _buildPostCard(context, vm, item.post);
+            }
+            if (item is JobSuggestionsFeedItem) {
+              return JobSuggestionsWidget(
+                jobs: item.jobs,
+                onSeeAll: () {
+                  // Navigate to Jobs tab
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const JobsView()),
+                  );
+                },
+                onApply: (match) {
+                  // Navigate to job detail or apply
+                },
+              );
+            }
+            if (item is PeopleSuggestionsFeedItem) {
+              return PeopleSuggestionsWidget(
+                suggestions: item.suggestions,
+                onSeeAll: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ConnectionsView()),
+                  );
+                },
+                onConnect: (user) {
+                  vm.followUser(user.id);
+                },
+              );
+            }
+            if (item is SharedJobFeedItem) {
+              return SharedJobCard(
+                job: item.match.job,
+                matchScore: item.match.matchScore,
+              );
+            }
+
+            return const SizedBox.shrink();
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildPostCard(BuildContext context, HomeFeedViewModel vm, FeedPostModel post) {
+    if (!_canAccessPost(post)) return const SizedBox.shrink();
+
+    final postId = post.id;
+    if (postId == null || postId.isEmpty) return const SizedBox.shrink();
+
+    return FeedPostCard(
+      post: post,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => FeedViewModel()..loadFeed(),
+            child: PostDetailView(post: post),
+          ),
+        ),
+      ).then((_) => vm.syncPostById(postId)),
+      onLike: () => vm.likePost(postId),
+      onReaction: (type) => vm.reactToPost(postId, type),
+      onComment: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => FeedViewModel()..loadFeed(),
+            child: PostDetailView(post: post, focusComment: true),
+          ),
+        ),
+      ).then((_) => vm.syncPostById(postId)),
+      onShare: () => ShareModal.show(
+        context,
+        post,
+        onRepost: () => _refreshNow(),
+      ),
+      onSave: () => vm.toggleSavePost(postId),
+      onEdit: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => FeedViewModel()..loadFeed(),
+            child: CreatePostView(post: post),
+          ),
+        ),
+      ),
+      onDelete: () async {
+        final confirm = await CustomAlertDialog.showConfirmation(
+          context: context,
+          title: 'Supprimer',
+          message: 'Voulez-vous supprimer ce post ?',
+          confirmText: 'Supprimer',
+          isDangerous: true,
+        );
+        if (confirm) vm.deletePost(postId);
+      },
+      onReport: (reason, description) async {
+        final success = await vm.reportPost(postId, reason: reason, description: description);
+        if (context.mounted) {
+          if (success) {
+            CustomToast.success(context, 'Signalement envoyé avec succès');
+          } else {
+            CustomToast.error(context, 'Erreur lors du signalement');
+          }
+        }
+      },
     );
   }
 }

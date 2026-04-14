@@ -56,6 +56,11 @@ class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();
 }
 
+/// Force logout when session expires (401 + refresh failed)
+class AuthForceLogout extends AuthEvent {
+  const AuthForceLogout();
+}
+
 /// Request password reset
 class AuthForgotPasswordRequested extends AuthEvent {
   final String email;

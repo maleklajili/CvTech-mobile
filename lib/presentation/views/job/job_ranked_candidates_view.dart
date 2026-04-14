@@ -539,6 +539,7 @@ class _Avatar extends StatelessWidget {
       backgroundImage: (url != null && url!.isNotEmpty)
           ? NetworkImage(url!)
           : null,
+      onBackgroundImageError: (url != null && url!.isNotEmpty) ? (_, __) {} : null,
       child: (url == null || url!.isEmpty)
           ? Text(
               initials,

@@ -1,7 +1,11 @@
+// Dart imports:
+import 'dart:async';
+
 // Package imports:
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Project imports:
+import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/models/auth/auth_response.dart';
 import 'package:cv_tech/data/models/auth/user_model.dart';
 import 'package:cv_tech/data/repositories/auth_repository.dart';
@@ -10,6 +14,7 @@ import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
+  late final StreamSubscription<void> _sessionExpiredSubscription;
 
   AuthBloc({AuthRepository? authRepository})
       : _authRepository = authRepository ?? AuthRepository(),
@@ -19,9 +24,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSendOtpRequested>(_onAuthSendOtpRequested);
     on<AuthVerifyOtpRequested>(_onAuthVerifyOtpRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
+    on<AuthForceLogout>(_onAuthForceLogout);
     on<AuthForgotPasswordRequested>(_onAuthForgotPasswordRequested);
     on<AuthChangePasswordRequested>(_onAuthChangePasswordRequested);
     on<AuthResetState>(_onAuthResetState);
+
+    // Listen for session expiry from ApiClient interceptor
+    _sessionExpiredSubscription = ApiClient.onSessionExpired.listen((_) {
+      add(const AuthForceLogout());
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _sessionExpiredSubscription.cancel();
+    return super.close();
   }
 
   Future<void> _onAuthCheckRequested(
@@ -32,18 +49,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     
     try {
       final isAuthenticated = await _authRepository.isAuthenticated();
+      print('🔵 AuthCheckRequested: isAuthenticated=$isAuthenticated');
       
       if (isAuthenticated) {
-        final user = await _authRepository.getCurrentUser();
+        UserModel? user = await _authRepository.getCurrentUser();
+        print('🔵 AuthCheckRequested: getCurrentUser result - user=${user != null}, isAdmin=${user?.isAdmin}');
+        
+        // Retry if null
+        if (user == null) {
+          await Future.delayed(const Duration(milliseconds: 800));
+          user = await _authRepository.getCurrentUser();
+          print('🔵 AuthCheckRequested: retry result - user=${user != null}, isAdmin=${user?.isAdmin}');
+        }
+        
         if (user != null) {
+          print('🟢 AuthCheckRequested: Emitting AuthAuthenticated - isAdmin=${user.isAdmin}');
           emit(AuthAuthenticated(user: user));
         } else {
+          print('🔴 AuthCheckRequested: user still null, unauthenticated');
           emit(const AuthUnauthenticated());
         }
       } else {
         emit(const AuthUnauthenticated());
       }
     } catch (e) {
+      print('🔴 AuthCheckRequested error: $e');
       emit(const AuthUnauthenticated());
     }
   }
@@ -61,15 +91,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final authResponse = await _authRepository.login(event.request);
       print('🔵 AuthBloc: Login API success - tokens saved');
       
-      // Essayer de récupérer le profil utilisateur
+      // Récupérer le profil complet (nécessaire pour isAdmin, plan, etc.)
       UserModel? user;
       try {
         user = await _authRepository.getCurrentUser();
-      } catch (_) {
-        // Si getCurrentUser échoue, utiliser les données basiques
+        print('🔵 AuthBloc: getCurrentUser result - user=${user != null}, isAdmin=${user?.isAdmin}');
+      } catch (e) {
+        print('🟡 AuthBloc: getCurrentUser threw: $e');
       }
       
-      print('🟢 AuthBloc: Emitting AuthAuthenticated');
+      // Retry if user is null (getCurrentUser returns null on DioException internally)
+      if (user == null) {
+        print('🟡 AuthBloc: user is null, retrying after delay...');
+        await Future.delayed(const Duration(milliseconds: 800));
+        try {
+          user = await _authRepository.getCurrentUser();
+          print('🔵 AuthBloc: getCurrentUser retry result - user=${user != null}, isAdmin=${user?.isAdmin}');
+        } catch (e) {
+          print('🔴 AuthBloc: getCurrentUser retry also failed: $e');
+        }
+      }
+      
+      print('🟢 AuthBloc: Emitting AuthAuthenticated - isAdmin=${user?.isAdmin ?? false}');
       emit(AuthAuthenticated(
         user: user ?? UserModel(
           id: authResponse.userId,
@@ -137,6 +180,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(const AuthUnauthenticated());
     }
+  }
+
+  Future<void> _onAuthForceLogout(
+    AuthForceLogout event,
+    Emitter<AuthState> emit,
+  ) async {
+    print('🔴 AuthBloc: Force logout triggered (session expired)');
+    // Tokens already cleared by ApiClient interceptor
+    emit(const AuthUnauthenticated());
   }
 
   Future<void> _onAuthForgotPasswordRequested(

@@ -72,6 +72,7 @@ class CvPreviewWidget extends StatelessWidget {
                 image: DecorationImage(
                   image: NetworkImage(_photoUrl!),
                   fit: BoxFit.cover,
+                  onError: (_, __) {},
                 ),
               ),
             ),
