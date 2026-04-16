@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:cv_tech/core/constants/app_colors.dart';
+import 'package:cv_tech/core/services/user_session.dart';
 import 'package:cv_tech/data/models/profile/manual_cv_model.dart';
 import 'package:cv_tech/data/repositories/ai_cv_repository.dart';
 import 'package:cv_tech/data/repositories/manual_cv_repository.dart';
@@ -102,11 +103,16 @@ class _CvBuilderViewState extends State<CvBuilderView>
   Map<String, dynamic>? _backendScore;
   bool _loadingBackendScore = false;
 
+  // Premium / coins info
+  Map<String, dynamic>? _cvInfo;
+  String _userPlan = 'free';
+  int _userCoins = 0;
+
   Future<void> _fetchBackendScore() async {
-    if (_importedCv?.id == null || _loadingBackendScore) return;
+    if (_loadingBackendScore) return;
     setState(() => _loadingBackendScore = true);
     try {
-      final score = await _manualRepo.getScore(_importedCv!.id!);
+      final score = await _manualRepo.getProfileCvScore();
       if (mounted) setState(() => _backendScore = score);
     } catch (_) {
       // Fallback to local score on error
@@ -115,15 +121,34 @@ class _CvBuilderViewState extends State<CvBuilderView>
     }
   }
 
+  Future<void> _fetchCvInfo() async {
+    try {
+      final info = await _aiRepo.getCvInfo();
+      if (mounted) {
+        setState(() {
+          _cvInfo = info;
+          _userPlan = (info['plan'] as String?) ?? 'free';
+          _userCoins = (info['coins'] as num?)?.toInt() ?? 0;
+        });
+      }
+    } catch (_) {}
+  }
+
+  static const _planRank = {'free': 0, 'pro': 1, 'gold': 2};
+
+  bool _canUseTpl(_Tpl tpl) {
+    return (_planRank[_userPlan] ?? 0) >= (_planRank[tpl.tier] ?? 0);
+  }
+
   // Spinner animation
   late AnimationController _spinCtrl;
 
   static const _templates = [
-    _Tpl('standard', 'Standard', Color(0xFF0A66C2), Color(0xFF85B7EB)),
-    _Tpl('modern', 'Moderne', Color(0xFF1D9E75), Color(0xFF9FE1CB)),
-    _Tpl('european', 'Européen', Color(0xFF2C2C2A), Color(0xFF888780)),
-    _Tpl('canadian', 'Canadien', Color(0xFF1E3A8A), Color(0xFF93C5FD)),
-    _Tpl('latex', 'LaTeX', Color(0xFF404040), Color(0xFFB4B2A9)),
+    _Tpl('standard', 'Standard', Color(0xFF0A66C2), Color(0xFF85B7EB), tier: 'free'),
+    _Tpl('modern', 'Moderne', Color(0xFF1D9E75), Color(0xFF9FE1CB), tier: 'pro'),
+    _Tpl('european', 'Européen', Color(0xFF2C2C2A), Color(0xFF888780), tier: 'gold'),
+    _Tpl('canadian', 'Canadien', Color(0xFF1E3A8A), Color(0xFF93C5FD), tier: 'pro'),
+    _Tpl('latex', 'LaTeX', Color(0xFF404040), Color(0xFFB4B2A9), tier: 'gold'),
   ];
 
   @override
@@ -132,6 +157,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
     _spinCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900))
       ..repeat();
+    _fetchCvInfo();
   }
 
   @override
@@ -207,9 +233,16 @@ class _CvBuilderViewState extends State<CvBuilderView>
 
   // ─── STEP 3 : generate / customize ────────────────────────────────
   Future<void> _generateCv() async {
+    final tpl = _templates[_selectedTpl];
+
+    // Premium template check
+    if (!_canUseTpl(tpl)) {
+      _showUpgradeDialog(tpl.tier);
+      return;
+    }
+
     setState(() => _generating = true);
     try {
-      final tpl = _templates[_selectedTpl];
       final userPrompt = _jobCtrl.text.trim();
 
       // Use AI if user chose "Avec IA" mode or provided a custom prompt
@@ -240,6 +273,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
       await _loadPdf();
       if (!mounted) return;
       setState(() => _generating = false);
+      _fetchCvInfo(); // refresh coin balance
       _goTo(4);
     } catch (e) {
       if (!mounted) return;
@@ -250,6 +284,128 @@ class _CvBuilderViewState extends State<CvBuilderView>
 
   String _colorHex(Color c) =>
       '#${c.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+
+  // ─── Premium helper widgets ─────────────────────────────────────────
+
+  Widget _tierBadge(String tier) {
+    final isPro = tier == 'pro';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isPro
+              ? [const Color(0xFF7C3AED), const Color(0xFF9333EA)]
+              : [const Color(0xFFD97706), const Color(0xFFF59E0B)],
+        ),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.lock_rounded, size: 8, color: Colors.white),
+          const SizedBox(width: 3),
+          Text(
+            isPro ? 'PRO' : 'GOLD',
+            style: const TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpgradeDialog(String requiredTier) {
+    final isPro = requiredTier == 'pro';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.workspace_premium_rounded,
+                color: isPro
+                    ? const Color(0xFF7C3AED)
+                    : const Color(0xFFD97706),
+                size: 24),
+            const SizedBox(width: 8),
+            Text('Plan ${isPro ? "Pro" : "Gold"} requis',
+                style: const TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          'Ce template nécessite un abonnement ${isPro ? "Pro" : "Gold"}.\n'
+          'Mettez à niveau votre plan pour débloquer ce template.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  isPro ? const Color(0xFF7C3AED) : const Color(0xFFD97706),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              // TODO: Navigate to subscription page
+            },
+            child: const Text('Mettre à niveau'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInsufficientCoinsDialog(int cost) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.monetization_on_rounded,
+                color: Color(0xFFFFA000), size: 24),
+            SizedBox(width: 8),
+            Text('Coins insuffisants', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          'La génération coûte $cost coins.\n'
+          'Votre solde actuel : $_userCoins coins.\n\n'
+          'Rechargez vos coins pour continuer.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Fermer'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFA000),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              // TODO: Navigate to coin purchase page
+            },
+            child: const Text('Recharger'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _loadPdf() async {
     setState(() => _loadingPdf = true);
@@ -1729,11 +1885,37 @@ class _CvBuilderViewState extends State<CvBuilderView>
           const SizedBox(height: 14),
 
           // Template grid title
-          Text('Sélectionnez votre template',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textColor)),
+          Row(
+            children: [
+              Text('Sélectionnez votre template',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textColor)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: const Color(0xFFFFD54F), width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.monetization_on_rounded,
+                        size: 13, color: Color(0xFFFFA000)),
+                    const SizedBox(width: 3),
+                    Text('$_userCoins',
+                        style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFF57F17))),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
 
           // Template grid  — 3 columns
@@ -1746,88 +1928,124 @@ class _CvBuilderViewState extends State<CvBuilderView>
               itemBuilder: (_, i) {
                 final t = _templates[i];
                 final active = i == _selectedTpl;
+                final locked = !_canUseTpl(t);
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedTpl = i),
-                  child: Container(
-                    width: 88,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: active ? _kBlue : AppTheme.dividerColor,
-                        width: active ? 2 : 1,
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        // Template preview
-                        Container(
-                          height: 56,
-                          color: t.bg,
-                          padding: const EdgeInsets.all(6),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                  width: 42,
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius:
-                                          BorderRadius.circular(2))),
-                              const SizedBox(height: 3),
-                              Container(
-                                  width: 30,
-                                  height: 3,
-                                  decoration: BoxDecoration(
-                                      color: t.accent,
-                                      borderRadius:
-                                          BorderRadius.circular(2))),
-                              const Spacer(),
-                              Container(
-                                  width: 50,
-                                  height: 2,
-                                  decoration: BoxDecoration(
-                                      color: Colors.white.withAlpha(100),
-                                      borderRadius:
-                                          BorderRadius.circular(2))),
-                              const SizedBox(height: 2),
-                              Container(
-                                  width: 36,
-                                  height: 2,
-                                  decoration: BoxDecoration(
-                                      color: Colors.white.withAlpha(70),
-                                      borderRadius:
-                                          BorderRadius.circular(2))),
-                            ],
-                          ),
+                  onTap: () {
+                    if (locked) {
+                      _showUpgradeDialog(t.tier);
+                    } else {
+                      setState(() => _selectedTpl = i);
+                    }
+                  },
+                  child: Opacity(
+                    opacity: locked ? 0.7 : 1.0,
+                    child: Container(
+                      width: 88,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: locked
+                              ? Colors.grey.shade300
+                              : active
+                                  ? _kBlue
+                                  : AppTheme.dividerColor,
+                          width: active ? 2 : 1,
                         ),
-                        // Badge
-                        Expanded(
-                          child: Container(
-                            color: AppTheme.cardColor,
-                            alignment: Alignment.center,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: active ? _kBlue : _kBlueBg,
-                                borderRadius: BorderRadius.circular(99),
-                              ),
-                              child: Text(
-                                active ? 'Sélectionné' : t.label,
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w600,
-                                  color: active
-                                      ? Colors.white
-                                      : _kBlueMid,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Stack(
+                        children: [
+                          Column(
+                            children: [
+                              // Template preview
+                              Container(
+                                height: 56,
+                                color: t.bg,
+                                padding: const EdgeInsets.all(6),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                        width: 42,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(2))),
+                                    const SizedBox(height: 3),
+                                    Container(
+                                        width: 30,
+                                        height: 3,
+                                        decoration: BoxDecoration(
+                                            color: t.accent,
+                                            borderRadius:
+                                                BorderRadius.circular(2))),
+                                    const Spacer(),
+                                    Container(
+                                        width: 50,
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                            color: Colors.white.withAlpha(100),
+                                            borderRadius:
+                                                BorderRadius.circular(2))),
+                                    const SizedBox(height: 2),
+                                    Container(
+                                        width: 36,
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                            color: Colors.white.withAlpha(70),
+                                            borderRadius:
+                                                BorderRadius.circular(2))),
+                                  ],
                                 ),
                               ),
-                            ),
+                              // Badge
+                              Expanded(
+                                child: Container(
+                                  color: AppTheme.cardColor,
+                                  alignment: Alignment.center,
+                                  child: locked
+                                      ? _tierBadge(t.tier)
+                                      : Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: active ? _kBlue : _kBlueBg,
+                                            borderRadius:
+                                                BorderRadius.circular(99),
+                                          ),
+                                          child: Text(
+                                            active ? 'Sélectionné' : t.label,
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w600,
+                                              color: active
+                                                  ? Colors.white
+                                                  : _kBlueMid,
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          // Lock overlay
+                          if (locked)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withAlpha(140),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.lock_rounded,
+                                    size: 12, color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -2057,9 +2275,42 @@ class _CvBuilderViewState extends State<CvBuilderView>
                       height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
-                  : const Text('Générer mon CV →',
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600)),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Générer mon CV',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                        if (widget.useAi) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(50),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.monetization_on_rounded,
+                                    size: 11, color: Colors.white70),
+                                const SizedBox(width: 2),
+                                Text(
+                                    '${(_cvInfo?['generateCost'] as num?)?.toInt() ?? 50}',
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white70)),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const Text(' →',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -2404,7 +2655,8 @@ class _Tpl {
   final String label;
   final Color bg;
   final Color accent;
-  const _Tpl(this.key, this.label, this.bg, this.accent);
+  final String tier; // 'free', 'pro', 'gold'
+  const _Tpl(this.key, this.label, this.bg, this.accent, {this.tier = 'free'});
 }
 
 class _ScoreSection {
