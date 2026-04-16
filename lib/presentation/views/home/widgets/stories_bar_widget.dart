@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/connection/connection_model.dart';
 import 'package:cv_tech/core/utils/image_url_helper.dart';
@@ -171,7 +172,7 @@ class StoriesBarWidget extends StatelessWidget {
             padding: const EdgeInsets.all(2),
             child: story.imageUrl != null
                 ? CircleAvatar(
-                    backgroundImage: NetworkImage(story.imageUrl!),
+                    backgroundImage: CachedNetworkImageProvider(story.imageUrl!),
                     onBackgroundImageError: story.imageUrl != null ? (_, __) {} : null,
                     backgroundColor: story.color,
                   )

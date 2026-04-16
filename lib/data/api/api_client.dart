@@ -108,6 +108,21 @@ class ApiClient {
             }
           }
 
+          // Handle 403 - account banned/deactivated → force logout
+          if (error.response?.statusCode == 403) {
+            final data = error.response?.data;
+            final msg = data is Map
+                ? (data['error'] is Map
+                    ? data['error']['message']?.toString()
+                    : data['error']?.toString())
+                : null;
+            if (msg != null && msg.contains('désactivé')) {
+              await clearTokens();
+              _sessionExpiredController.add(null);
+              print('🔴 Account banned: forcing logout');
+            }
+          }
+
           final path = error.requestOptions.path;
           // Ne PAS essayer de refresh pour les endpoints d'auth (login, register, etc.)
           final isAuthEndpoint = path.startsWith('/auth/');

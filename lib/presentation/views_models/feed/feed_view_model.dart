@@ -337,6 +337,7 @@ class FeedViewModel extends SafeChangeNotifier {
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
       if (kDebugMode) print('Create post error: $e');
       return false;
     }
@@ -432,6 +433,8 @@ class FeedViewModel extends SafeChangeNotifier {
 
       return comment;
     } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
       if (kDebugMode) print('Add comment error: $e');
       return null;
     }

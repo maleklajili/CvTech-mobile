@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cv_tech/data/models/connection/connection_model.dart';
 import 'package:cv_tech/core/utils/image_url_helper.dart';
 
@@ -110,7 +111,7 @@ class PeopleSuggestionsWidget extends StatelessWidget {
           imageUrl != null
               ? CircleAvatar(
                   radius: 22,
-                  backgroundImage: NetworkImage(imageUrl),
+                  backgroundImage: CachedNetworkImageProvider(imageUrl),
                   onBackgroundImageError: imageUrl.isNotEmpty ? (_, __) {} : null,
                   backgroundColor: color,
                 )

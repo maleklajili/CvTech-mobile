@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F26E22;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E85D10;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="docGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F0F0F0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bgGrad)"/>
+  
+  <!-- CV Document shape -->
+  <rect x="140" y="100" width="232" height="300" rx="16" ry="16" fill="url(#docGrad)" opacity="0.95"/>
+  
+  <!-- Document fold corner -->
+  <path d="M 330 100 L 372 100 L 372 142 Z" fill="#E0E0E0" opacity="0.6"/>
+  
+  <!-- Profile circle (avatar placeholder) -->
+  <circle cx="210" cy="160" r="28" fill="#F26E22" opacity="0.2"/>
+  <circle cx="210" cy="152" r="12" fill="#F26E22" opacity="0.5"/>
+  <ellipse cx="210" cy="175" rx="18" ry="12" fill="#F26E22" opacity="0.4"/>
+  
+  <!-- Text lines on document -->
+  <rect x="250" y="140" width="90" height="8" rx="4" fill="#F26E22" opacity="0.7"/>
+  <rect x="250" y="158" width="60" height="6" rx="3" fill="#CBD5E1"/>
+  <rect x="250" y="174" width="75" height="6" rx="3" fill="#CBD5E1"/>
+  
+  <!-- Separator line -->
+  <rect x="170" y="200" width="172" height="2" rx="1" fill="#E2E8F0"/>
+  
+  <!-- Content lines -->
+  <rect x="170" y="220" width="172" height="6" rx="3" fill="#94A3B8"/>
+  <rect x="170" y="236" width="140" height="6" rx="3" fill="#CBD5E1"/>
+  <rect x="170" y="252" width="160" height="6" rx="3" fill="#CBD5E1"/>
+  <rect x="170" y="268" width="120" height="6" rx="3" fill="#CBD5E1"/>
+  
+  <!-- Skills section -->
+  <rect x="170" y="294" width="80" height="6" rx="3" fill="#F26E22" opacity="0.6"/>
+  <rect x="170" y="310" width="172" height="8" rx="4" fill="#E2E8F0"/>
+  <rect x="170" y="310" width="130" height="8" rx="4" fill="#F26E22" opacity="0.35"/>
+  <rect x="170" y="326" width="172" height="8" rx="4" fill="#E2E8F0"/>
+  <rect x="170" y="326" width="100" height="8" rx="4" fill="#F26E22" opacity="0.35"/>
+  <rect x="170" y="342" width="172" height="8" rx="4" fill="#E2E8F0"/>
+  <rect x="170" y="342" width="150" height="8" rx="4" fill="#F26E22" opacity="0.35"/>
+  
+  <!-- Check mark badge (bottom right) -->
+  <circle cx="345" cy="370" r="32" fill="#22C55E"/>
+  <polyline points="328,370 340,382 362,358" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- "CV" text overlay -->
+  <text x="256" y="460" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="52" font-weight="900" fill="white" text-anchor="middle" letter-spacing="4" opacity="0.95">CvTech</text>
+</svg>

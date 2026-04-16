@@ -33,7 +33,7 @@ class NotificationViewModel extends SafeChangeNotifier {
   // Exponential backoff tracking
   int _consecutiveFailures = 0;
   static const int _maxFailures = 5;
-  static const Duration _baseInterval = Duration(seconds: 30);
+  static const Duration _baseInterval = Duration(seconds: 60);
   static const Duration _maxInterval = Duration(minutes: 5);
 
   Duration get _currentInterval {

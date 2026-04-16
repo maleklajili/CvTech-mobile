@@ -190,6 +190,21 @@ class AdminRepository {
         .put('${ApiEndpoints.moderationUserUnban}$userId/unban');
   }
 
+  Future<List<FlaggedUser>> getBannedUsers() async {
+    final response =
+        await _apiClient.dio.get(ApiEndpoints.moderationBannedUsers);
+    final data = _extractData(response.data);
+    if (data is Map && data['users'] is List) {
+      return (data['users'] as List)
+          .map((e) => FlaggedUser.fromJson(e))
+          .toList();
+    }
+    if (data is List) {
+      return data.map((e) => FlaggedUser.fromJson(e)).toList();
+    }
+    return [];
+  }
+
   // ── Companies ───────────────────────────────────────────────────────
 
   Future<List<Map<String, dynamic>>> getCompanies({

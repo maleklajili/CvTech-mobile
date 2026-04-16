@@ -51,27 +51,38 @@ class AdminModerationTab extends StatelessWidget {
           // Toggle posts/users
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                _ToggleButton(
-                  label: 'Posts toxiques (${vm.flaggedPosts.length})',
-                  active: vm.moderationView == 0,
-                  onTap: () => vm.setModerationView(0),
-                ),
-                const SizedBox(width: 8),
-                _ToggleButton(
-                  label: 'Utilisateurs suspects (${vm.flaggedUsers.length})',
-                  active: vm.moderationView == 1,
-                  onTap: () => vm.setModerationView(1),
-                ),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _ToggleButton(
+                    label: 'Posts toxiques (${vm.flaggedPosts.length})',
+                    active: vm.moderationView == 0,
+                    onTap: () => vm.setModerationView(0),
+                  ),
+                  const SizedBox(width: 8),
+                  _ToggleButton(
+                    label: 'Suspects (${vm.flaggedUsers.length})',
+                    active: vm.moderationView == 1,
+                    onTap: () => vm.setModerationView(1),
+                  ),
+                  const SizedBox(width: 8),
+                  _ToggleButton(
+                    label: 'Désactivés (${vm.bannedUsers.length})',
+                    active: vm.moderationView == 2,
+                    onTap: () => vm.setModerationView(2),
+                  ),
+                ],
+              ),
             ),
           ),
           // Content
           Expanded(
             child: vm.moderationView == 0
                 ? _PostsList(posts: vm.flaggedPosts)
-                : _UsersList(users: vm.flaggedUsers),
+                : vm.moderationView == 1
+                    ? _UsersList(users: vm.flaggedUsers)
+                    : _BannedUsersList(users: vm.bannedUsers),
           ),
         ],
       ),
@@ -161,29 +172,27 @@ class _ToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: active
-                ? AppColors.primaryColor.withValues(alpha: 0.1)
-                : AppTheme.dividerColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: active ? AppColors.primaryColor : AppTheme.dividerColor,
-            ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        decoration: BoxDecoration(
+          color: active
+              ? AppColors.primaryColor.withValues(alpha: 0.1)
+              : AppTheme.dividerColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: active ? AppColors.primaryColor : AppTheme.dividerColor,
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-              color: active ? AppColors.primaryColor : AppTheme.textMutedColor,
-            ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+            color: active ? AppColors.primaryColor : AppTheme.textMutedColor,
           ),
         ),
       ),
@@ -588,5 +597,211 @@ class _FlaggedUserCard extends StatelessWidget {
     if (score >= 0.7) return const Color(0xFFDC2626);
     if (score >= 0.4) return const Color(0xFFDC6803);
     return const Color(0xFF057642);
+  }
+}
+
+// ── Banned/Deactivated Users List ───────────────────────────────────────
+
+class _BannedUsersList extends StatelessWidget {
+  final List<FlaggedUser> users;
+
+  const _BannedUsersList({required this.users});
+
+  @override
+  Widget build(BuildContext context) {
+    if (users.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline,
+                size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 8),
+            Text('Aucun utilisateur désactivé',
+                style: TextStyle(color: Colors.grey.shade500)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: users.length,
+      itemBuilder: (context, i) => _BannedUserCard(user: users[i]),
+    );
+  }
+}
+
+class _BannedUserCard extends StatelessWidget {
+  final FlaggedUser user;
+
+  const _BannedUserCard({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.read<AdminViewModel>();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFFFEE2E2),
+                  child: Icon(Icons.person_off,
+                      color: const Color(0xFFDC2626), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.fullName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        user.email,
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.block, size: 12, color: Color(0xFFDC2626)),
+                      SizedBox(width: 4),
+                      Text('Désactivé',
+                          style: TextStyle(
+                              fontSize: 11, color: Color(0xFFDC2626))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (user.bannedAt != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today,
+                      size: 12, color: Colors.grey.shade500),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Banni le ${DateFormat('dd/MM/yyyy à HH:mm').format(user.bannedAt!)}',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                  if (user.toxicPostCount > 0) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${user.toxicPostCount} post(s) toxique(s)',
+                        style: const TextStyle(
+                            fontSize: 10, color: Color(0xFFDC2626)),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+            if (user.banReason != null && user.banReason!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline,
+                        size: 14, color: Color(0xFFDC2626)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        user.banReason!,
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFF991B1B)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: vm.actionLoading
+                    ? null
+                    : () => _showReactivateDialog(context, vm, user),
+                icon: const Icon(Icons.lock_open, size: 16),
+                label: const Text('Réactiver le compte'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF057642),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReactivateDialog(
+      BuildContext context, AdminViewModel vm, FlaggedUser user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Réactiver le compte'),
+        content: Text(
+          'Voulez-vous réactiver le compte de ${user.fullName} ?\n'
+          'L\'utilisateur pourra à nouveau se connecter et publier.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              vm.unbanUser(user.id);
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF057642)),
+            child: const Text('Réactiver',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 }

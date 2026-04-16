@@ -14,7 +14,6 @@ import 'package:cv_tech/presentation/views/feed/create_post_view.dart';
 import 'package:cv_tech/presentation/views/feed/post_detail_view.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/feed_post_card.dart';
 import 'package:cv_tech/presentation/views/feed/widgets/share_modal.dart';
-import 'package:cv_tech/presentation/views/home/widgets/stories_bar_widget.dart';
 import 'package:cv_tech/presentation/views/home/widgets/coins_mini_bar_widget.dart';
 import 'package:cv_tech/presentation/views/home/widgets/job_suggestions_widget.dart';
 import 'package:cv_tech/presentation/views/home/widgets/people_suggestions_widget.dart';
@@ -54,8 +53,9 @@ class _HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver {
-  static const Duration _autoRefreshInterval = Duration(seconds: 30);
+  static const Duration _autoRefreshInterval = Duration(seconds: 120);
   Timer? _autoRefreshTimer;
+  Timer? _refreshDebounce;
   StreamSubscription<Map<String, dynamic>>? _notificationSub;
   final CommunityRepository _communityRepository = CommunityRepository();
   Set<String> _memberCommunityIds = <String>{};
@@ -74,6 +74,7 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _refreshDebounce?.cancel();
     _notificationSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     widget.scrollController.removeListener(_onScroll);
@@ -139,14 +140,16 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
   }
 
   Future<void> _refreshNow() async {
-    if (!mounted) return;
-    await _loadMemberships();
-    if (!mounted) return;
-    final vm = context.read<HomeFeedViewModel>();
-    if (vm.state == HomeFeedState.loading || vm.state == HomeFeedState.loadingMore) {
-      return;
-    }
-    await vm.refreshFeed();
+    // Debounce rapid refreshes (socket events + app resume can overlap)
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+      final vm = context.read<HomeFeedViewModel>();
+      if (vm.state == HomeFeedState.loading || vm.state == HomeFeedState.loadingMore) {
+        return;
+      }
+      await vm.refreshFeed();
+    });
   }
 
   bool _canAccessPost(FeedPostModel post) {
@@ -283,16 +286,8 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
       );
     }
 
-    // Build stories from friends
-    final stories = StoriesBarWidget.fromNetworkUsers(
-      vm.friends,
-      currentUserName: vm.currentUserName,
-      currentUserImage: vm.currentUserImage,
-      currentUserId: vm.currentUserId,
-    );
-
-    // Count items: stories + coins + feed items + loading indicator
-    final headerCount = 2; // stories bar + coins bar
+    // Count items: coins bar + feed items + loading indicator
+    final headerCount = 1; // coins bar only
     final totalCount = headerCount + vm.feedItems.length +
         (vm.state == HomeFeedState.loadingMore ? 1 : 0);
 
@@ -305,26 +300,8 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
           padding: EdgeInsets.zero,
           itemCount: totalCount,
           itemBuilder: (context, index) {
-            // Stories bar
-            if (index == 0) {
-              return StoriesBarWidget(
-                stories: stories,
-                onAddStory: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChangeNotifierProvider(
-                        create: (_) => FeedViewModel()..loadFeed(),
-                        child: const CreatePostView(),
-                      ),
-                    ),
-                  );
-                },
-              );
-            }
-
             // Coins mini bar
-            if (index == 1) {
+            if (index == 0) {
               return CoinsMiniBarWidget(
                 balance: vm.coinBalance,
                 earnedToday: 50,

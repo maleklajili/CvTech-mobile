@@ -29,12 +29,32 @@ class AppBarWidget extends StatelessWidget {
     final notificationViewModel = context.watch<NotificationViewModel>();
 
     return AppBar(
-      title: const Text(
-        AppStrings.appName,
-        style: TextStyle(
-          color: AppColors.primaryColor,
-          fontWeight: FontWeight.bold,
-        ),
+      centerTitle: false,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: Image.asset(
+              'assets/logo/cvtech_logo.png',
+              width: 26,
+              height: 26,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(width: 6),
+          const Flexible(
+            child: Text(
+              AppStrings.appName,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
       leading: IconButton(
         icon: Icon(viewModel.isDrawerOpen ? Icons.menu_open : Icons.menu),

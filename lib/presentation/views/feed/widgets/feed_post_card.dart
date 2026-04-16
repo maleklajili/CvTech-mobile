@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/feed/feed_post_model.dart';
 import 'package:cv_tech/data/models/feed/reaction_model.dart';
@@ -303,7 +304,7 @@ class _PostHeader extends StatelessWidget {
               radius: 16,
               backgroundColor: AppColors.primaryColor.withOpacity(0.15),
               backgroundImage: (authorImg != null && authorImg.isNotEmpty)
-                  ? NetworkImage(authorImg)
+                  ? CachedNetworkImageProvider(authorImg)
                   : null,
               onBackgroundImageError: (authorImg != null && authorImg.isNotEmpty)
                   ? (_, __) {}
@@ -488,7 +489,7 @@ class _NestedOriginalCard extends StatelessWidget {
               radius: 10,
               backgroundColor: AppColors.primaryColor.withOpacity(0.15),
               backgroundImage: post.author.image != null
-                  ? NetworkImage(post.author.image!)
+                  ? CachedNetworkImageProvider(post.author.image!)
                   : null,
               onBackgroundImageError: post.author.image != null ? (_, __) {} : null,
               child: post.author.image == null
@@ -547,12 +548,12 @@ class _NestedOriginalCard extends StatelessWidget {
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              post.media.first.url,
+            child: CachedNetworkImage(
+              imageUrl: post.media.first.url,
               width: double.infinity,
               height: 140,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              errorWidget: (_, __, ___) => const SizedBox.shrink(),
             ),
           ),
         ],
@@ -642,21 +643,18 @@ class _PostImage extends StatelessWidget {
             maxHeight: 260,
             minHeight: 120,
           ),
-          child: Image.network(
-            url,
+          child: CachedNetworkImage(
+            imageUrl: url,
             width: double.infinity,
             fit: BoxFit.cover,
-            loadingBuilder: (_, child, progress) {
-              if (progress == null) return child;
-              return Container(
-                height: 200,
-                color: AppTheme.isLight
-                    ? const Color(0xFFF1F5F9)
-                    : const Color(0xFF2A2A3E),
-                child: const Center(child: CircularProgressIndicator()),
-              );
-            },
-            errorBuilder: (_, __, ___) => Container(
+            placeholder: (_, __) => Container(
+              height: 200,
+              color: AppTheme.isLight
+                  ? const Color(0xFFF1F5F9)
+                  : const Color(0xFF2A2A3E),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (_, __, ___) => Container(
               height: 200,
               color: AppTheme.isLight
                   ? const Color(0xFFF1F5F9)

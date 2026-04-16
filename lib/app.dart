@@ -56,7 +56,10 @@ class MyApp extends StatelessWidget {
           ];
         },
         builder: (context, child) {
-          AppTheme.syncWithContext(context);
+          // Sync theme brightness only once per theme change (Consumer2 already handles rebuilds)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            AppTheme.syncWithContext(context);
+          });
           return child ?? const _RootGuard(child: AuthWrapper());
         },
         routes: {

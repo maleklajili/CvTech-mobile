@@ -22,6 +22,7 @@ class SocketService {
   final _messageDeletedController = StreamController<Map<String, dynamic>>.broadcast();
   final _messageUpdatedController = StreamController<Map<String, dynamic>>.broadcast();
   final _conversationDeletedController = StreamController<Map<String, dynamic>>.broadcast();
+  StreamController<Map<String, dynamic>>? _groupMessageController;
 
   Stream<Map<String, dynamic>> get onNewComment => _commentController.stream;
   Stream<Map<String, dynamic>> get onNotification => _notificationController.stream;
@@ -32,6 +33,10 @@ class SocketService {
   Stream<Map<String, dynamic>> get onMessageDeleted => _messageDeletedController.stream;
   Stream<Map<String, dynamic>> get onMessageUpdated => _messageUpdatedController.stream;
   Stream<Map<String, dynamic>> get onConversationDeleted => _conversationDeletedController.stream;
+  Stream<Map<String, dynamic>> get onGroupMessage {
+    _groupMessageController ??= StreamController<Map<String, dynamic>>.broadcast();
+    return _groupMessageController!.stream;
+  }
   bool get isConnected => _isConnected;
 
   SocketService._internal();
@@ -225,6 +230,17 @@ class SocketService {
         }
       });
 
+      // Écouter les messages de groupe
+      _socket!.on('group_message', (data) {
+        if (kDebugMode) print('👥 [Socket] Group message received');
+        _groupMessageController ??= StreamController<Map<String, dynamic>>.broadcast();
+        if (data is Map<String, dynamic>) {
+          _groupMessageController!.add(data);
+        } else if (data is Map) {
+          _groupMessageController!.add(Map<String, dynamic>.from(data));
+        }
+      });
+
       _socket!.connect();
     } catch (e) {
       if (kDebugMode) print('❌ [Socket] Connection error: $e');
@@ -289,6 +305,8 @@ class SocketService {
     _messageDeletedController.close();
     _messageUpdatedController.close();
     _conversationDeletedController.close();
+    _groupMessageController?.close();
+    _groupMessageController = null;
     _instance = null;
   }
 }

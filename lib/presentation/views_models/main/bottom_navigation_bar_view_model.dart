@@ -22,7 +22,7 @@ class BottomNavigationBarViewModel extends ScrollListener
     initScrollListener();
     _refreshDynamicBadges();
     _badgeTimer = Timer.periodic(
-      const Duration(seconds: 15),
+      const Duration(seconds: 60),
       (_) => _refreshDynamicBadges(),
     );
   }

@@ -144,6 +144,22 @@ class AiCvRepository {
     }
   }
 
+  /// Get CV generation info (plan, coins, template tiers, costs)
+  Future<Map<String, dynamic>> getCvInfo() async {
+    try {
+      final response = await _apiClient.dio.get(ApiEndpoints.aiCvInfo);
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return Map<String, dynamic>.from(data as Map);
+      }
+      throw Exception('Échec du chargement des infos CV');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Exception _handleDioError(DioException e) {
     if (e.response?.data is Map) {
       final error = e.response!.data['error'];

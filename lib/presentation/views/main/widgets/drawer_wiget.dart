@@ -15,6 +15,7 @@ import 'package:cv_tech/data/repositories/user_repository.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_bloc.dart';
 import 'package:cv_tech/presentation/blocs/auth/auth_event.dart';
 import 'package:cv_tech/presentation/views/chat/chat_list_view.dart';
+import 'package:cv_tech/presentation/views/chatbot/chatbot_view.dart';
 import 'package:cv_tech/presentation/views/coin/coin_main_view.dart';
 import 'package:cv_tech/presentation/views/payment/premium_main_view.dart';
 import 'package:cv_tech/presentation/views/community/community_hub_view.dart';
@@ -248,6 +249,10 @@ class _DrawerWigetState extends State<DrawerWiget> {
     await _refreshUnreadMessages();
   }
 
+  Future<void> _navigateToChatbot() async {
+    await _openPage(const ChatbotView(), '/chatbot');
+  }
+
   Future<void> _navigateToNetwork() async {
     await _openPage(const ConnectionsView(), '/friends');
   }
@@ -318,6 +323,12 @@ class _DrawerWigetState extends State<DrawerWiget> {
         routeName: '/notifications',
         badge: _badgeValue(_unreadNotifications),
         onTap: _navigateToNotifications,
+      ),
+      _DrawerMenuItemConfig(
+        title: 'Assistant IA',
+        icon: Icons.smart_toy,
+        routeName: '/chatbot',
+        onTap: _navigateToChatbot,
       ),
     ];
   }

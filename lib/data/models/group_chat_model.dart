@@ -61,18 +61,36 @@ class GroupChatMessage {
           payload['url'],
     );
 
+    // Backend returns sender as nested object { _id, firstName, lastName, userName, image }
+    final senderObj = json['sender'];
+    final String senderId;
+    final String senderName;
+    final String senderAvatar;
+    if (senderObj is Map) {
+      senderId = _asString(senderObj['_id'] ?? senderObj['id']);
+      final firstName = _asString(senderObj['firstName'] ?? senderObj['first_name']);
+      final lastName = _asString(senderObj['lastName'] ?? senderObj['last_name']);
+      senderName = ('$firstName $lastName').trim();
+      senderAvatar = _asString(senderObj['image'] ?? senderObj['avatar'] ?? '');
+    } else {
+      // Flat fields fallback
+      senderId = _asString(json['senderId'] ?? json['sender_id']);
+      senderName = _asString(json['senderName'] ?? json['sender_name']);
+      senderAvatar = _asString(json['senderAvatar'] ?? json['sender_avatar'] ?? '');
+    }
+
     return GroupChatMessage(
       id: _asString(json['_id'] ?? json['id']),
       groupId: _asString(json['groupId'] ?? json['group_id']),
-      senderId: _asString(json['senderId'] ?? json['sender_id']),
-      senderName: _asString(json['senderName'] ?? json['sender_name']),
-      senderAvatar: _asString(json['senderAvatar'] ?? json['sender_avatar'] ?? ''),
+      senderId: senderId,
+      senderName: senderName,
+      senderAvatar: senderAvatar,
       type: normalizedType,
       payload: payload,
       content: content,
-      sentAt: _asDateTime(json['sentAt'] ?? json['sent_at'] ?? DateTime.now()),
+      sentAt: _asDateTime(json['sentAt'] ?? json['sent_at'] ?? json['createdAt'] ?? DateTime.now()),
       seenBy: _asList<String>(
-        json['seenBy'] ?? json['seen_by'] ?? [],
+        json['seenBy'] ?? json['seen_by'] ?? json['readBy'] ?? [],
         (item) => _asString(item),
       ),
     );

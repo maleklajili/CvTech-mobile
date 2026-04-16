@@ -26,6 +26,8 @@ class UserModel extends BaseModel {
   final bool isAdmin;
   final String plan; // 'free', 'pro', 'gold'
   final DateTime? planExpiry;
+  final bool isBanned;
+  final String? banReason;
 
   const UserModel({
     super.id,
@@ -52,6 +54,8 @@ class UserModel extends BaseModel {
     this.isAdmin = false,
     this.plan = 'free',
     this.planExpiry,
+    this.isBanned = false,
+    this.banReason,
   });
 
   /// Whether the user has an active premium plan (pro or gold)
@@ -113,6 +117,8 @@ class UserModel extends BaseModel {
       planExpiry: json['planExpiry'] != null
           ? DateTime.tryParse(json['planExpiry'].toString())
           : null,
+      isBanned: json['isBanned'] == true,
+      banReason: json['banReason'],
     );
   }
 
@@ -143,6 +149,8 @@ class UserModel extends BaseModel {
       'isAdmin': isAdmin,
       'plan': plan,
       'planExpiry': planExpiry?.toIso8601String(),
+      'isBanned': isBanned,
+      'banReason': banReason,
     };
   }
 
@@ -171,6 +179,8 @@ class UserModel extends BaseModel {
     bool? isAdmin,
     String? plan,
     DateTime? planExpiry,
+    bool? isBanned,
+    String? banReason,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -197,6 +207,8 @@ class UserModel extends BaseModel {
       isAdmin: isAdmin ?? this.isAdmin,
       plan: plan ?? this.plan,
       planExpiry: planExpiry ?? this.planExpiry,
+      isBanned: isBanned ?? this.isBanned,
+      banReason: banReason ?? this.banReason,
     );
   }
 }

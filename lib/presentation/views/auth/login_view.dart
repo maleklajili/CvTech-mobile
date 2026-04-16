@@ -127,10 +127,18 @@ class _LoginViewState extends State<LoginView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Logo/Icon
-                    Icon(
-                      Icons.person_outline,
-                      size: 80,
-                      color: AppColors.primaryColor,
+                    Center(
+                      child: Image.asset(
+                        'assets/logo/cvtech_logo.png',
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.person_outline,
+                          size: 80,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: Dimensions.heightMediumVertical),
 

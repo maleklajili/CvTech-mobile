@@ -1,12 +1,20 @@
-﻿import 'package:cv_tech/core/base/safe_change_notifier.dart';
+﻿import 'dart:async';
+import 'package:cv_tech/core/base/safe_change_notifier.dart';
+import 'package:cv_tech/core/services/socket_service.dart';
+import 'package:cv_tech/data/api/api_client.dart';
 import 'package:cv_tech/data/models/group_chat_model.dart';
 import 'package:cv_tech/data/repositories/group_chat_repository.dart';
 
 class GroupChatViewModel extends SafeChangeNotifier {
   final GroupChatRepository _repository;
+  final SocketService _socket = SocketService.instance;
+  final ApiClient _apiClient = ApiClient();
+  StreamSubscription<Map<String, dynamic>>? _groupMessageSub;
 
   GroupChatViewModel({GroupChatRepository? repository})
-      : _repository = repository ?? GroupChatRepository();
+      : _repository = repository ?? GroupChatRepository() {
+    _loadCurrentUserId();
+  }
 
   // State
   List<GroupChatMessage> _messages = [];
@@ -14,12 +22,19 @@ class GroupChatViewModel extends SafeChangeNotifier {
   bool _isSending = false;
   String? _error;
   String _currentGroupId = '';
+  String _currentUserId = '';
 
   // Getters
   List<GroupChatMessage> get messages => _messages;
   bool get isLoading => _isLoading;
   bool get isSending => _isSending;
   String? get error => _error;
+  String get currentUserId => _currentUserId;
+
+  Future<void> _loadCurrentUserId() async {
+    _currentUserId = await _apiClient.getUserId() ?? '';
+    notifyListeners();
+  }
 
   /// Load messages for a group
   Future<void> loadMessages(String groupId) async {
@@ -37,6 +52,25 @@ class GroupChatViewModel extends SafeChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+
+    _listenSocket(groupId);
+  }
+
+  void _listenSocket(String groupId) {
+    _groupMessageSub?.cancel();
+    _groupMessageSub = _socket.onGroupMessage.listen((data) {
+      final msgGroupId = data['groupId']?.toString() ?? data['group_id']?.toString() ?? '';
+      if (msgGroupId != groupId && msgGroupId.isNotEmpty) return;
+
+      try {
+        final msg = GroupChatMessage.fromJson(data);
+        final alreadyExists = _messages.any((m) => m.id == msg.id);
+        if (!alreadyExists) {
+          _messages.add(msg);
+          notifyListeners();
+        }
+      } catch (_) {}
+    });
   }
 
   /// Send a message
@@ -129,6 +163,12 @@ class GroupChatViewModel extends SafeChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _groupMessageSub?.cancel();
+    super.dispose();
   }
 
 }

@@ -135,6 +135,7 @@ class ApiEndpoints {
   // Profile endpoint
   static const String profile = '/profile';
   static const String profileById = '$profile/'; // + :userId
+  static const String profileCvScore = '$profile/cv-score';
   
   // Community endpoints
   static const String community = '/community';
@@ -214,6 +215,7 @@ class ApiEndpoints {
   static const String aiCvMyCvs = '$aiCv/my-cvs';
   static const String aiCvDelete = '$aiCv/delete/'; // + :id
   static const String aiCvDownloadPdf = '$aiCv/download-pdf/'; // + :id
+  static const String aiCvInfo = '$aiCv/cv-info';
 
   // Manual CV endpoints
   static const String manualCv = '/manual-cv';
@@ -257,6 +259,7 @@ class ApiEndpoints {
   static const String moderation = '/moderation';
   static const String moderationFlaggedPosts = '$moderation/flagged-posts';
   static const String moderationFlaggedUsers = '$moderation/flagged-users';
+  static const String moderationBannedUsers = '$moderation/banned-users';
   static const String moderationStats = '$moderation/stats';
   static const String moderationPostApprove = '$moderation/post/'; // + :id/approve
   static const String moderationPostReject = '$moderation/post/'; // + :id/reject
@@ -267,6 +270,11 @@ class ApiEndpoints {
   // Company admin endpoints
   static const String adminCompanyGetAll = '$company/getAll';
   static const String companyStats = '$company/stats';
+
+  // Chatbot AI endpoints
+  static const String chatbot = '/chatbot';
+  static const String chatbotMessage = '$chatbot/message';
+  static const String chatbotStatus = '$chatbot/status';
 
   // Notification endpoints
   static const String notifications = '/notifications';

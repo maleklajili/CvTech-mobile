@@ -96,6 +96,8 @@ class FlaggedUser {
   final String? banReason;
   final double fakeScore;
   final DateTime? createdAt;
+  final DateTime? bannedAt;
+  final int toxicPostCount;
 
   const FlaggedUser({
     required this.id,
@@ -108,6 +110,8 @@ class FlaggedUser {
     this.banReason,
     this.fakeScore = 0,
     this.createdAt,
+    this.bannedAt,
+    this.toxicPostCount = 0,
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -126,6 +130,10 @@ class FlaggedUser {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'])
           : null,
+      bannedAt: json['bannedAt'] != null
+          ? DateTime.tryParse(json['bannedAt'])
+          : null,
+      toxicPostCount: json['toxicPostCount'] ?? 0,
     );
   }
 }

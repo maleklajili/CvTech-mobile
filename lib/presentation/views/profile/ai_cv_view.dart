@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/services/pdf_download_service.dart';
@@ -508,25 +509,94 @@ class _AiCvContentState extends State<_AiCvContent> {
           ),
         ),
 
-        // CV Content
+        // CV Content — Dynamic rendering (HTML or Markdown)
         Expanded(
-          child: Markdown(
-            data: cv.content,
-            selectable: true,
-            padding: const EdgeInsets.all(16),
-            styleSheet: MarkdownStyleSheet(
-              h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              p: const TextStyle(fontSize: 14, height: 1.6),
-              listBullet: const TextStyle(fontSize: 14),
-              strong: const TextStyle(fontWeight: FontWeight.bold),
-              blockSpacing: 12,
-            ),
-          ),
+          child: _buildCvContent(cv.content),
         ),
       ],
     );
+  }
+
+  // ---- CV Content Renderer (HTML or Markdown) ----
+
+  Widget _buildCvContent(String content) {
+    // Detect if content is HTML (new template-based output)
+    bool isHtml = content.trim().startsWith('<!DOCTYPE') || 
+                  content.trim().startsWith('<html') ||
+                  content.trim().startsWith('<HTML');
+    
+    if (isHtml) {
+      // Render as HTML using flutter_html
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(8),
+        child: Html(
+          data: content,
+          style: {
+            "html": Style(
+              backgroundColor: Colors.white,
+              margin: Margins.all(0),
+              padding: HtmlPaddings.all(8),
+              fontSize: const FontSize(14),
+            ),
+            "body": Style(
+              backgroundColor: Colors.white,
+              margin: Margins.all(0),
+              padding: HtmlPaddings.all(8),
+            ),
+            "h1": Style(
+              fontSize: const FontSize(24),
+              fontWeight: FontWeight.bold,
+              margin: Margins.symmetric(vertical: 12),
+              color: Colors.black87,
+            ),
+            "h2": Style(
+              fontSize: const FontSize(20),
+              fontWeight: FontWeight.bold,
+              margin: Margins.symmetric(vertical: 10),
+              color: Colors.black87,
+            ),
+            "h3": Style(
+              fontSize: const FontSize(16),
+              fontWeight: FontWeight.w600,
+              margin: Margins.symmetric(vertical: 8),
+            ),
+            "p": Style(
+              fontSize: const FontSize(14),
+              lineHeight: const LineHeight(1.6),
+              margin: Margins.symmetric(vertical: 4),
+            ),
+            "li": Style(
+              fontSize: const FontSize(13),
+              lineHeight: const LineHeight(1.6),
+              margin: Margins.symmetric(vertical: 2),
+            ),
+            "strong": Style(fontWeight: FontWeight.bold),
+            "em": Style(fontStyle: FontStyle.italic),
+          },
+          onLinkTap: (url, _, __, ___) {
+            if (url != null) {
+              print('Link tapped: $url');
+            }
+          },
+        ),
+      );
+    } else {
+      // Render as Markdown (legacy support)
+      return Markdown(
+        data: content,
+        selectable: true,
+        padding: const EdgeInsets.all(16),
+        styleSheet: MarkdownStyleSheet(
+          h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          p: const TextStyle(fontSize: 14, height: 1.6),
+          listBullet: const TextStyle(fontSize: 14),
+          strong: const TextStyle(fontWeight: FontWeight.bold),
+          blockSpacing: 12,
+        ),
+      );
+    }
   }
 
   // ---- Helpers ----

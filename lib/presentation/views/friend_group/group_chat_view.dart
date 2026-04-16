@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/friend_group_model.dart';
 import 'package:cv_tech/presentation/views_models/group_chat/group_chat_view_model.dart';
+import 'package:cv_tech/core/utils/image_url_helper.dart';
 import 'package:cv_tech/presentation/widgets/reddit_feedback_widgets.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
@@ -158,54 +159,51 @@ class _GroupChatViewState extends State<GroupChatView> {
       ),
       body: Consumer<GroupChatViewModel>(
         builder: (context, vm, _) {
-          if (vm.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (vm.messages.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.chat_outlined,
-                    size: 56,
-                    color: AppTheme.textMutedColor,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Aucun message',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Commencez une conversation',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textMutedColor,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
           return Column(
             children: [
               Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  itemCount: vm.messages.length,
-                  itemBuilder: (context, index) {
-                    final message = vm.messages[index];
-                    return _buildMessageBubble(context, message, vm);
-                  },
-                ),
+                child: vm.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : vm.messages.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.chat_outlined,
+                                  size: 56,
+                                  color: AppTheme.textMutedColor,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Aucun message',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Commencez une conversation',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.textMutedColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
+                            itemCount: vm.messages.length,
+                            itemBuilder: (context, index) {
+                              final message = vm.messages[index];
+                              return _buildMessageBubble(context, message, vm);
+                            },
+                          ),
               ),
               Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -275,7 +273,7 @@ class _GroupChatViewState extends State<GroupChatView> {
     dynamic message,
     GroupChatViewModel vm,
   ) {
-    final isMine = false; // TODO: Check if message is from current user
+    final isMine = message.senderId == vm.currentUserId;
     final timeFormat = DateFormat('HH:mm');
     final time = timeFormat.format(message.sentAt);
 
@@ -290,20 +288,27 @@ class _GroupChatViewState extends State<GroupChatView> {
                 isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
               if (!isMine) ...[
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor:
-                      AppColors.primaryColor.withValues(alpha: 0.2),
-                  child: Text(
-                    message.senderName.isNotEmpty
-                        ? message.senderName[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                Builder(builder: (_) {
+                  final avatarUrl = ImageUrlHelper.resolveMaybeUrlSync(message.senderAvatar);
+                  return CircleAvatar(
+                    radius: 16,
+                    backgroundColor:
+                        AppColors.primaryColor.withValues(alpha: 0.2),
+                    backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                    onBackgroundImageError: avatarUrl != null ? (_, __) {} : null,
+                    child: avatarUrl == null
+                        ? Text(
+                            message.senderName.isNotEmpty
+                                ? message.senderName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        : null,
+                  );
+                }),
                 const SizedBox(width: 8),
               ],
               Flexible(

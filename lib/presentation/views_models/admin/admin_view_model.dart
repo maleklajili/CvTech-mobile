@@ -56,11 +56,13 @@ class AdminViewModel extends ChangeNotifier {
   ModerationStats _moderationStats = const ModerationStats();
   List<FlaggedPost> _flaggedPosts = [];
   List<FlaggedUser> _flaggedUsers = [];
-  int _moderationView = 0; // 0=posts, 1=users
+  List<FlaggedUser> _bannedUsers = [];
+  int _moderationView = 0; // 0=posts, 1=users, 2=banned/deactivated
 
   ModerationStats get moderationStats => _moderationStats;
   List<FlaggedPost> get flaggedPosts => _flaggedPosts;
   List<FlaggedUser> get flaggedUsers => _flaggedUsers;
+  List<FlaggedUser> get bannedUsers => _bannedUsers;
   int get moderationView => _moderationView;
 
   void setModerationView(int v) {
@@ -236,10 +238,12 @@ class AdminViewModel extends ChangeNotifier {
         _repo.getModerationStats(),
         _repo.getFlaggedPosts(),
         _repo.getFlaggedUsers(),
+        _repo.getBannedUsers(),
       ]);
       _moderationStats = results[0] as ModerationStats;
       _flaggedPosts = results[1] as List<FlaggedPost>;
       _flaggedUsers = results[2] as List<FlaggedUser>;
+      _bannedUsers = results[3] as List<FlaggedUser>;
       _state = AdminState.loaded;
     } catch (e) {
       _state = AdminState.error;
@@ -281,11 +285,13 @@ class AdminViewModel extends ChangeNotifier {
       await _repo.banUser(userId, reason: reason);
       final idx = _flaggedUsers.indexWhere((u) => u.id == userId);
       if (idx >= 0) {
-        _flaggedUsers[idx] = FlaggedUser.fromJson({
+        final bannedUser = FlaggedUser.fromJson({
           ..._flaggedUserToMap(_flaggedUsers[idx]),
           'isBanned': true,
           'banReason': reason,
         });
+        _flaggedUsers[idx] = bannedUser;
+        _bannedUsers.add(bannedUser);
       }
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -299,6 +305,9 @@ class AdminViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       await _repo.unbanUser(userId);
+      // Remove from banned list
+      _bannedUsers.removeWhere((u) => u.id == userId);
+      // Update in flagged list if present
       final idx = _flaggedUsers.indexWhere((u) => u.id == userId);
       if (idx >= 0) {
         _flaggedUsers[idx] = FlaggedUser.fromJson({
@@ -326,6 +335,8 @@ class AdminViewModel extends ChangeNotifier {
         'banReason': u.banReason,
         'fakeScore': u.fakeScore,
         'createdAt': u.createdAt?.toIso8601String(),
+        'bannedAt': u.bannedAt?.toIso8601String(),
+        'toxicPostCount': u.toxicPostCount,
       };
 
   // ── Companies ───────────────────────────────────────────────────────

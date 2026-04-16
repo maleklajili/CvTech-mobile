@@ -371,35 +371,31 @@ class _FriendGroupDetailViewState extends State<FriendGroupDetailView> {
                       padding: EdgeInsets.symmetric(vertical: 32),
                       child: Text('Aucun ami disponible'),
                     )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          height: 300,
-                          child: ListView.builder(
-                            itemCount: _availableFriends.length,
-                            itemBuilder: (context, index) {
-                              final friend = _availableFriends[index];
-                              final isSelected = _selectedMemberIds.contains(friend.id);
+                  : SizedBox(
+                      width: double.maxFinite,
+                      height: 300,
+                      child: ListView.builder(
+                        itemCount: _availableFriends.length,
+                        itemBuilder: (context, index) {
+                          final friend = _availableFriends[index];
+                          final isSelected = _selectedMemberIds.contains(friend.id);
 
-                              return CheckboxListTile(
-                                value: isSelected,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value == true) {
-                                      _selectedMemberIds.add(friend.id);
-                                    } else {
-                                      _selectedMemberIds.remove(friend.id);
-                                    }
-                                  });
-                                },
-                                title: Text(friend.fullName),
-                                subtitle: Text('@${friend.userName}'),
-                              );
+                          return CheckboxListTile(
+                            value: isSelected,
+                            onChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selectedMemberIds.add(friend.id);
+                                } else {
+                                  _selectedMemberIds.remove(friend.id);
+                                }
+                              });
                             },
-                          ),
-                        ),
-                      ],
+                            title: Text(friend.fullName),
+                            subtitle: Text('@${friend.userName}'),
+                          );
+                        },
+                      ),
                     ),
           actions: [
             TextButton(

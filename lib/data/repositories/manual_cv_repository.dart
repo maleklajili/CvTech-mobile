@@ -180,6 +180,28 @@ class ManualCvRepository {
     }
   }
 
+  /// Get the profile CV score aggregated from ALL profile collections.
+  /// Does not require a ManualCv — uses real profile data directly.
+  /// Returns a Map with: totalScore, maxScore, percentage, label, sections.
+  Future<Map<String, dynamic>> getProfileCvScore() async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.profileCvScore,
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return Map<String, dynamic>.from(data as Map);
+      }
+
+      throw Exception('Échec du calcul du score profil');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Exception _handleDioError(DioException e) {
     if (e.response?.data is Map) {
       final error = e.response!.data['error'];
