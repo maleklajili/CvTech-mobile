@@ -13,6 +13,7 @@ import 'package:cv_tech/data/models/profile/manual_cv_model.dart';
 import 'package:cv_tech/data/repositories/ai_cv_repository.dart';
 import 'package:cv_tech/data/repositories/manual_cv_repository.dart';
 import 'package:cv_tech/presentation/views/profile/manual_cv_form_view.dart';
+import 'package:cv_tech/presentation/views/payment/premium_main_view.dart';
 import 'package:cv_tech/presentation/views_models/profile/manual_cv_view_model.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/theme/app_theme.dart';
@@ -59,6 +60,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
 
   // Template state
   int _selectedTpl = 0; // index in _templates
+  String _filterCategory = 'Tous'; // gallery filter
   String _selectedLang = 'fr';
   final _jobCtrl = TextEditingController();
   Color _selectedColor = const Color(0xFF0A66C2); // default blue
@@ -137,6 +139,8 @@ class _CvBuilderViewState extends State<CvBuilderView>
   static const _planRank = {'free': 0, 'pro': 1, 'gold': 2};
 
   bool _canUseTpl(_Tpl tpl) {
+    // Free templates are always available
+    if (tpl.tier == 'free') return true;
     return (_planRank[_userPlan] ?? 0) >= (_planRank[tpl.tier] ?? 0);
   }
 
@@ -144,11 +148,20 @@ class _CvBuilderViewState extends State<CvBuilderView>
   late AnimationController _spinCtrl;
 
   static const _templates = [
-    _Tpl('standard', 'Standard', Color(0xFF0A66C2), Color(0xFF85B7EB), tier: 'free'),
-    _Tpl('modern', 'Moderne', Color(0xFF1D9E75), Color(0xFF9FE1CB), tier: 'pro'),
-    _Tpl('european', 'Européen', Color(0xFF2C2C2A), Color(0xFF888780), tier: 'gold'),
-    _Tpl('canadian', 'Canadien', Color(0xFF1E3A8A), Color(0xFF93C5FD), tier: 'pro'),
-    _Tpl('latex', 'LaTeX', Color(0xFF404040), Color(0xFFB4B2A9), tier: 'gold'),
+    _Tpl('standard', 'Standard', 'ATS-friendly, mise en page classique', 'Classique',
+        Color(0xFF1B2A4A), Color(0xFFC8973A), isDark: true, tier: 'free'),
+    _Tpl('modern', 'Moderne', 'Sidebar colorée, design contemporain', 'Moderne',
+        Color(0xFF0F172A), Color(0xFF3B82F6), isDark: true, tier: 'free'),
+    _Tpl('modern_dark', 'Dark Élégant', 'Fond sombre, accents dorés', 'Moderne',
+        Color(0xFF0F0F12), Color(0xFFC8A96E), isDark: true, tier: 'free'),
+    _Tpl('european', 'Européen', 'Format Europass, sidebar foncée', 'Classique',
+        Color(0xFF1E293B), Color(0xFF60A5FA), isDark: true, tier: 'free'),
+    _Tpl('canadian', 'Canadien', 'Format nord-américain, optimisé ATS', 'Classique',
+        Color(0xFF1E3A8A), Color(0xFF93C5FD), isDark: true, tier: 'free'),
+    _Tpl('latex', 'LaTeX Académique', 'Style universitaire, sobre et dense', 'Académique',
+        Color(0xFFF8F8F8), Color(0xFF0056A3), isDark: false, tier: 'free'),
+    _Tpl('minimal', 'Minimal', 'Ultra-épuré, typographie raffinée', 'Minimaliste',
+        Color(0xFFFAF9F7), Color(0xFF2D2D2D), isDark: false, tier: 'free'),
   ];
 
   @override
@@ -192,43 +205,61 @@ class _CvBuilderViewState extends State<CvBuilderView>
       _ScanItem('Projets & certifications', Icons.folder_outlined),
     ];
 
+    // Kick off the profile fetch IMMEDIATELY so it runs in parallel
+    // with the scan animations instead of being serialized after them.
+    // We use `buildFromProfile` (not `importFromProfile`) so no ManualCv
+    // record is created in the DB at this stage — the CV is built locally
+    // from the raw profile endpoints (experiences, educations, skills,
+    // technical/personal skills, languages, projects + embedded
+    // certifications, user). The DB record is only created later, when
+    // the user actually clicks "Générer".
+    final tpl = _templates[_selectedTpl];
+    final importFuture = _manualRepo
+        .buildFromProfile(format: tpl.key, language: _selectedLang)
+        .then<Object?>((cv) => cv)
+        .catchError((Object e) => e);
+
+    // Animate the phases with a short stagger. Keep it snappy (220ms) so
+    // the UI feels responsive even on slow networks.
+    const phaseDelay = Duration(milliseconds: 220);
+    var apiDone = false;
+    importFuture.whenComplete(() => apiDone = true);
+
     for (var i = 0; i < phases.length; i++) {
       if (!mounted) return;
-      setState(() => _scanItems.add(phases[i]));
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      // Mark previous as done
-      if (i > 0) setState(() => _scanItems[i - 1].status = _ScanStatus.done);
-      setState(() => _scanItems[i].status = _ScanStatus.loading);
+      _scanItems.add(phases[i]);
+      if (i > 0) _scanItems[i - 1].status = _ScanStatus.done;
+      _scanItems[i].status = _ScanStatus.loading;
+      setState(() {});
+      // If the API finished early, don't keep waiting on fake animations.
+      if (apiDone) continue;
+      await Future.delayed(phaseDelay);
     }
 
-    // API call
-    try {
-      final tpl = _templates[_selectedTpl];
-      final cv = await _manualRepo.importFromProfile(
-        format: tpl.key,
-        language: _selectedLang,
-      );
-      if (!mounted) return;
-      // mark all done
-      for (var s in _scanItems) {
-        s.status = _ScanStatus.done;
-      }
+    // Wait for the API call to finish (may already be done).
+    final result = await importFuture;
+    if (!mounted) return;
+
+    if (result is Exception || result is Error) {
       setState(() {
-        _importedCv = cv;
-        _generatedId = cv.id;
-        _generatedType = 'manual';
+        _importError = result.toString();
         _importing = false;
       });
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (mounted) _goTo(2);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _importError = e.toString();
-        _importing = false;
-      });
+      return;
     }
+
+    final cv = result as ManualCvModel;
+    for (var s in _scanItems) {
+      s.status = _ScanStatus.done;
+    }
+    setState(() {
+      _importedCv = cv;
+      _generatedId = cv.id;
+      _generatedType = 'manual';
+      _importing = false;
+    });
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (mounted) _goTo(2);
   }
 
   // ─── STEP 3 : generate / customize ────────────────────────────────
@@ -262,7 +293,22 @@ class _CvBuilderViewState extends State<CvBuilderView>
           _generatedType = 'ai';
         });
       } else if (_importedCv != null) {
-        if (_importedCv!.format != tpl.key ||
+        // The imported CV is built locally from the profile (no DB record
+        // yet). Either create it now with the selected template/language,
+        // or update the existing record if it was already persisted
+        // (e.g. returning users that re-enter this step).
+        if (_importedCv!.id == null) {
+          final payload = _importedCv!.toMap();
+          payload['format'] = tpl.key;
+          payload['language'] = _selectedLang;
+          final created = await _manualRepo.create(payload);
+          if (!mounted) return;
+          setState(() {
+            _importedCv = created;
+            _generatedId = created.id;
+            _generatedType = 'manual';
+          });
+        } else if (_importedCv!.format != tpl.key ||
             _importedCv!.language != _selectedLang) {
           await _manualRepo.update(_importedCv!.id!, {
             'format': tpl.key,
@@ -270,11 +316,16 @@ class _CvBuilderViewState extends State<CvBuilderView>
           });
         }
       }
-      await _loadPdf();
+      // Navigate to the preview/download step IMMEDIATELY so the user
+      // doesn't stay stuck on "Génération en cours…" while the PDF is
+      // being built server-side. The PDF loads in the background and
+      // appears when ready.
       if (!mounted) return;
       setState(() => _generating = false);
       _fetchCvInfo(); // refresh coin balance
       _goTo(4);
+      // Kick off PDF rendering in the background (non-blocking).
+      unawaited(_loadPdf());
     } catch (e) {
       if (!mounted) return;
       setState(() => _generating = false);
@@ -356,7 +407,12 @@ class _CvBuilderViewState extends State<CvBuilderView>
             ),
             onPressed: () {
               Navigator.pop(ctx);
-              // TODO: Navigate to subscription page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PremiumMainView(),
+                ),
+              );
             },
             child: const Text('Mettre à niveau'),
           ),
@@ -989,6 +1045,17 @@ class _CvBuilderViewState extends State<CvBuilderView>
     else infoTips.add('Ajoutez votre nom complet');
     if (pi.professionalTitle != null && pi.professionalTitle!.isNotEmpty) {
       info += 3;
+      final title = pi.professionalTitle!;
+      // Detect spaced-out letters pattern
+      if (RegExp(r'\w\s\w\s\w\s\w').hasMatch(title) && title.length > 20) {
+        infoTips.add(
+            'Vérifiez la typographie du titre — les espaces artificiels viennent souvent d\'un export PDF mal paramétré');
+      }
+      // Detect common typos
+      if (RegExp(r'develop{1,2}er', caseSensitive: false).hasMatch(title)) {
+        infoTips.add(
+            'Corrigez l\'orthographe : « full stack developper » → « Développeur Full Stack »');
+      }
     } else {
       infoTips.add('Ajoutez un titre professionnel');
     }
@@ -1028,6 +1095,19 @@ class _CvBuilderViewState extends State<CvBuilderView>
       } else if (summary.length > 50) {
         bioTips.add('Un résumé détaillé améliore votre score (>150 car.)');
       }
+      // Check if summary is duplicated in experience descriptions
+      if (summary.length > 30) {
+        final summaryLower = summary.toLowerCase();
+        final duplicated = cv.experiences.any(
+          (e) =>
+              e.description != null &&
+              e.description!.toLowerCase().contains(summaryLower),
+        );
+        if (duplicated) {
+          bioTips.add(
+              'Ne répétez pas le résumé dans vos expériences — chaque section doit avoir un contenu unique');
+        }
+      }
     } else {
       bioTips.add('Ajoutez un résumé professionnel');
     }
@@ -1060,6 +1140,34 @@ class _CvBuilderViewState extends State<CvBuilderView>
       } else {
         expTips.add('Ajoutez des descriptions à vos expériences');
       }
+      // Date consistency: detect future dates
+      final now = DateTime.now();
+      final hasFutureDate = cv.experiences.any((e) {
+        final end = e.endDate;
+        if (end == null || end.isEmpty) return false;
+        if (RegExp(r'présent|present|actuel', caseSensitive: false)
+            .hasMatch(end)) return false;
+        final d = DateTime.tryParse(end);
+        return d != null && d.isAfter(now);
+      });
+      if (hasFutureDate) {
+        expTips.add(
+            'Corrigez les dates futures dans vos expériences — utilisez le format MM/AAAA');
+      }
+      // Check descriptions use action verbs
+      final actionVerbs = RegExp(
+          r'^(développ|conç|créé|géré|mis en|réalis|implément|optimi|supervis|coordonn|analys|design|built|develop|managed|created|led|implement)',
+          caseSensitive: false);
+      final weakDescs = cv.experiences
+          .where((e) =>
+              e.description != null &&
+              e.description!.isNotEmpty &&
+              !actionVerbs.hasMatch(e.description!.trim()))
+          .length;
+      if (weakDescs > 0) {
+        expTips.add(
+            'Utilisez des verbes d\'action : « Développement d\'un dashboard React → réduction de 35% du temps de chargement »');
+      }
     } else {
       expTips.add('Ajoutez vos expériences professionnelles');
     }
@@ -1089,6 +1197,19 @@ class _CvBuilderViewState extends State<CvBuilderView>
           .length;
       if (withLevel == cv.skills.length) skill += 5;
       else skillTips.add('Précisez le niveau de chaque compétence');
+      // Suggest domain grouping when many skills
+      if (cv.skills.length >= 5) {
+        skillTips.add(
+            'Regroupez vos compétences par domaine : Mobile, Frameworks, Backend, DevOps…');
+      }
+      // Detect awkward parenthesized formats
+      final awkward = cv.skills.any(
+        (s) => RegExp(r'\w\(').hasMatch(s.name),
+      );
+      if (awkward) {
+        skillTips.add(
+            'Évitez les parenthèses collées : « ci/cd(DevOps) » → « CI/CD » dans le domaine DevOps');
+      }
     } else {
       skillTips.add('Ajoutez vos compétences techniques');
     }
@@ -1113,6 +1234,20 @@ class _CvBuilderViewState extends State<CvBuilderView>
           cv.educations.where((e) => e.startDate.isNotEmpty).length;
       if (withDates == cv.educations.length) edu += 4;
       else eduTips.add('Ajoutez les dates de vos formations');
+      // Check date consistency in education
+      final now = DateTime.now();
+      final hasFutureEdu = cv.educations.any((e) {
+        final end = e.endDate;
+        if (end == null || end.isEmpty) return false;
+        if (RegExp(r'présent|present|actuel|en cours', caseSensitive: false)
+            .hasMatch(end)) return false;
+        final d = DateTime.tryParse(end);
+        return d != null && d.isAfter(now);
+      });
+      if (hasFutureEdu) {
+        eduTips.add(
+            'Vérifiez les dates de formation — les dates futures doivent être marquées « En cours »');
+      }
     } else {
       eduTips.add('Ajoutez vos formations');
     }
@@ -1892,166 +2027,74 @@ class _CvBuilderViewState extends State<CvBuilderView>
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.textColor)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E1),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: const Color(0xFFFFD54F), width: 1),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.monetization_on_rounded,
-                        size: 13, color: Color(0xFFFFA000)),
-                    const SizedBox(width: 3),
-                    Text('$_userCoins',
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFFF57F17))),
-                  ],
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 10),
 
-          // Template grid  — 3 columns
+          // Category filter chips
           SizedBox(
-            height: 115,
-            child: ListView.separated(
+            height: 32,
+            child: ListView(
               scrollDirection: Axis.horizontal,
-              itemCount: _templates.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final t = _templates[i];
-                final active = i == _selectedTpl;
-                final locked = !_canUseTpl(t);
+              children: ['Tous', 'Classique', 'Moderne', 'Académique', 'Minimaliste']
+                  .map((cat) {
+                final active = _filterCategory == cat;
                 return GestureDetector(
-                  onTap: () {
-                    if (locked) {
-                      _showUpgradeDialog(t.tier);
-                    } else {
-                      setState(() => _selectedTpl = i);
-                    }
-                  },
-                  child: Opacity(
-                    opacity: locked ? 0.7 : 1.0,
-                    child: Container(
-                      width: 88,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: locked
-                              ? Colors.grey.shade300
-                              : active
-                                  ? _kBlue
-                                  : AppTheme.dividerColor,
-                          width: active ? 2 : 1,
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        children: [
-                          Column(
-                            children: [
-                              // Template preview
-                              Container(
-                                height: 56,
-                                color: t.bg,
-                                padding: const EdgeInsets.all(6),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                        width: 42,
-                                        height: 4,
-                                        decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(2))),
-                                    const SizedBox(height: 3),
-                                    Container(
-                                        width: 30,
-                                        height: 3,
-                                        decoration: BoxDecoration(
-                                            color: t.accent,
-                                            borderRadius:
-                                                BorderRadius.circular(2))),
-                                    const Spacer(),
-                                    Container(
-                                        width: 50,
-                                        height: 2,
-                                        decoration: BoxDecoration(
-                                            color: Colors.white.withAlpha(100),
-                                            borderRadius:
-                                                BorderRadius.circular(2))),
-                                    const SizedBox(height: 2),
-                                    Container(
-                                        width: 36,
-                                        height: 2,
-                                        decoration: BoxDecoration(
-                                            color: Colors.white.withAlpha(70),
-                                            borderRadius:
-                                                BorderRadius.circular(2))),
-                                  ],
-                                ),
-                              ),
-                              // Badge
-                              Expanded(
-                                child: Container(
-                                  color: AppTheme.cardColor,
-                                  alignment: Alignment.center,
-                                  child: locked
-                                      ? _tierBadge(t.tier)
-                                      : Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: active ? _kBlue : _kBlueBg,
-                                            borderRadius:
-                                                BorderRadius.circular(99),
-                                          ),
-                                          child: Text(
-                                            active ? 'Sélectionné' : t.label,
-                                            style: TextStyle(
-                                              fontSize: 8,
-                                              fontWeight: FontWeight.w600,
-                                              color: active
-                                                  ? Colors.white
-                                                  : _kBlueMid,
-                                            ),
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          // Lock overlay
-                          if (locked)
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withAlpha(140),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Icon(Icons.lock_rounded,
-                                    size: 12, color: Colors.white),
-                              ),
-                            ),
-                        ],
+                  onTap: () => setState(() => _filterCategory = cat),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 7),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: active ? _kBlue : AppTheme.cardColor,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(
+                        color: active ? _kBlue : AppTheme.dividerColor,
                       ),
                     ),
+                    child: Text(cat,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                          color: active ? Colors.white : AppTheme.textMutedColor,
+                        )),
                   ),
                 );
-              },
+              }).toList(),
             ),
           ),
+          const SizedBox(height: 10),
+
+          // Template 2-column gallery grid
+          Builder(builder: (context) {
+            final filtered = _filterCategory == 'Tous'
+                ? _templates
+                : _templates.where((t) => t.category == _filterCategory).toList();
+            final rows = <Widget>[];
+            for (var i = 0; i < filtered.length; i += 2) {
+              final left = filtered[i];
+              final right = i + 1 < filtered.length ? filtered[i + 1] : null;
+              rows.add(
+                Row(
+                  children: [
+                    Expanded(child: _tplCard(left)),
+                    const SizedBox(width: 10),
+                    Expanded(child: right != null ? _tplCard(right) : const SizedBox()),
+                  ],
+                ),
+              );
+              if (i + 2 < filtered.length) rows.add(const SizedBox(height: 10));
+            }
+            if (rows.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text('Aucun template dans cette catégorie',
+                      style: TextStyle(fontSize: 10, color: AppTheme.textMutedColor)),
+                ),
+              );
+            }
+            return Column(children: rows);
+          }),
           const SizedBox(height: 14),
 
           // Language selector
@@ -2281,31 +2324,6 @@ class _CvBuilderViewState extends State<CvBuilderView>
                         const Text('Générer mon CV',
                             style: TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.w600)),
-                        if (widget.useAi) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(50),
-                              borderRadius: BorderRadius.circular(99),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.monetization_on_rounded,
-                                    size: 11, color: Colors.white70),
-                                const SizedBox(width: 2),
-                                Text(
-                                    '${(_cvInfo?['generateCost'] as num?)?.toInt() ?? 50}',
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white70)),
-                              ],
-                            ),
-                          ),
-                        ],
                         const Text(' →',
                             style: TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.w600)),
@@ -2314,6 +2332,186 @@ class _CvBuilderViewState extends State<CvBuilderView>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Finds the real index in _templates based on key (needed after filtering)
+  int _indexOfTpl(_Tpl tpl) =>
+      _templates.indexWhere((t) => t.key == tpl.key);
+
+  Widget _tplCard(_Tpl t) {
+    final idx = _indexOfTpl(t);
+    final active = idx == _selectedTpl;
+    final locked = !_canUseTpl(t);
+    final nameColor = t.isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final subtitleColor = t.accent;
+    final lineColor = t.isDark
+        ? Colors.white.withAlpha(80)
+        : Colors.black.withAlpha(40);
+
+    return GestureDetector(
+      onTap: () {
+        if (locked) {
+          _showUpgradeDialog(t.tier);
+        } else {
+          setState(() => _selectedTpl = idx);
+        }
+      },
+      child: Opacity(
+        opacity: locked ? 0.75 : 1.0,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: active ? _kBlue : AppTheme.dividerColor,
+              width: active ? 2.0 : 1.0,
+            ),
+            color: AppTheme.cardColor,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Mini preview thumbnail
+                  Container(
+                    height: 110,
+                    color: t.bg,
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name bar
+                        Container(
+                          width: 80,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: nameColor,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Subtitle bar
+                        Container(
+                          width: 54,
+                          height: 3.5,
+                          decoration: BoxDecoration(
+                            color: subtitleColor,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Content lines
+                        for (int i = 0; i < 4; i++) ...[
+                          Row(children: [
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: subtitleColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              width: (i % 2 == 0) ? 70.0 : 50.0,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: lineColor,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ]),
+                          const SizedBox(height: 5),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // Info row
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(t.label,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.textColor,
+                                  )),
+                            ),
+                            _tierBadge(t.tier),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(t.description,
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              color: AppTheme.textMutedColor,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 6),
+                        // Category chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _kBlueBg,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(t.category,
+                              style: const TextStyle(
+                                  fontSize: 7.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: _kBlueDark)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Lock overlay
+              if (locked)
+                Positioned(
+                  top: 7,
+                  right: 7,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(160),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.lock_rounded,
+                        size: 14, color: Colors.white),
+                  ),
+                ),
+
+              // Selected checkmark
+              if (active && !locked)
+                Positioned(
+                  top: 7,
+                  right: 7,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: _kBlue,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check_rounded,
+                        size: 11, color: Colors.white),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2653,10 +2851,22 @@ class _ScanItem {
 class _Tpl {
   final String key;
   final String label;
+  final String description;
+  final String category;
   final Color bg;
   final Color accent;
+  final bool isDark;
   final String tier; // 'free', 'pro', 'gold'
-  const _Tpl(this.key, this.label, this.bg, this.accent, {this.tier = 'free'});
+  const _Tpl(
+    this.key,
+    this.label,
+    this.description,
+    this.category,
+    this.bg,
+    this.accent, {
+    this.isDark = false,
+    this.tier = 'free',
+  });
 }
 
 class _ScoreSection {
