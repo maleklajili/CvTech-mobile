@@ -11,6 +11,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:cv_tech/core/config/network_config.dart';
 import 'package:cv_tech/core/utils/image_url_helper.dart';
 
+class _CachedResponse {
+  final Response<dynamic> response;
+  final DateTime at;
+  const _CachedResponse(this.response, this.at);
+}
+
 class ApiClient {
   static ApiClient? _instance;
   late final Dio _dio;
@@ -22,6 +28,34 @@ class ApiClient {
   /// Key = method + full URL + auth header fingerprint.
   final Map<String, Completer<Response<dynamic>>> _inflightGets =
       <String, Completer<Response<dynamic>>>{};
+
+  /// Short-lived GET response cache.
+  /// When two widgets ask for the same GET within [_getCacheTtl], the second
+  /// call is served from memory instead of hitting the backend.
+  /// Per-endpoint opt-out via `extra['dedupe'] == false`.
+  /// Per-endpoint custom TTL via `extra['cacheTtlMs']`.
+  final Map<String, _CachedResponse> _getCache =
+      <String, _CachedResponse>{};
+  static const Duration _defaultGetCacheTtl = Duration(seconds: 5);
+
+  /// Endpoints that change often and should never be cached
+  /// (auth, write confirmations, long-running generation).
+  static final Set<String> _noCacheEndpoints = <String>{
+    '/auth/',
+    '/ai-cv/generate',
+    '/ai-cv/reformulate',
+    '/ai-cv/download',
+    '/manual-cv/download',
+    '/messages/chats', // Real-time via socket, do not double-cache
+    '/notifications/unread', // Badge must be fresh
+  };
+
+  bool _isCacheable(String path) {
+    for (final prefix in _noCacheEndpoints) {
+      if (path.startsWith(prefix)) return false;
+    }
+    return true;
+  }
 
   /// Stream that emits when session expires (401 + refresh failed).
   /// AuthBloc listens to this to force logout.
@@ -84,6 +118,31 @@ class ApiClient {
           if (options.method.toUpperCase() == 'GET' &&
               options.extra['dedupe'] != false) {
             final key = _dedupeKey(options);
+
+            // (1) Short-TTL cache: same GET called a few seconds ago?
+            if (_isCacheable(options.path)) {
+              final cached = _getCache[key];
+              final ttlMs = (options.extra['cacheTtlMs'] as int?) ??
+                  _defaultGetCacheTtl.inMilliseconds;
+              if (cached != null &&
+                  DateTime.now().difference(cached.at).inMilliseconds <
+                      ttlMs) {
+                return handler.resolve(
+                  Response<dynamic>(
+                    data: cached.response.data,
+                    statusCode: cached.response.statusCode,
+                    statusMessage: cached.response.statusMessage,
+                    headers: cached.response.headers,
+                    requestOptions: options,
+                    extra: cached.response.extra,
+                    isRedirect: cached.response.isRedirect,
+                    redirects: cached.response.redirects,
+                  ),
+                );
+              }
+            }
+
+            // (2) In-flight dedup: another identical GET currently running?
             final pending = _inflightGets[key];
             if (pending != null) {
               try {
@@ -120,6 +179,14 @@ class ApiClient {
                   true) {
             final c = _inflightGets.remove(key);
             if (c != null && !c.isCompleted) c.complete(response);
+            // Persist to short-TTL cache only on success.
+            if (_isCacheable(response.requestOptions.path) &&
+                response.statusCode != null &&
+                response.statusCode! >= 200 &&
+                response.statusCode! < 300) {
+              _getCache[key] = _CachedResponse(response, DateTime.now());
+              _pruneCache();
+            }
           }
           return handler.next(response);
         },
@@ -235,6 +302,25 @@ class ApiClient {
         ? auth.substring(auth.length - 16)
         : '';
     return 'GET ${options.baseUrl}${options.path}?$sortedQuery#$authTail';
+  }
+
+  /// Keep the short-TTL cache from growing unbounded.
+  void _pruneCache() {
+    if (_getCache.length < 64) return;
+    final now = DateTime.now();
+    _getCache.removeWhere(
+      (_, v) => now.difference(v.at) > _defaultGetCacheTtl,
+    );
+  }
+
+  /// Clear the GET cache. Call after mutations (POST/PUT/DELETE) that change
+  /// data the user is about to re-read, to avoid serving stale data.
+  void invalidateGetCache([String? pathPrefix]) {
+    if (pathPrefix == null) {
+      _getCache.clear();
+      return;
+    }
+    _getCache.removeWhere((key, _) => key.contains(pathPrefix));
   }
 
   bool _isAndroidLocalhostUrl(String? url) {
