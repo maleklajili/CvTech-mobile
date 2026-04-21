@@ -16,6 +16,13 @@ class ApiClient {
   late final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
+  /// In-flight GET request de-duplication.
+  /// When two widgets ask for the same GET /path?query at the same time,
+  /// only one HTTP request is sent and the response is shared.
+  /// Key = method + full URL + auth header fingerprint.
+  final Map<String, Completer<Response<dynamic>>> _inflightGets =
+      <String, Completer<Response<dynamic>>>{};
+
   /// Stream that emits when session expires (401 + refresh failed).
   /// AuthBloc listens to this to force logout.
   static final StreamController<void> _sessionExpiredController =
@@ -69,9 +76,63 @@ class ApiClient {
               options.headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
             }
           }
+
+          // ─── GET deduplication ────────────────────────────────────────
+          // If an identical GET is already in flight, piggy-back on it
+          // instead of firing a new HTTP request. Saves 2-3x duplicate hits
+          // from widgets watching the same data (current-user, friends…).
+          if (options.method.toUpperCase() == 'GET' &&
+              options.extra['dedupe'] != false) {
+            final key = _dedupeKey(options);
+            final pending = _inflightGets[key];
+            if (pending != null) {
+              try {
+                final shared = await pending.future;
+                // Clone the shared response so each caller gets its own
+                // RequestOptions reference (some callers mutate it).
+                return handler.resolve(
+                  Response<dynamic>(
+                    data: shared.data,
+                    statusCode: shared.statusCode,
+                    statusMessage: shared.statusMessage,
+                    headers: shared.headers,
+                    requestOptions: options,
+                    extra: shared.extra,
+                    isRedirect: shared.isRedirect,
+                    redirects: shared.redirects,
+                  ),
+                );
+              } catch (e) {
+                // Pending request failed — let this one proceed fresh.
+              }
+            }
+            final completer = Completer<Response<dynamic>>();
+            _inflightGets[key] = completer;
+            options.extra['_dedupe_key'] = key;
+            options.extra['_dedupe_completer_owner'] = true;
+          }
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          final key = response.requestOptions.extra['_dedupe_key'];
+          if (key is String &&
+              response.requestOptions.extra['_dedupe_completer_owner'] ==
+                  true) {
+            final c = _inflightGets.remove(key);
+            if (c != null && !c.isCompleted) c.complete(response);
+          }
+          return handler.next(response);
+        },
         onError: (error, handler) async {
+          // Release the in-flight dedupe slot on error so the next caller
+          // can retry with a fresh request.
+          final key = error.requestOptions.extra['_dedupe_key'];
+          if (key is String &&
+              error.requestOptions.extra['_dedupe_completer_owner'] == true) {
+            final c = _inflightGets.remove(key);
+            if (c != null && !c.isCompleted) c.completeError(error);
+          }
+
           final attemptedFallback =
               error.requestOptions.extra['android_network_fallback'] == true;
 
@@ -157,6 +218,23 @@ class ApiClient {
   factory ApiClient() {
     _instance ??= ApiClient._internal();
     return _instance!;
+  }
+
+  /// Builds a stable key for de-duplicating concurrent GET requests.
+  /// Includes method, full URL (base + path + query) and the auth bearer
+  /// fingerprint so requests for different users are never shared.
+  String _dedupeKey(RequestOptions options) {
+    final sortedQuery = (options.queryParameters.entries.toList()
+          ..sort((a, b) => a.key.compareTo(b.key)))
+        .map((e) => '${e.key}=${e.value}')
+        .join('&');
+    final auth = options.headers[HttpHeaders.authorizationHeader]?.toString();
+    // Hash the last 16 chars of the token — enough to separate users
+    // without keeping the full secret in a map key.
+    final authTail = auth != null && auth.length > 16
+        ? auth.substring(auth.length - 16)
+        : '';
+    return 'GET ${options.baseUrl}${options.path}?$sortedQuery#$authTail';
   }
 
   bool _isAndroidLocalhostUrl(String? url) {
