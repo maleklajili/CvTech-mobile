@@ -78,11 +78,24 @@ class AdminViewModel extends ChangeNotifier {
   String? get companyFilter => _companyFilter;
 
   // ── Tab navigation ──────────────────────────────────────────────────
-  void switchTab(AdminTab tab) {
+  // Tracks which tabs have been loaded at least once to avoid redundant
+  // API calls when the user taps back and forth between tabs.
+  final Set<AdminTab> _loadedTabs = <AdminTab>{};
+
+  void switchTab(AdminTab tab, {bool forceReload = false}) {
     if (_currentTab == tab) return;
     _currentTab = tab;
     notifyListeners();
+    // Skip refetch if the tab's data is already in memory unless the caller
+    // explicitly asked for a refresh (pull-to-refresh etc.).
+    if (!forceReload && _loadedTabs.contains(tab)) return;
     _loadTabData();
+  }
+
+  // Exposed for pull-to-refresh on the active tab.
+  Future<void> refreshCurrentTab() async {
+    _loadedTabs.remove(_currentTab);
+    await _loadTabData();
   }
 
   // ── Initial load ────────────────────────────────────────────────────
@@ -91,6 +104,8 @@ class AdminViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadTabData() async {
+    // Prevent overlapping loads when switchTab races with init / resume.
+    if (_state == AdminState.loading) return;
     switch (_currentTab) {
       case AdminTab.dashboard:
         await loadDashboard();
@@ -107,6 +122,9 @@ class AdminViewModel extends ChangeNotifier {
       case AdminTab.companies:
         await loadCompanies();
         break;
+    }
+    if (_state == AdminState.loaded) {
+      _loadedTabs.add(_currentTab);
     }
   }
 
@@ -354,6 +372,32 @@ class AdminViewModel extends ChangeNotifier {
       _state = AdminState.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     }
+    notifyListeners();
+  }
+
+  Future<void> approveCompany(String companyId, {String? notes}) async {
+    _actionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.verifyCompany(companyId, status: 'verified', notes: notes);
+      _companies.removeWhere((c) => c['_id'] == companyId);
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    }
+    _actionLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> rejectCompany(String companyId, {String? notes}) async {
+    _actionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.verifyCompany(companyId, status: 'rejected', notes: notes);
+      _companies.removeWhere((c) => c['_id'] == companyId);
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    }
+    _actionLoading = false;
     notifyListeners();
   }
 }

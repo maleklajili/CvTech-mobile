@@ -20,11 +20,37 @@ class BottomNavigationBarViewModel extends ScrollListener
       : _messageRepository = MessageRepository(),
         _connectionRepository = ConnectionRepository() {
     initScrollListener();
-    _refreshDynamicBadges();
+    // Delay first badge refresh to avoid flooding backend on app startup
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!_disposed) _refreshDynamicBadges();
+    });
+    _startBadgeTimer();
+  }
+
+  void _startBadgeTimer() {
+    _badgeTimer?.cancel();
     _badgeTimer = Timer.periodic(
       const Duration(seconds: 60),
-      (_) => _refreshDynamicBadges(),
+      (_) {
+        if (_disposed) return;
+        _refreshDynamicBadges();
+      },
     );
+  }
+
+  /// Pauses the badge polling loop. Call when the app goes to background
+  /// to avoid wasting bandwidth on invisible UI.
+  void pauseBadgePolling() {
+    _badgeTimer?.cancel();
+    _badgeTimer = null;
+  }
+
+  /// Resumes the badge polling loop. Safe to call multiple times.
+  void resumeBadgePolling() {
+    if (_disposed) return;
+    if (_badgeTimer != null && _badgeTimer!.isActive) return;
+    _refreshDynamicBadges();
+    _startBadgeTimer();
   }
 
   int currentIndex = 0;
