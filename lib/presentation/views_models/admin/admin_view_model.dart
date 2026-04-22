@@ -78,24 +78,11 @@ class AdminViewModel extends ChangeNotifier {
   String? get companyFilter => _companyFilter;
 
   // ── Tab navigation ──────────────────────────────────────────────────
-  // Tracks which tabs have been loaded at least once to avoid redundant
-  // API calls when the user taps back and forth between tabs.
-  final Set<AdminTab> _loadedTabs = <AdminTab>{};
-
-  void switchTab(AdminTab tab, {bool forceReload = false}) {
+  void switchTab(AdminTab tab) {
     if (_currentTab == tab) return;
     _currentTab = tab;
     notifyListeners();
-    // Skip refetch if the tab's data is already in memory unless the caller
-    // explicitly asked for a refresh (pull-to-refresh etc.).
-    if (!forceReload && _loadedTabs.contains(tab)) return;
     _loadTabData();
-  }
-
-  // Exposed for pull-to-refresh on the active tab.
-  Future<void> refreshCurrentTab() async {
-    _loadedTabs.remove(_currentTab);
-    await _loadTabData();
   }
 
   // ── Initial load ────────────────────────────────────────────────────
@@ -104,8 +91,6 @@ class AdminViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadTabData() async {
-    // Prevent overlapping loads when switchTab races with init / resume.
-    if (_state == AdminState.loading) return;
     switch (_currentTab) {
       case AdminTab.dashboard:
         await loadDashboard();
@@ -122,9 +107,6 @@ class AdminViewModel extends ChangeNotifier {
       case AdminTab.companies:
         await loadCompanies();
         break;
-    }
-    if (_state == AdminState.loaded) {
-      _loadedTabs.add(_currentTab);
     }
   }
 

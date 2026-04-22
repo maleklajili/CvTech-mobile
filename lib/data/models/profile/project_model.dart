@@ -35,6 +35,33 @@ class ProjectModel extends BaseModel {
     return [];
   }
 
+  /// Tolère les valeurs booléennes mal typées renvoyées par l'API
+  /// (ex: "true", "1", 0, null, "fff" → false) pour éviter les crashs
+  /// "type 'String' is not a subtype of type 'bool?'".
+  static bool _parseBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final v = value.trim().toLowerCase();
+      if (v == 'true' || v == '1' || v == 'yes') return true;
+      if (v == 'false' || v == '0' || v == 'no' || v.isEmpty) return false;
+    }
+    return fallback;
+  }
+
+  static bool? _parseBoolOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final v = value.trim().toLowerCase();
+      if (v.isEmpty) return null;
+      if (v == 'true' || v == '1' || v == 'yes') return true;
+      if (v == 'false' || v == '0' || v == 'no') return false;
+    }
+    return null;
+  }
+
   static DateTime? _parseDateTime(dynamic dateString) {
     if (dateString == null || (dateString is String && dateString.isEmpty)) {
       return null;
@@ -90,8 +117,8 @@ class ProjectModel extends BaseModel {
       image: json['image'],
       liveUrl: json['liveUrl'],
       githubUrl: json['githubUrl'],
-      current: json['current'] ?? false,
-      featured: json['featured'],
+      current: _parseBool(json['current']),
+      featured: _parseBoolOrNull(json['featured']),
       color: json['color'],
     );
   }

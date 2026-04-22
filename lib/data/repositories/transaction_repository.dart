@@ -108,4 +108,24 @@ class TransactionRepository {
     }
     return Exception(error.message ?? 'Erreur de connexion');
   }
+
+  /// Acheter un article de la boutique (déduit les coins du solde)
+  Future<void> purchaseItem({
+    required String itemId,
+    required String itemName,
+    required int price,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.transactionPurchase,
+        data: {'itemId': itemId, 'itemName': itemName, 'price': price},
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final msg = response.data?['message'] ?? 'Achat échoué';
+        throw Exception(msg);
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
 }

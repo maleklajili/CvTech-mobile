@@ -6,6 +6,26 @@ import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:cv_tech/data/models/profile/skill_model.dart';
 import 'package:cv_tech/presentation/widgets/modern_dialog.dart';
 
+/// Strip HTML tags and decode common entities from a description string so
+/// that raw tags coming from the web form (e.g. `<p>...</p>`) are not
+/// rendered as plain text in the Flutter UI.
+String _stripHtml(String input) {
+  if (input.isEmpty) return input;
+  final out = input
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'</(p|div|li|h[1-6])>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'<[^>]+>'), '')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
+  return out;
+}
+
 /// Section de compétences avec design amélioré comme le frontend Next.js
 class SkillsSection extends StatefulWidget {
   final List<SkillModel> skills;
@@ -644,7 +664,7 @@ class _SkillItem extends StatelessWidget {
           if (skill.description != null && skill.description!.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              skill.description!,
+              _stripHtml(skill.description!),
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.grey[600],

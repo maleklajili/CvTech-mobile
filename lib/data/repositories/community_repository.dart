@@ -89,6 +89,7 @@ class CommunityRepository {
     required List<String> tags,
     required bool isPublic,
     String? bannerPath,
+    String? logoPath,
   }) async {
     final map = <String, dynamic>{
       'name': name,
@@ -102,6 +103,9 @@ class CommunityRepository {
 
     if (bannerPath != null && bannerPath.isNotEmpty) {
       map['banner'] = await MultipartFile.fromFile(bannerPath);
+    }
+    if (logoPath != null && logoPath.isNotEmpty) {
+      map['logo'] = await MultipartFile.fromFile(logoPath);
     }
 
     final response = await _apiClient.dio.post(
@@ -124,6 +128,7 @@ class CommunityRepository {
     List<String>? tags,
     bool? isPublic,
     String? bannerPath,
+    String? logoPath,
   }) async {
     final map = <String, dynamic>{};
     if (name != null && name.isNotEmpty) map['name'] = name;
@@ -136,6 +141,9 @@ class CommunityRepository {
 
     if (bannerPath != null && bannerPath.isNotEmpty) {
       map['banner'] = await MultipartFile.fromFile(bannerPath);
+    }
+    if (logoPath != null && logoPath.isNotEmpty) {
+      map['logo'] = await MultipartFile.fromFile(logoPath);
     }
 
     final response = await _apiClient.dio.put(

@@ -32,14 +32,16 @@ class ChatbotRepository {
       );
 
       final data = response.data;
-      if (data['success'] == true && data['data'] != null) {
+      // Backend returns a flat object: { "reply": "...", "model": "..." }
+      // (ResponseHelper.success does NOT wrap in { success, data }).
+      if (data is Map && data['reply'] != null) {
         return {
-          'reply': data['data']['reply'] ?? '',
-          'model': data['data']['model'] ?? 'unknown',
+          'reply': data['reply']?.toString() ?? '',
+          'model': data['model']?.toString() ?? 'unknown',
         };
       }
 
-      throw Exception(data['message'] ?? 'Erreur inconnue');
+      throw Exception(data is Map ? (data['message'] ?? 'Erreur inconnue') : 'Réponse invalide du serveur');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -53,7 +55,8 @@ class ChatbotRepository {
       );
 
       final data = response.data;
-      return data['data']?['available'] == true;
+      // Backend returns: { "available": bool, ... }
+      return data is Map && data['available'] == true;
     } catch (_) {
       return false;
     }

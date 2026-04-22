@@ -1,5 +1,5 @@
 ﻿// Flutter imports:
-import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import 'package:cv_tech/core/base/safe_change_notifier.dart';
 
 // Project imports:
@@ -36,7 +36,7 @@ class PostViewModel extends SafeChangeNotifier {
     notifyListeners();
 
     try {
-      _posts = await _postRepository.getAllPosts();
+      _posts = await _postRepository.getMyPosts();
       _state = PostState.loaded;
     } catch (e) {
       _state = PostState.error;
@@ -56,7 +56,8 @@ class PostViewModel extends SafeChangeNotifier {
     required String label,
     required String description,
     required String userId,
-    String? imagePath,
+    Uint8List? imageBytes,
+    String? imageName,
     List<String>? tags,
   }) async {
     _state = PostState.loading;
@@ -71,7 +72,7 @@ class PostViewModel extends SafeChangeNotifier {
         tags: tags,
       );
 
-      final newPost = await _postRepository.createPost(post, imagePath: imagePath);
+      final newPost = await _postRepository.createPost(post, imageBytes: imageBytes, imageName: imageName);
       _posts.insert(0, newPost);
       _state = PostState.loaded;
       notifyListeners();
@@ -90,7 +91,8 @@ class PostViewModel extends SafeChangeNotifier {
     required String label,
     required String description,
     required String userId,
-    String? imagePath,
+    Uint8List? imageBytes,
+    String? imageName,
     List<String>? tags,
   }) async {
     _state = PostState.loading;
@@ -106,7 +108,7 @@ class PostViewModel extends SafeChangeNotifier {
         tags: tags,
       );
 
-      final updatedPost = await _postRepository.updatePost(post, imagePath: imagePath);
+      final updatedPost = await _postRepository.updatePost(post, imageBytes: imageBytes, imageName: imageName);
       final index = _posts.indexWhere((p) => p.id == postId);
       if (index != -1) {
         _posts[index] = updatedPost;

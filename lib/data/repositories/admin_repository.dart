@@ -217,7 +217,7 @@ class AdminRepository {
       params['verificationStatus'] = verificationStatus;
     }
     final response = await _apiClient.dio.get(
-      ApiEndpoints.adminCompanyGetAll,
+      ApiEndpoints.companyVerificationRequests,
       queryParameters: params,
     );
     final data = _extractData(response.data);
@@ -226,5 +226,19 @@ class AdminRepository {
       return (data['companies'] as List).cast<Map<String, dynamic>>();
     }
     return [];
+  }
+
+  Future<void> verifyCompany(
+    String companyId, {
+    required String status,
+    String? notes,
+  }) async {
+    await _apiClient.dio.put(
+      '${ApiEndpoints.companyVerify}$companyId',
+      data: {
+        'status': status,
+        if (notes != null) 'notes': notes,
+      },
+    );
   }
 }

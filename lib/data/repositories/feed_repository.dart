@@ -139,7 +139,7 @@ class FeedRepository {
       queryParameters: {
         'filter': 'all',
         'page': 1,
-        'limit': 200,
+        'limit': limit * 3,
       },
     );
 

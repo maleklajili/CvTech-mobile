@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cv_tech/core/base/safe_change_notifier.dart';
+import 'package:cv_tech/core/services/sound_service.dart';
 import 'package:cv_tech/data/models/message/message_model.dart';
 import 'package:cv_tech/data/repositories/message_repository.dart';
 import 'package:cv_tech/core/services/socket_service.dart';
@@ -58,6 +59,10 @@ class ConversationViewModel extends SafeChangeNotifier {
           final alreadyExists = _messages.any((m) => m.id == msg.id);
           if (!alreadyExists) {
             _messages.add(msg);
+            // Play sound only for incoming messages (not our own)
+            if (msg.sender.id == otherUserId) {
+              SoundService.instance.playMessage();
+            }
             notifyListeners();
           }
           // Mark as read since we're in the conversation

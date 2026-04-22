@@ -4,6 +4,7 @@ class CommunityModel {
   final String title;
   final String description;
   final String icon;
+  final String? logo;
   final String? banner;
   final int members;
   final int online;
@@ -18,6 +19,7 @@ class CommunityModel {
     required this.title,
     required this.description,
     required this.icon,
+    this.logo,
     required this.banner,
     required this.members,
     required this.online,
@@ -34,6 +36,7 @@ class CommunityModel {
       title: (json['title'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       icon: (json['icon'] ?? '🌐').toString(),
+      logo: _nullableString(json['logo']),
       banner: _nullableString(json['banner']),
       members: _asInt(json['members']),
       online: _asInt(json['online']),
@@ -50,6 +53,7 @@ class CommunityModel {
     String? title,
     String? description,
     String? icon,
+    String? logo,
     String? banner,
     int? members,
     int? online,
@@ -64,6 +68,7 @@ class CommunityModel {
       title: title ?? this.title,
       description: description ?? this.description,
       icon: icon ?? this.icon,
+      logo: logo ?? this.logo,
       banner: banner ?? this.banner,
       members: members ?? this.members,
       online: online ?? this.online,

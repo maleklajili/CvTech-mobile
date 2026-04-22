@@ -102,18 +102,28 @@ class HomeFeedViewModel extends SafeChangeNotifier {
     notifyListeners();
 
     try {
-      // Load all data sources in parallel
+      // Step 1: Load critical data first (feed + user info)
       await Future.wait([
         _feedRepo.getFeed(page: 1, limit: 10, filter: _currentFilter).then((r) => _posts = r.posts),
-        _loadSuggestions(),
-        _loadJobMatches(),
-        _loadFriends(),
         _loadUserInfo(),
         _loadBalance(),
       ]);
       _buildMixedFeed();
-
       _state = HomeFeedState.loaded;
+      notifyListeners();
+
+      // Step 2: Load secondary data in background after 2s delay (avoid flooding backend)
+      Future.delayed(const Duration(seconds: 2), () {
+        Future.wait([
+          _loadSuggestions(),
+          _loadJobMatches(),
+          _loadFriends(),
+        ]).then((_) {
+          _buildMixedFeed();
+          notifyListeners();
+        }).catchError((_) {});
+      });
+      return;
     } catch (e) {
       _errorMessage = e.toString();
       _state = HomeFeedState.error;
@@ -198,7 +208,18 @@ class HomeFeedViewModel extends SafeChangeNotifier {
 
   Future<void> _loadJobMatches() async {
     try {
-      _jobMatches = await _jobRepo.getMatches();
+      // Job matching triggers a heavy Python model on the backend (cold-start
+      // 5-15s for sentence-transformers). Bound it client-side so a slow match
+      // never blocks the rest of the home feed — an empty list is acceptable.
+      _jobMatches = await _jobRepo.getMatches().timeout(
+        const Duration(seconds: 25),
+        onTimeout: () {
+          if (kDebugMode) {
+            print('⚠️ [HomeFeed] Jobs timed out after 25s, skipping');
+          }
+          return <JobMatchModel>[];
+        },
+      );
     } catch (e) {
       if (kDebugMode) print('⚠️ [HomeFeed] Jobs error: $e');
       _jobMatches = [];

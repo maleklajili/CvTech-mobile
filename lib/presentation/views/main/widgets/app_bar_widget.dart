@@ -28,30 +28,52 @@ class AppBarWidget extends StatelessWidget {
     final bottomNavViewModel = context.watch<BottomNavigationBarViewModel>();
     final notificationViewModel = context.watch<NotificationViewModel>();
 
+    final sectionLabel = _sectionLabelForIndex(bottomNavViewModel.currentIndex);
+
     return AppBar(
       centerTitle: false,
+      elevation: 0.5,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(6),
             child: Image.asset(
               'assets/logo/cvtech_logo.png',
-              width: 26,
-              height: 26,
+              width: 34,
+              height: 34,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
           ),
-          const SizedBox(width: 6),
-          const Flexible(
-            child: Text(
-              AppStrings.appName,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.primaryColor,
-                fontWeight: FontWeight.bold,
-              ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  AppStrings.appName,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    height: 1.1,
+                  ),
+                ),
+                if (sectionLabel != null)
+                  Text(
+                    sectionLabel,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11,
+                      height: 1.1,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -116,11 +138,18 @@ class AppBarWidget extends StatelessWidget {
             bottomNavViewModel.changeCurrentIndex(4);
           },
           child: Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
+              color: AppColors.primaryColor.withValues(alpha: 0.15),
+              border: Border.all(color: AppColors.primaryColor, width: 1.5),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.person,
               color: AppColors.primaryColor,
+              size: 22,
             ),
           ),
         ),
@@ -156,5 +185,24 @@ class AppBarWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Dynamic section label shown under the app name in the AppBar,
+  /// mirroring the currently selected bottom-nav tab.
+  String? _sectionLabelForIndex(int index) {
+    switch (index) {
+      case 0:
+        return 'Accueil';
+      case 1:
+        return 'Connexions';
+      case 2:
+        return 'Profil Pro';
+      case 3:
+        return 'Emplois';
+      case 4:
+        return 'Mon Profil';
+      default:
+        return null;
+    }
   }
 }

@@ -86,6 +86,7 @@ class ApiEndpoints {
   static const String transactionGetAll = '$transaction';
   static const String transactionBalance = '$transaction/balance';
   static const String transactionByType = '$transaction/'; // + :type
+  static const String transactionPurchase = '$transaction/purchase'; // POST shop purchase
   
   // Payment endpoints
   static const String payment = '/payment';
@@ -216,6 +217,7 @@ class ApiEndpoints {
   static const String aiCvDelete = '$aiCv/delete/'; // + :id
   static const String aiCvDownloadPdf = '$aiCv/download-pdf/'; // + :id
   static const String aiCvInfo = '$aiCv/cv-info';
+  static const String aiCvImproveBio = '$aiCv/improve-bio';
 
   // Manual CV endpoints
   static const String manualCv = '/manual-cv';
@@ -269,6 +271,9 @@ class ApiEndpoints {
 
   // Company admin endpoints
   static const String adminCompanyGetAll = '$company/getAll';
+  static const String companyVerificationRequests =
+      '$company/verification-requests';
+  static const String companyVerify = '$company/verify/'; // + :id
   static const String companyStats = '$company/stats';
 
   // Chatbot AI endpoints

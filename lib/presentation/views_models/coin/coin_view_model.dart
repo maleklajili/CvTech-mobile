@@ -126,14 +126,56 @@ class CoinViewModel extends SafeChangeNotifier {
   }
 
   // ── Streak ──
-  int _streakDays = 3; // TODO: fetch from backend
+  // Derived from the "earned" transactions: count consecutive days with
+  // at least one earned transaction (login, posts, reactions, etc.)
+  int _streakDays = 0;
   int get streakDays => _streakDays;
 
   List<bool> get streakWeek {
     return List.generate(7, (i) => i < _streakDays);
   }
 
+  /// Compute streak from transaction history (consecutive days with earnings)
+  void _computeStreak() {
+    if (_transactions.isEmpty) {
+      _streakDays = 0;
+      return;
+    }
+
+    final earned = _transactions
+        .where((t) => t.type == TransactionType.earned && t.createdAt != null)
+        .map((t) => DateTime(t.createdAt!.year, t.createdAt!.month, t.createdAt!.day))
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a)); // newest first
+
+    if (earned.isEmpty) {
+      _streakDays = 0;
+      return;
+    }
+
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    int streak = 0;
+    DateTime expected = todayDate;
+
+    for (final day in earned) {
+      if (day == expected || day == expected.subtract(const Duration(days: 1))) {
+        streak++;
+        expected = day.subtract(const Duration(days: 1));
+      } else {
+        break;
+      }
+    }
+
+    _streakDays = streak.clamp(0, 7);
+  }
+
   // ── Missions ──
+  // Missions aligned with CvTech's actual feature set: social posts,
+  // professional connections, profile completeness and AI CV generation.
+  // NOTE: progress values are placeholders; a dedicated backend endpoint
+  // will feed real counts once the /missions API is wired in.
   List<Mission> get dailyMissions => [
     const Mission(
       id: 'login',
@@ -145,26 +187,34 @@ class CoinViewModel extends SafeChangeNotifier {
       completed: true,
     ),
     const Mission(
-      id: 'swipe',
-      title: 'Swiper 10 offres',
-      subtitle: '7/10 offres swipées',
+      id: 'create_post',
+      title: 'Publier un post',
+      subtitle: 'Partagez une actualité avec votre réseau',
       reward: 20,
-      current: 7,
-      target: 10,
-    ),
-    const Mission(
-      id: 'apply',
-      title: 'Postuler à une offre',
-      subtitle: 'Envoyez une candidature',
-      reward: 15,
       current: 0,
       target: 1,
     ),
     const Mission(
-      id: 'cv_improve',
-      title: 'Améliorer le score CV',
-      subtitle: 'Augmentez votre score CV',
-      reward: 20,
+      id: 'react_posts',
+      title: 'Réagir à 5 publications',
+      subtitle: 'Likez ou commentez 5 posts du feed',
+      reward: 15,
+      current: 0,
+      target: 5,
+    ),
+    const Mission(
+      id: 'send_message',
+      title: 'Envoyer un message',
+      subtitle: 'Discutez avec un membre de votre réseau',
+      reward: 10,
+      current: 0,
+      target: 1,
+    ),
+    const Mission(
+      id: 'complete_profile',
+      title: 'Compléter votre profil',
+      subtitle: 'Ajoutez une expérience, une formation ou une compétence',
+      reward: 25,
       current: 0,
       target: 1,
     ),
@@ -172,19 +222,37 @@ class CoinViewModel extends SafeChangeNotifier {
 
   List<Mission> get lockedMissions => [
     const Mission(
-      id: 'match',
-      title: 'Obtenir un match',
+      id: 'connect_friends',
+      title: 'Atteindre 10 connexions',
+      subtitle: 'Débloquez au niveau 2',
+      reward: 80,
+      current: 0,
+      target: 10,
+      requiredLevel: 2,
+    ),
+    const Mission(
+      id: 'generate_ai_cv',
+      title: 'Générer un CV avec l\'IA',
       subtitle: 'Débloquez au niveau 3',
-      reward: 100,
+      reward: 120,
       current: 0,
       target: 1,
       requiredLevel: 3,
     ),
     const Mission(
-      id: 'interview',
-      title: 'Premier entretien',
+      id: 'download_cv_pdf',
+      title: 'Télécharger un CV en PDF',
+      subtitle: 'Débloquez au niveau 3',
+      reward: 60,
+      current: 0,
+      target: 1,
+      requiredLevel: 3,
+    ),
+    const Mission(
+      id: 'reformulate_cv',
+      title: 'Reformuler un CV avec l\'IA',
       subtitle: 'Débloquez au niveau 4',
-      reward: 200,
+      reward: 150,
       current: 0,
       target: 1,
       requiredLevel: 4,
@@ -192,49 +260,61 @@ class CoinViewModel extends SafeChangeNotifier {
   ];
 
   // ── Shop items ──
+  // Items are tied to real features that exist in CvTech:
+  //  - AI CV: generation, reformulation (ai_cv_view, chatbot)
+  //  - Templates: the 4 templates available in cv_customization_screen
+  //  - Boosts: post visibility, profile highlight, extra AI generations
   static const List<ShopItem> iaTools = [
     ShopItem(
-      id: 'cv_optimize',
-      name: 'Optimisation CV IA',
-      description: 'Analyse et suggestions IA',
+      id: 'ai_cv_generation',
+      name: 'Génération CV IA',
+      description: 'Créez un CV complet avec l\'IA',
       price: 200,
       icon: IconLabel.sparkle,
       category: 'ia',
       isPopular: true,
     ),
     ShopItem(
-      id: 'cover_letter',
-      name: 'Lettre de motivation',
-      description: 'Générée par IA',
-      price: 150,
+      id: 'ai_cv_reformulation',
+      name: 'Reformulation IA',
+      description: 'Améliorez vos textes de CV',
+      price: 120,
       icon: IconLabel.fileText,
       category: 'ia',
     ),
     ShopItem(
-      id: 'interview_prep',
-      name: 'Préparation entretien',
-      description: 'Questions personnalisées',
-      price: 300,
-      icon: IconLabel.search,
+      id: 'ai_cover_letter',
+      name: 'Lettre de motivation',
+      description: 'Générée par IA depuis votre CV',
+      price: 150,
+      icon: IconLabel.zap,
       category: 'ia',
     ),
   ];
 
   static const List<ShopItem> templates = [
     ShopItem(
-      id: 'premium_template',
-      name: 'Template Premium',
-      description: 'Design professionnel',
-      price: 100,
+      id: 'template_modern',
+      name: 'Template Moderne',
+      description: 'Design épuré et professionnel',
+      price: 80,
       icon: IconLabel.palette,
       category: 'templates',
       isPopular: true,
     ),
     ShopItem(
-      id: 'creative_template',
-      name: 'Template Créatif',
-      description: 'Design moderne',
-      price: 80,
+      id: 'template_latex',
+      name: 'Template LaTeX',
+      description: 'Style académique et précis',
+      price: 100,
+      icon: IconLabel.fileText,
+      category: 'templates',
+    ),
+    ShopItem(
+      id: 'template_european',
+      name: 'Template Européen',
+      description: 'Format CV Europass standard',
+      price: 90,
       icon: IconLabel.star,
       category: 'templates',
     ),
@@ -242,28 +322,28 @@ class CoinViewModel extends SafeChangeNotifier {
 
   static const List<ShopItem> boosts = [
     ShopItem(
-      id: 'visibility_boost',
-      name: 'Boost Visibilité',
-      description: '24h de mise en avant',
-      price: 250,
+      id: 'boost_post',
+      name: 'Boost de post',
+      description: 'Mettez un post en avant 24h',
+      price: 150,
       icon: IconLabel.rocket,
       category: 'boosts',
       isPopular: true,
     ),
     ShopItem(
-      id: 'priority_review',
-      name: 'Revue Prioritaire',
-      description: 'Candidature en priorité',
-      price: 180,
-      icon: IconLabel.clock,
+      id: 'boost_profile',
+      name: 'Profil en avant',
+      description: 'Apparaissez en tête des suggestions',
+      price: 200,
+      icon: IconLabel.search,
       category: 'boosts',
     ),
     ShopItem(
-      id: 'super_like',
-      name: 'Super Like',
-      description: 'Mettez-vous en avant',
-      price: 50,
-      icon: IconLabel.zap,
+      id: 'extra_pdf_export',
+      name: 'Export PDF illimité',
+      description: 'Exportez vos CV sans limite ce mois',
+      price: 60,
+      icon: IconLabel.clock,
       category: 'boosts',
     ),
   ];
@@ -293,6 +373,7 @@ class CoinViewModel extends SafeChangeNotifier {
       _transactions = results[1] as List<TransactionModel>;
       _currentPage = 1;
       _hasMore = _transactions.length >= 20;
+      _computeStreak();
       _state = CoinState.loaded;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -324,13 +405,25 @@ class CoinViewModel extends SafeChangeNotifier {
   /// Check if user can afford an item
   bool canAfford(int price) => _balance >= price;
 
-  /// Purchase an item (placeholder — backend integration needed)
+  /// Purchase an item from the boutique.
+  /// Calls the backend /transactions/purchase endpoint which validates the
+  /// balance server-side and records the spending transaction.
   Future<bool> purchaseItem(ShopItem item) async {
     if (!canAfford(item.price)) return false;
 
-    // TODO: call backend purchase endpoint
-    _balance -= item.price;
-    notifyListeners();
-    return true;
+    try {
+      await _repository.purchaseItem(
+        itemId: item.id,
+        itemName: item.name,
+        price: item.price,
+      );
+      // Refresh balance and transactions from backend
+      await loadData();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
   }
 }

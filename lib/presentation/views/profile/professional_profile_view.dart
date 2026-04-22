@@ -15,7 +15,6 @@ import 'package:cv_tech/presentation/views/profile/forms/skill_form_view.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/education_section.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/experience_section.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/projects_section.dart';
-import 'package:cv_tech/presentation/views/profile/widgets/posts_section.dart';
 import 'package:cv_tech/presentation/views/profile/widgets/skills_section.dart';
 import 'package:cv_tech/presentation/views_models/profile/professional_profile_view_model.dart';
 import 'package:cv_tech/presentation/views_models/profile/profile_view_model.dart';
@@ -928,11 +927,6 @@ class _ProfessionalProfileViewState extends State<ProfessionalProfileView> {
                 style: const TextStyle(color: Colors.red),
               ),
             ),
-          const SizedBox(height: 32),
-
-          // Posts Section
-          const PostsSection(),
-
           const SizedBox(height: 16),
         ],
       ),

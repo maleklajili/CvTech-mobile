@@ -47,15 +47,7 @@ class _PostDetailViewState extends State<PostDetailView> {
     super.initState();
     _loadComments();
     _setupSocket();
-    // Socket is the source of truth for real-time comments.
-    // The 4s polling timer was a redundant backup that caused a GET
-    // /comments every 4 seconds even when no activity occurred — now
-    // only used as a one-shot safety net 30s after mount in case the
-    // socket never delivers.
-    _commentsPollingTimer = Timer(const Duration(seconds: 30), () {
-      if (!mounted) return;
-      if (_comments.isEmpty) _refreshCommentsSilently();
-    });
+    _startCommentsPolling();
     if (widget.focusComment) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _commentFocusNode.requestFocus();
@@ -94,9 +86,10 @@ class _PostDetailViewState extends State<PostDetailView> {
   }
 
   void _startCommentsPolling() {
-    // Disabled: replaced by socket + one-shot fallback in initState to avoid
-    // hitting /comments every 4 seconds. Kept as a no-op for backwards
-    // compatibility with any external callers.
+    _commentsPollingTimer?.cancel();
+    _commentsPollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      _refreshCommentsSilently();
+    });
   }
 
   Future<void> _refreshCommentsSilently() async {

@@ -53,7 +53,7 @@ class FlaggedPost {
     return FlaggedPost(
       id: json['_id']?.toString() ?? '',
       userId: json['userId']?.toString(),
-      userName: _extractAuthor(json['author'] ?? json['user']),
+      userName: _extractAuthor(json['author'] ?? json['user'] ?? json['userId']),
       content: json['content'] ?? json['text'] ?? '',
       moderationStatus: json['moderationStatus'],
       toxicityScore: (json['toxicityScore'] ?? json['fakeScore'] ?? 0).toDouble(),
@@ -65,10 +65,23 @@ class FlaggedPost {
   }
 
   static String? _extractAuthor(dynamic author) {
+    if (author == null) return null;
     if (author is Map) {
-      final first = author['firstName'] ?? '';
-      final last = author['lastName'] ?? '';
-      return '$first $last'.trim();
+      // Try full name first
+      final first = (author['firstName'] ?? '').toString().trim();
+      final last  = (author['lastName']  ?? '').toString().trim();
+      final full  = '$first $last'.trim();
+      if (full.isNotEmpty) return full;
+      // Fall back to userName / login
+      final uname = (author['userName'] ?? author['username'] ?? author['login'] ?? '').toString().trim();
+      if (uname.isNotEmpty) return '@$uname';
+      // Fall back to email prefix
+      final email = (author['email'] ?? '').toString();
+      if (email.contains('@')) return email.split('@')[0];
+    }
+    if (author is String && author.isNotEmpty) {
+      // Bare ObjectId string — just shorten it for display
+      return '#${author.substring(author.length > 6 ? author.length - 6 : 0)}';
     }
     return null;
   }
@@ -90,6 +103,7 @@ class FlaggedUser {
   final String firstName;
   final String lastName;
   final String email;
+  final String? userName;
   final String? image;
   final bool isFlagged;
   final bool isBanned;
@@ -104,6 +118,7 @@ class FlaggedUser {
     required this.firstName,
     required this.lastName,
     required this.email,
+    this.userName,
     this.image,
     this.isFlagged = false,
     this.isBanned = false,
@@ -114,7 +129,19 @@ class FlaggedUser {
     this.toxicPostCount = 0,
   });
 
-  String get fullName => '$firstName $lastName'.trim();
+  String get fullName {
+    final n = '$firstName $lastName'.trim();
+    if (n.isNotEmpty) return n;
+    if (userName != null && userName!.isNotEmpty) return '@$userName';
+    if (email.isNotEmpty) return email.split('@')[0];
+    return 'Utilisateur';
+  }
+
+  String get displaySub {
+    if (userName != null && userName!.isNotEmpty) return '@$userName';
+    if (email.isNotEmpty) return email;
+    return '';
+  }
 
   factory FlaggedUser.fromJson(Map<String, dynamic> json) {
     return FlaggedUser(
@@ -122,6 +149,7 @@ class FlaggedUser {
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
       email: json['email'] ?? '',
+      userName: json['userName'] ?? json['username'] ?? json['login'],
       image: json['image'],
       isFlagged: json['isFlagged'] == true,
       isBanned: json['isBanned'] == true,

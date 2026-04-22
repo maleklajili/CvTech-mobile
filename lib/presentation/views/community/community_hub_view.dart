@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/api/api_client.dart';
@@ -34,6 +36,9 @@ class _CommunityHubViewState extends State<CommunityHubView> {
 
   List<CommunityModel> _all = const [];
   List<CommunityModel> _popular = const [];
+  List<CommunityModel>? _cachedFilteredAll;
+  List<CommunityModel>? _cachedFilteredPopular;
+  String _lastCategoryFilter = '';
   Set<String> _memberCommunityIds = <String>{};
   Set<String> _membershipActionLoadingIds = <String>{};
   bool _loadingDiscover = true;
@@ -81,7 +86,7 @@ class _CommunityHubViewState extends State<CommunityHubView> {
 
     try {
       final results = await Future.wait([
-        _repository.getAll(limit: 120),
+        _repository.getAll(limit: 30),
         _repository.getPopular(limit: 8),
       ]);
 
@@ -99,6 +104,8 @@ class _CommunityHubViewState extends State<CommunityHubView> {
         _popular = results[1];
         _memberCommunityIds = memberIds;
         _loadingDiscover = false;
+        _cachedFilteredAll = null;
+        _cachedFilteredPopular = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -138,11 +145,19 @@ class _CommunityHubViewState extends State<CommunityHubView> {
   }
 
   List<CommunityModel> _getFilteredAllCommunities() {
-    if (_selectedCategoryFilter.trim().toLowerCase() == 'populaires') {
+    final filter = _selectedCategoryFilter.trim().toLowerCase();
+    if (_cachedFilteredAll != null && _lastCategoryFilter == filter) {
+      return _cachedFilteredAll!;
+    }
+    _lastCategoryFilter = filter;
+
+    if (filter == 'populaires') {
+      _cachedFilteredAll = _all;
       return _all;
     }
 
-    return _all.where(_matchesSelectedCategoryFilter).toList();
+    _cachedFilteredAll = _all.where(_matchesSelectedCategoryFilter).toList();
+    return _cachedFilteredAll!;
   }
 
   List<CommunityModel> _getFilteredPopularCommunities() {
@@ -150,7 +165,12 @@ class _CommunityHubViewState extends State<CommunityHubView> {
       return _popular;
     }
 
-    return _popular.where(_matchesSelectedCategoryFilter).toList();
+    if (_cachedFilteredPopular != null && _lastCategoryFilter == _selectedCategoryFilter.trim().toLowerCase()) {
+      return _cachedFilteredPopular!;
+    }
+
+    _cachedFilteredPopular = _popular.where(_matchesSelectedCategoryFilter).toList();
+    return _cachedFilteredPopular!;
   }
 
   bool _matchesSelectedCategoryFilter(CommunityModel community) {
@@ -2227,6 +2247,8 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
   String? _selectedCategory;
   bool _isPublic = true;
   bool _loading = false;
+  File? _bannerFile;
+  File? _logoFile;
 
   bool get _editing => widget.initial != null;
 
@@ -2320,6 +2342,8 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
           category: categoryToSend,
           tags: _technologies,
           isPublic: _isPublic,
+          bannerPath: _bannerFile?.path,
+          logoPath: _logoFile?.path,
         );
       } else {
         await _repository.create(
@@ -2330,6 +2354,8 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
           category: categoryToSend!,
           tags: _technologies,
           isPublic: _isPublic,
+          bannerPath: _bannerFile?.path,
+          logoPath: _logoFile?.path,
         );
       }
 
@@ -2358,14 +2384,60 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                _editing
-                    ? 'Modifier la communaute'
-                    : 'Creer une communaute',
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _editing
+                          ? 'Modifier la communaute'
+                          : 'Creer une communaute',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
+              // Logo & Banner images
+              Row(
+                children: [
+                  // Logo
+                  GestureDetector(
+                    onTap: () => _pickLogo(),
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: _logoFile != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(_logoFile!, fit: BoxFit.cover),
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo_outlined, size: 22, color: Colors.grey.shade500),
+                                const SizedBox(height: 2),
+                                Text('Logo', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+              ),
+              const SizedBox(height: 10),
               _input(_name, 'Slug (name unique)',
                   readOnly: _editing,
                   validator: (v) =>
@@ -2378,6 +2450,36 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
                 children: [
                   Expanded(child: _input(_icon, 'Icone (emoji)')),
                 ],
+              ),
+              // Banner image picker
+              GestureDetector(
+                onTap: _pickBanner,
+                child: Container(
+                  width: double.infinity,
+                  height: 100,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: _bannerFile != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(_bannerFile!, fit: BoxFit.cover, width: double.infinity),
+                        )
+                      : (widget.initial?.banner != null && widget.initial!.banner!.isNotEmpty)
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                widget.initial!.banner!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                errorBuilder: (_, __, ___) => _bannerPlaceholder(),
+                              ),
+                            )
+                          : _bannerPlaceholder(),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -2487,6 +2589,31 @@ class _CommunityFormSheetState extends State<_CommunityFormSheet> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _pickBanner() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.paths.isNotEmpty && result.paths.first != null) {
+      setState(() => _bannerFile = File(result.paths.first!));
+    }
+  }
+
+  Future<void> _pickLogo() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.paths.isNotEmpty && result.paths.first != null) {
+      setState(() => _logoFile = File(result.paths.first!));
+    }
+  }
+
+  Widget _bannerPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate_outlined, size: 28, color: Colors.grey.shade500),
+        const SizedBox(height: 4),
+        Text('Image de banniere', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+      ],
     );
   }
 

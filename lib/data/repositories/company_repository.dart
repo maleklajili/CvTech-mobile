@@ -1,8 +1,9 @@
 // Dart imports:
-// import 'dart:convert'; // Supprimé car non utilisé
+import 'dart:io';
 
 // Package imports:
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 
 // Project imports:
 import 'package:cv_tech/data/api/api_client.dart';
@@ -95,10 +96,10 @@ class CompanyRepository {
     }
   }
 
-  /// Créer une nouvelle entreprise
-  Future<CompanyModel> create(CompanyModel company) async {
+  /// Créer une nouvelle entreprise (with optional verification docs and images)
+  Future<CompanyModel> create(CompanyModel company, {List<PlatformFile>? verificationDocs, PlatformFile? logo, PlatformFile? coverImage}) async {
     try {
-      final formData = _toCompanyFormData(company);
+      final formData = _toCompanyFormData(company, verificationDocs: verificationDocs, logo: logo, coverImage: coverImage);
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.companyCreate,
@@ -119,10 +120,10 @@ class CompanyRepository {
     }
   }
 
-  /// Mettre à jour une entreprise
-  Future<CompanyModel> update(String id, CompanyModel company) async {
+  /// Mettre à jour une entreprise (with optional verification docs and images)
+  Future<CompanyModel> update(String id, CompanyModel company, {List<PlatformFile>? verificationDocs, PlatformFile? logo, PlatformFile? coverImage}) async {
     try {
-      final formData = _toCompanyFormData(company);
+      final formData = _toCompanyFormData(company, verificationDocs: verificationDocs, logo: logo, coverImage: coverImage);
 
       final response = await _apiClient.dio.put(
         '${ApiEndpoints.companyUpdate}$id',
@@ -170,7 +171,7 @@ class CompanyRepository {
     return Exception(error.message ?? 'Erreur de connexion');
   }
 
-  FormData _toCompanyFormData(CompanyModel company) {
+  FormData _toCompanyFormData(CompanyModel company, {List<PlatformFile>? verificationDocs, PlatformFile? logo, PlatformFile? coverImage}) {
     final formData = FormData();
 
     formData.fields
@@ -220,6 +221,45 @@ class CompanyRepository {
       final keyword = company.keywords[i].trim();
       if (keyword.isNotEmpty) {
         formData.fields.add(MapEntry('keywords[$i]', keyword));
+      }
+    }
+
+    // Images
+    if (logo != null && logo.bytes != null) {
+      formData.files.add(MapEntry(
+        'logo',
+        MultipartFile.fromBytes(
+          logo.bytes!,
+          filename: logo.name,
+        ),
+      ));
+    }
+    if (coverImage != null && coverImage.bytes != null) {
+      formData.files.add(MapEntry(
+        'coverImage',
+        MultipartFile.fromBytes(
+          coverImage.bytes!,
+          filename: coverImage.name,
+        ),
+      ));
+    }
+
+    // Verification
+    if ((company.verificationNotes ?? '').trim().isNotEmpty) {
+      formData.fields.add(MapEntry('verificationNotes', company.verificationNotes!.trim()));
+    }
+    if (verificationDocs != null && verificationDocs.isNotEmpty) {
+      formData.fields.add(MapEntry('verificationDocumentsCount', verificationDocs.length.toString()));
+      for (var i = 0; i < verificationDocs.length; i++) {
+        if (verificationDocs[i].bytes != null) {
+          formData.files.add(MapEntry(
+            'verificationDocuments_$i',
+            MultipartFile.fromBytes(
+              verificationDocs[i].bytes!,
+              filename: verificationDocs[i].name,
+            ),
+          ));
+        }
       }
     }
 

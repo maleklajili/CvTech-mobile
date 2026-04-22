@@ -159,6 +159,213 @@ class ManualCvRepository {
     }
   }
 
+  /// Build a [ManualCvModel] **locally** by fetching the raw profile data
+  /// from individual endpoints in parallel. No DB record is created — the
+  /// returned model has `id == null`. Much faster than
+  /// [importFromProfile] because it avoids the server-side DB insert and
+  /// runs all fetches concurrently straight from the profile
+  /// collections (experiences, educations, skills, technical/personal
+  /// skills, languages, projects + embedded certifications, user).
+  Future<ManualCvModel> buildFromProfile({
+    String format = 'standard',
+    String language = 'fr',
+  }) async {
+    Future<List<dynamic>> fetchList(String path) async {
+      try {
+        final resp = await _apiClient.dio.get(
+          path,
+          queryParameters: {'limit': 100},
+        );
+        if (resp.statusCode != 200) return const [];
+        final raw = resp.data;
+        dynamic payload = raw;
+        if (raw is Map && raw.containsKey('data')) payload = raw['data'];
+        if (payload is Map && payload.containsKey('data')) {
+          payload = payload['data'];
+        }
+        return payload is List ? payload : const [];
+      } catch (_) {
+        return const [];
+      }
+    }
+
+    Future<Map<String, dynamic>> fetchUser() async {
+      try {
+        final resp = await _apiClient.dio.get(ApiEndpoints.currentUser);
+        if (resp.statusCode != 200) return const {};
+        final raw = resp.data;
+        final payload = raw is Map && raw.containsKey('data')
+            ? raw['data']
+            : raw;
+        return payload is Map
+            ? Map<String, dynamic>.from(payload)
+            : const {};
+      } catch (_) {
+        return const {};
+      }
+    }
+
+    // Fire every profile endpoint concurrently.
+    final results = await Future.wait([
+      fetchUser(),
+      fetchList(ApiEndpoints.experienceGetAll),
+      fetchList(ApiEndpoints.educationGetAll),
+      fetchList(ApiEndpoints.skillGetAll),
+      fetchList(ApiEndpoints.technicalSkillGetAll),
+      fetchList(ApiEndpoints.personalSkillGetAll),
+      fetchList(ApiEndpoints.languageGetAll),
+      fetchList(ApiEndpoints.projectGetAll),
+    ]);
+
+    final user = results[0] as Map<String, dynamic>;
+    final experiencesRaw = results[1] as List;
+    final educationsRaw = results[2] as List;
+    final skillsRaw = results[3] as List;
+    final technicalSkillsRaw = results[4] as List;
+    final personalSkillsRaw = results[5] as List;
+    final languagesRaw = results[6] as List;
+    final projectsRaw = results[7] as List;
+
+    String? str(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString().trim();
+      return s.isEmpty ? null : s;
+    }
+
+    String? toIsoDate(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString();
+      if (s.isEmpty) return null;
+      final dt = DateTime.tryParse(s);
+      if (dt == null) return s;
+      return dt.toIso8601String().split('T').first;
+    }
+
+    final firstName = str(user['firstName']) ?? '';
+    final lastName = str(user['lastName']) ?? '';
+    final fullName = [firstName, lastName]
+        .where((s) => s.isNotEmpty)
+        .join(' ');
+    final userId = str(user['_id']) ?? '';
+
+    final personalInfo = ManualCvPersonalInfo(
+      fullName: fullName.isEmpty ? (str(user['userName']) ?? '') : fullName,
+      professionalTitle: str(user['professionalTitle']),
+      email: str(user['email']),
+      phone: str(user['phone']),
+      address: str(user['adress']) ?? str(user['address']),
+      city: str(user['city']),
+      country: str(user['location']) ?? str(user['country']),
+      website: str(user['website']),
+      photoUrl: str(user['image']) != null && userId.isNotEmpty
+          ? '/uploads/images-$userId/${user['image']}'
+          : null,
+      summary: str(user['bio']),
+    );
+
+    final experiences = experiencesRaw.whereType<Map>().map((e) {
+      final map = Map<String, dynamic>.from(e);
+      final endIso = toIsoDate(map['endDate']);
+      return ManualCvExperience(
+        jobTitle: str(map['post']) ?? str(map['jobTitle']) ?? '',
+        company: str(map['entreprise']) ?? str(map['company']) ?? '',
+        startDate: toIsoDate(map['startDate']) ?? '',
+        endDate: endIso,
+        current: (map['currentPost'] ?? map['current'] ?? (endIso == null)) ==
+            true,
+        description: str(map['description']),
+      );
+    }).toList();
+
+    final educations = educationsRaw.whereType<Map>().map((e) {
+      final map = Map<String, dynamic>.from(e);
+      final endIso = toIsoDate(map['endDate']);
+      return ManualCvEducation(
+        degree: str(map['degree']) ?? '',
+        school: str(map['school']) ?? '',
+        startDate: toIsoDate(map['startDate']) ?? '',
+        endDate: endIso,
+        current: (map['current'] ?? (endIso == null)) == true,
+        description: str(map['description']),
+      );
+    }).toList();
+
+    // Merge the three skill sources and deduplicate by lower-case name.
+    final mergedSkills = <ManualCvSkill>[];
+    final seenSkills = <String>{};
+    void addSkill(String? name, String? level) {
+      if (name == null || name.isEmpty) return;
+      final key = name.toLowerCase();
+      if (seenSkills.contains(key)) return;
+      seenSkills.add(key);
+      mergedSkills.add(ManualCvSkill(name: name, level: level));
+    }
+
+    for (final s in skillsRaw.whereType<Map>()) {
+      final map = Map<String, dynamic>.from(s);
+      addSkill(str(map['name']), str(map['level']));
+    }
+    for (final s in technicalSkillsRaw.whereType<Map>()) {
+      final map = Map<String, dynamic>.from(s);
+      addSkill(str(map['name']), str(map['category']) ?? 'technique');
+    }
+    for (final s in personalSkillsRaw.whereType<Map>()) {
+      final map = Map<String, dynamic>.from(s);
+      addSkill(str(map['name']), str(map['category']) ?? 'personnel');
+    }
+
+    final languages = languagesRaw.whereType<Map>().map((e) {
+      final map = Map<String, dynamic>.from(e);
+      return ManualCvLanguage(
+        name: str(map['name']) ?? '',
+        level: str(map['level']) ?? str(map['fluency']),
+      );
+    }).toList();
+
+    final projects = projectsRaw.whereType<Map>().map((e) {
+      final map = Map<String, dynamic>.from(e);
+      return ManualCvProject(
+        name: str(map['title']) ?? str(map['name']) ?? '',
+        description: str(map['description']),
+        link: str(map['liveUrl']) ?? str(map['githubUrl']),
+        startDate: toIsoDate(map['startDate']),
+        endDate: toIsoDate(map['endDate']),
+      );
+    }).toList();
+
+    // Certifications are embedded in projects via the `certificates`
+    // lookup on /projects/getAll. Flatten them into a single list.
+    final certifications = <ManualCvCertification>[];
+    for (final p in projectsRaw.whereType<Map>()) {
+      final certs = p['certificates'];
+      if (certs is List) {
+        for (final c in certs.whereType<Map>()) {
+          final map = Map<String, dynamic>.from(c);
+          certifications.add(ManualCvCertification(
+            name: str(map['name']) ?? '',
+            organization: str(map['organization']),
+            date: str(map['date']),
+            description: str(map['type']) ?? str(map['description']),
+          ));
+        }
+      }
+    }
+
+    return ManualCvModel(
+      userId: userId,
+      title: 'CV de ${personalInfo.fullName}',
+      format: format,
+      language: language,
+      personalInfo: personalInfo,
+      experiences: experiences,
+      educations: educations,
+      skills: mergedSkills,
+      languages: languages,
+      projects: projects,
+      certifications: certifications,
+    );
+  }
+
   /// Get the CV completeness score from backend.
   /// Returns a Map with: totalScore, maxScore, percentage, label, sections.
   Future<Map<String, dynamic>> getScore(String cvId) async {

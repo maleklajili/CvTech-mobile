@@ -152,21 +152,21 @@ class CompanyModel {
         : null;
 
     return CompanyModel(
-      id: json['_id'] ?? json['id'],
+      id: (json['_id'] ?? json['id'])?.toString(),
       userId: (json['userId'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
       industry: (json['industry'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
-      shortDescription: json['shortDescription'],
-      website: json['website'],
-      foundedYear: json['foundedYear'],
-      size: json['size'],
-      location: json['location'],
-      address: json['address'],
-      phone: json['phone'],
-      email: json['email'],
-      logo: json['logo'],
-      coverImage: json['coverImage'],
+      shortDescription: json['shortDescription']?.toString(),
+      website: json['website']?.toString(),
+      foundedYear: json['foundedYear'] != null ? int.tryParse(json['foundedYear'].toString()) : null,
+      size: json['size']?.toString(),
+      location: json['location']?.toString(),
+      address: json['address']?.toString(),
+      phone: json['phone']?.toString(),
+      email: json['email']?.toString(),
+      logo: json['logo']?.toString(),
+      coverImage: json['coverImage']?.toString(),
       socialMedia: json['socialMedia'] != null
           ? SocialMedia.fromJson(json['socialMedia'])
           : null,
@@ -175,16 +175,12 @@ class CompanyModel {
       verified: json['verified'] ?? false,
       verificationStatus: _verificationStatusFromString(json['verificationStatus']),
         verificationDocuments: parsedVerificationDocuments,
-      verificationNotes: json['verificationNotes'],
-      stats: json['stats'] != null
+      verificationNotes: json['verificationNotes']?.toString(),
+      stats: json['stats'] != null && json['stats'] is Map<String, dynamic>
           ? CompanyStats.fromJson(json['stats'])
           : CompanyStats(),
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : null,
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
-          : null,
+      createdAt: _parseDate(json['createdAt']),
+      updatedAt: _parseDate(json['updatedAt']),
     );
   }
 
@@ -267,6 +263,14 @@ class CompanyModel {
       case VerificationStatus.notRequested:
         return 'not_requested';
     }
+  }
+
+  static DateTime? _parseDate(dynamic val) {
+    if (val == null) return null;
+    if (val is DateTime) return val;
+    if (val is String) return DateTime.tryParse(val);
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    return null;
   }
 
   CompanyModel copyWith({

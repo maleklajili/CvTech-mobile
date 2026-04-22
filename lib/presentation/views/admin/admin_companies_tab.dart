@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/views_models/admin/admin_view_model.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AdminCompaniesTab extends StatelessWidget {
   const AdminCompaniesTab({super.key});
@@ -162,12 +163,18 @@ class _CompanyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<AdminViewModel>();
     final name = company['name'] ?? company['companyName'] ?? 'Sans nom';
     final industry = company['industry'] ?? '';
     final verificationStatus =
         company['verificationStatus'] ?? 'not_requested';
     final email = company['email'] ?? '';
     final image = company['image'] as String?;
+    final docs = (company['verificationDocuments'] as List?) ?? [];
+    final companyId = company['_id'] as String? ?? '';
+    final verificationNotes = company['verificationNotes'] as String?;
+    final adminResponse = company['adminResponse'] as String?;
+    final isPending = verificationStatus == 'pending';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -187,7 +194,8 @@ class _CompanyCard extends StatelessWidget {
                       image != null && image.isNotEmpty
                           ? NetworkImage(image)
                           : null,
-                  onBackgroundImageError: (image != null && image.isNotEmpty) ? (_, __) {} : null,
+                  onBackgroundImageError:
+                      (image != null && image.isNotEmpty) ? (_, __) {} : null,
                   child: image == null || image.isEmpty
                       ? Icon(Icons.business,
                           color: Colors.grey.shade400, size: 22)
@@ -238,24 +246,320 @@ class _CompanyCard extends StatelessWidget {
               ),
             ],
 
-            // Documents info
-            if (company['verificationDocuments'] != null) ...[
+            // Verification notes from company
+            if (verificationNotes != null && verificationNotes.isNotEmpty) ...[
               const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF9C3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.note_outlined,
+                        size: 14, color: Colors.amber.shade700),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        verificationNotes,
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.amber.shade900),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Admin response (for already processed)
+            if (adminResponse != null && adminResponse.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: verificationStatus == 'rejected'
+                      ? const Color(0xFFFEF2F2)
+                      : const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.admin_panel_settings,
+                        size: 14,
+                        color: verificationStatus == 'rejected'
+                            ? const Color(0xFFDC2626)
+                            : const Color(0xFF057642)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Réponse admin: $adminResponse',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: verificationStatus == 'rejected'
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF057642)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Documents section
+            if (docs.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F9FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.folder_outlined,
+                            size: 16, color: Color(0xFF0369A1)),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${docs.length} document(s) de vérification',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0369A1),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...docs.map<Widget>((doc) {
+                      final docMap = doc is Map ? doc : <String, dynamic>{};
+                      final docName =
+                          docMap['name'] ?? docMap['type'] ?? 'Document';
+                      final docFile = docMap['file'] ?? '';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: InkWell(
+                          onTap: docFile.toString().isNotEmpty
+                              ? () => _openDocument(context, docFile.toString())
+                              : null,
+                          child: Row(
+                            children: [
+                              Icon(
+                                _getDocIcon(docFile.toString()),
+                                size: 16,
+                                color: const Color(0xFF0369A1),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  docName.toString(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: docFile.toString().isNotEmpty
+                                        ? const Color(0xFF0369A1)
+                                        : Colors.grey.shade600,
+                                    decoration: docFile.toString().isNotEmpty
+                                        ? TextDecoration.underline
+                                        : null,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (docFile.toString().isNotEmpty)
+                                const Icon(Icons.open_in_new,
+                                    size: 12, color: Color(0xFF0369A1)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ] else if (isPending) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        size: 16, color: Colors.amber.shade700),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Aucun document fourni',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.amber.shade800),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Approve / Reject buttons for pending companies
+            if (isPending && companyId.isNotEmpty) ...[
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.description_outlined,
-                      size: 14, color: Colors.grey.shade500),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${(company['verificationDocuments'] as List?)?.length ?? 0} document(s)',
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: vm.actionLoading
+                          ? null
+                          : () => _showRejectDialog(context, vm, companyId),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Rejeter'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFFCA5A5)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: vm.actionLoading
+                          ? null
+                          : () => _showApproveDialog(context, vm, companyId),
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Approuver'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF057642),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  IconData _getDocIcon(String file) {
+    final lower = file.toLowerCase();
+    if (lower.endsWith('.pdf')) return Icons.picture_as_pdf;
+    if (lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg')) return Icons.image;
+    return Icons.description;
+  }
+
+  void _openDocument(BuildContext context, String fileUrl) async {
+    final uri = Uri.tryParse(fileUrl);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible d\'ouvrir le document')),
+        );
+      }
+    }
+  }
+
+  void _showApproveDialog(
+      BuildContext context, AdminViewModel vm, String companyId) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Approuver l\'entreprise'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'L\'entreprise sera marquée comme vérifiée.',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: 'Note (optionnel)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () {
+              vm.approveCompany(companyId,
+                  notes: controller.text.trim().isNotEmpty
+                      ? controller.text.trim()
+                      : null);
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF057642)),
+            child: const Text('Approuver',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRejectDialog(
+      BuildContext context, AdminViewModel vm, String companyId) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rejeter l\'entreprise'),
+        content: TextField(
+          controller: controller,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            hintText: 'Raison du rejet (optionnel)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () {
+              vm.rejectCompany(companyId,
+                  notes: controller.text.trim().isNotEmpty
+                      ? controller.text.trim()
+                      : null);
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626)),
+            child:
+                const Text('Rejeter', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

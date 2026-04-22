@@ -55,24 +55,27 @@ class _PostsSectionContentState extends State<_PostsSectionContent> {
 
     return Consumer<FeedViewModel>(
       builder: (context, vm, child) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        // PostsSection lives inside NestedScrollView.body (TabBarView),
+        // which always provides bounded height. A regular ListView fills
+        // that space and renders items lazily — no shrinkWrap needed.
+        // shrinkWrap:true was giving infinite height to FeedPostCard children
+        // (which contain their own inner ListViews), causing the crash.
+        if (vm.state == FeedState.loading && vm.posts.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (vm.state == FeedState.error && vm.posts.isEmpty) {
+          return _buildErrorState(context, vm);
+        }
+        if (vm.posts.isEmpty && vm.state == FeedState.loaded) {
+          return _buildEmptyState(context, vm);
+        }
+
+        return ListView(
           children: [
-            // Header avec statistiques et bouton Publier
+            // Header with post count and "Publier" button
             _buildHeader(context, vm),
 
-            // Liste des posts
-            if (vm.state == FeedState.loading && vm.posts.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (vm.state == FeedState.error && vm.posts.isEmpty)
-              _buildErrorState(context, vm)
-            else if (vm.posts.isEmpty && vm.state == FeedState.loaded)
-              _buildEmptyState(context, vm)
-            else
-              ...vm.posts.map((post) => FeedPostCard(
+            ...vm.posts.map((post) => FeedPostCard(
                     post: post,
                     currentUserId: currentUserId,
                     showSharedBadge: true,

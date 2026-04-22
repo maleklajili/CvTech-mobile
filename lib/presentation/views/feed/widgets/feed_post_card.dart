@@ -652,7 +652,6 @@ class _PostImage extends StatelessWidget {
               color: AppTheme.isLight
                   ? const Color(0xFFF1F5F9)
                   : const Color(0xFF2A2A3E),
-              child: const Center(child: CircularProgressIndicator()),
             ),
             errorWidget: (_, __, ___) => Container(
               height: 200,

@@ -12,6 +12,7 @@ import 'package:cv_tech/constants/professional_domains.dart';
 import 'package:cv_tech/constants/professional_categories.dart';
 import 'package:cv_tech/data/models/auth/user_model.dart';
 import 'package:cv_tech/data/repositories/user_repository.dart';
+import 'package:cv_tech/data/repositories/ai_cv_repository.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/core/l10n/app_localizations.dart';
@@ -51,7 +52,7 @@ class _EditProfileViewState extends State<EditProfileView>
   late TextEditingController _addressController;
   late TextEditingController _postalCodeController;
   late TextEditingController _websiteController;
-  String _phoneCode = '+33';
+  String _phoneCode = '+216';
 
   // Controllers for Professional Profile
   String _professionalStatus = '';
@@ -73,6 +74,9 @@ class _EditProfileViewState extends State<EditProfileView>
 
   // Track modified sections for rewards
   Set<String> _modifiedSections = {};
+
+  // AI bio improvement
+  bool _isImprovingBio = false;
 
   @override
   void initState() {
@@ -354,9 +358,16 @@ class _EditProfileViewState extends State<EditProfileView>
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value?.isEmpty == true ? null : value,
-          decoration: InputDecoration(
+        Builder(builder: (context) {
+          // Guard against values not present in the items list to avoid
+          // DropdownButton assertion errors when legacy/unknown values come
+          // from the backend.
+          final normalizedValue = (value == null || value.isEmpty)
+              ? null
+              : (items.any((item) => item.value == value) ? value : null);
+          return DropdownButtonFormField<String>(
+            value: normalizedValue,
+            decoration: InputDecoration(
             hintText: hint,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -378,7 +389,8 @@ class _EditProfileViewState extends State<EditProfileView>
           onChanged: onChanged,
           validator: validator,
           isExpanded: true,
-        ),
+        );
+        }),
       ],
     );
   }
@@ -564,6 +576,26 @@ class _EditProfileViewState extends State<EditProfileView>
             hintText: 'Parlez-nous de vous...',
             maxLines: 4,
           ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _isImprovingBio ? null : _improveBioWithAI,
+              icon: _isImprovingBio
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome, size: 18),
+              label: Text(
+                _isImprovingBio ? 'Amélioration...' : 'Améliorer avec IA',
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryColor,
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           _buildSwitchField(
             label: AppLocalizations.of(context).availableNewOpportunities,
@@ -577,6 +609,30 @@ class _EditProfileViewState extends State<EditProfileView>
         ],
       ),
     );
+  }
+
+  Future<void> _improveBioWithAI() async {
+    setState(() => _isImprovingBio = true);
+    try {
+      final repo = AiCvRepository();
+      final result = await repo.improveBio();
+      final summary = result['professional_summary'] as String?;
+      if (summary != null && summary.isNotEmpty) {
+        setState(() {
+          _bioController.text = summary;
+          _markSectionModified('basicInfo');
+        });
+        if (mounted) {
+          CustomToast.success(context, 'Biographie améliorée avec succès !');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomToast.error(context, e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _isImprovingBio = false);
+    }
   }
 
   Widget _buildContactInfoSection() {
@@ -598,25 +654,30 @@ class _EditProfileViewState extends State<EditProfileView>
           Row(
             children: [
               SizedBox(
-                width: 100,
+                width: 130,
                 child: _buildDropdownField(
                   label: 'Code',
                   value: _phoneCode,
-                  hint: '+33',
-                  items: ['+33', '+1', '+44', '+49', '+39']
-                      .map((code) =>
-                          DropdownMenuItem(value: code, child: Text(code)))
-                      .toList(),
+                  hint: '+216',
+                  items: const [
+                    DropdownMenuItem(
+                        value: '+216', child: Text('🇹🇳 +216')),
+                    DropdownMenuItem(value: '+33', child: Text('🇫🇷 +33')),
+                    DropdownMenuItem(value: '+1', child: Text('🇺🇸 +1')),
+                    DropdownMenuItem(value: '+44', child: Text('🇬🇧 +44')),
+                    DropdownMenuItem(value: '+49', child: Text('🇩🇪 +49')),
+                    DropdownMenuItem(value: '+39', child: Text('🇮🇹 +39')),
+                  ],
                   onChanged: (value) =>
-                      setState(() => _phoneCode = value ?? '+33'),
+                      setState(() => _phoneCode = value ?? '+216'),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildTextFormField(
                   controller: _phoneController,
                   label: AppLocalizations.of(context).phone,
-                  hintText: '06 12 34 56 78',
+                  hintText: '20 123 456',
                   keyboardType: TextInputType.phone,
                 ),
               ),

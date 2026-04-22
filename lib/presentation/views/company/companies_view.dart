@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -57,8 +58,18 @@ class _CompaniesViewState extends State<CompaniesView> {
   final ApiClient _apiClient = ApiClient();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _listScrollController = ScrollController();
+  Timer? _searchDebounce;
 
   List<CompanyModel> _companies = const [];
+  List<CompanyModel>? _cachedSearchResults;
+  List<CompanyModel>? _cachedExploreResults;
+  List<CompanyModel>? _cachedMyResults;
+  String _lastSearchQuery = '';
+  String _lastExploreCategory = '';
+  String _lastExploreSort = '';
+  String _lastMineFilter = '';
+  int _lastCompaniesHash = 0;
+
   bool _loading = true;
   bool _isLoadingMore = false;
   String? _error;
@@ -115,6 +126,7 @@ class _CompaniesViewState extends State<CompaniesView> {
       ..removeListener(_handleListScroll)
       ..dispose();
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -158,6 +170,7 @@ class _CompaniesViewState extends State<CompaniesView> {
         _page = nextPage;
         _loading = false;
         _isLoadingMore = false;
+        _invalidateFilterCaches();
       });
     } catch (e) {
       if (!mounted) return;
@@ -171,17 +184,44 @@ class _CompaniesViewState extends State<CompaniesView> {
 
   // ── Filtres ──────────────────────────────────
 
+  void _invalidateFilterCaches() {
+    _cachedSearchResults = null;
+    _cachedExploreResults = null;
+    _cachedMyResults = null;
+    _lastCompaniesHash = 0;
+  }
+
   List<CompanyModel> get _searchFilteredCompanies {
     final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) return _companies;
-    return _companies.where((c) {
-      return c.name.toLowerCase().contains(query) ||
-          c.industry.toLowerCase().contains(query) ||
-          (c.location ?? '').toLowerCase().contains(query);
-    }).toList();
+    final hash = _companies.length;
+    if (query == _lastSearchQuery && hash == _lastCompaniesHash && _cachedSearchResults != null) {
+      return _cachedSearchResults!;
+    }
+    _lastSearchQuery = query;
+    _lastCompaniesHash = hash;
+    _cachedExploreResults = null;
+    _cachedMyResults = null;
+    if (query.isEmpty) {
+      _cachedSearchResults = _companies;
+    } else {
+      _cachedSearchResults = _companies.where((c) {
+        return c.name.toLowerCase().contains(query) ||
+            c.industry.toLowerCase().contains(query) ||
+            (c.location ?? '').toLowerCase().contains(query);
+      }).toList();
+    }
+    return _cachedSearchResults!;
   }
 
   List<CompanyModel> get _exploreCompanies {
+    if (_cachedExploreResults != null &&
+        _lastExploreCategory == _activeCategory &&
+        _lastExploreSort == _activeSort) {
+      return _cachedExploreResults!;
+    }
+    _lastExploreCategory = _activeCategory;
+    _lastExploreSort = _activeSort;
+
     final source = List<CompanyModel>.from(_searchFilteredCompanies);
 
     final filtered = _activeCategory == 'Toutes'
@@ -215,33 +255,46 @@ class _CompaniesViewState extends State<CompaniesView> {
       return bScore.compareTo(aScore);
     });
 
+    _cachedExploreResults = filtered;
     return filtered;
   }
 
   List<CompanyModel> get _myCompanies {
+    if (_cachedMyResults != null && _lastMineFilter == _activeMineFilter) {
+      return _cachedMyResults!;
+    }
+    _lastMineFilter = _activeMineFilter;
+
     final mine = _searchFilteredCompanies
         .where((c) => _currentUserId.isNotEmpty && c.userId == _currentUserId)
         .toList();
 
+    List<CompanyModel> result;
     switch (_activeMineFilter) {
       case 'Actives':
-        return mine.where((c) => c.status == CompanyStatus.active).toList();
+        result = mine.where((c) => c.status == CompanyStatus.active).toList();
+        break;
       case 'Brouillons':
-        return mine.where((c) => c.status == CompanyStatus.draft).toList();
+        result = mine.where((c) => c.status == CompanyStatus.draft).toList();
+        break;
       case 'Verifiees':
-        return mine
+        result = mine
             .where((c) =>
                 c.verified || c.verificationStatus == VerificationStatus.verified)
             .toList();
+        break;
       case 'En attente':
-        return mine
+        result = mine
             .where((c) =>
                 c.verificationStatus == VerificationStatus.pending ||
                 c.verificationStatus == VerificationStatus.notRequested)
             .toList();
+        break;
       default:
-        return mine;
+        result = mine;
     }
+    _cachedMyResults = result;
+    return result;
   }
 
   CompanyStats get _aggregatedStats {
@@ -408,7 +461,12 @@ class _CompaniesViewState extends State<CompaniesView> {
   Widget _buildSearchField({Color? fillColor}) {
     return TextField(
       controller: _searchController,
-      onChanged: (_) => setState(() {}),
+      onChanged: (_) {
+        _searchDebounce?.cancel();
+        _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+          if (mounted) setState(() {});
+        });
+      },
       style: TextStyle(
         color: fillColor != null ? Colors.white : AppTheme.textColor,
       ),
@@ -4960,6 +5018,10 @@ class _CompanyFormViewState extends State<CompanyFormView> {
   late final TextEditingController _phone;
   late final TextEditingController _email;
   late final TextEditingController _keywords;
+  late final TextEditingController _verificationNotes;
+  List<PlatformFile> _verificationDocs = [];
+  PlatformFile? _logoFile;
+  PlatformFile? _coverFile;
   bool _loading = false;
 
   bool get _editing => widget.initial != null;
@@ -4980,6 +5042,8 @@ class _CompanyFormViewState extends State<CompanyFormView> {
     _email = TextEditingController(text: i?.email ?? '');
     _keywords =
         TextEditingController(text: i?.keywords.join(', ') ?? '');
+    _verificationNotes =
+        TextEditingController(text: i?.verificationNotes ?? '');
   }
 
   @override
@@ -4987,6 +5051,7 @@ class _CompanyFormViewState extends State<CompanyFormView> {
     for (final c in [
       _name, _industry, _description, _shortDescription,
       _website, _size, _location, _address, _phone, _email, _keywords,
+      _verificationNotes,
     ]) {
       c.dispose();
     }
@@ -5021,16 +5086,21 @@ class _CompanyFormViewState extends State<CompanyFormView> {
             .map((e) => e.trim())
             .where((e) => e.isNotEmpty)
             .toList(),
+        verificationNotes: _verificationNotes.text.trim().isEmpty
+            ? null
+            : _verificationNotes.text.trim(),
       );
+
+      final docs = _verificationDocs.isNotEmpty ? _verificationDocs : null;
 
       if (_editing) {
         final id = widget.initial?.id;
         if (id == null || id.isEmpty) {
           throw Exception('Identifiant entreprise manquant');
         }
-        await _repository.update(id, payload);
+        await _repository.update(id, payload, verificationDocs: docs, logo: _logoFile, coverImage: _coverFile);
       } else {
-        await _repository.create(payload);
+        await _repository.create(payload, verificationDocs: docs, logo: _logoFile, coverImage: _coverFile);
       }
 
       if (!mounted) return;
@@ -5039,6 +5109,40 @@ class _CompanyFormViewState extends State<CompanyFormView> {
       if (!mounted) return;
       CustomToast.error(context, 'Operation impossible: $e');
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pickVerificationDocs() async {
+    final picker = FilePicker.platform;
+    final result = await picker.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (result != null) {
+      setState(() {
+        _verificationDocs = result.files
+            .where((f) => f.bytes != null)
+            .toList();
+      });
+    }
+  }
+
+  Future<void> _pickImage({required bool isLogo}) async {
+    final picker = FilePicker.platform;
+    final result = await picker.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty && result.files.first.bytes != null) {
+      setState(() {
+        if (isLogo) {
+          _logoFile = result.files.first;
+        } else {
+          _coverFile = result.files.first;
+        }
+      });
     }
   }
 
@@ -5056,6 +5160,77 @@ class _CompanyFormViewState extends State<CompanyFormView> {
           key: _formKey,
           child: Column(
             children: [
+              // ── Image uploads ──
+              Row(
+                children: [
+                  // Logo
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickImage(isLogo: true),
+                      child: Container(
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardColor,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.dividerColor),
+                        ),
+                        child: _logoFile != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.memory(_logoFile!.bytes!, fit: BoxFit.cover),
+                              )
+                            : (widget.initial?.logo != null &&
+                                    widget.initial!.logo!.isNotEmpty)
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      '${ImageUrlHelper.getBaseUrl()}/uploads/images-${widget.initial!.userId}/companies/logo/${widget.initial!.logo}',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _imagePlaceholder('Logo'),
+                                    ),
+                                  )
+                                : _imagePlaceholder('Logo'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Cover
+                  Expanded(
+                    flex: 2,
+                    child: GestureDetector(
+                      onTap: () => _pickImage(isLogo: false),
+                      child: Container(
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardColor,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.dividerColor),
+                        ),
+                        child: _coverFile != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.memory(_coverFile!.bytes!, fit: BoxFit.cover),
+                              )
+                            : (widget.initial?.coverImage != null &&
+                                    widget.initial!.coverImage!.isNotEmpty)
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      '${ImageUrlHelper.getBaseUrl()}/uploads/images-${widget.initial!.userId}/companies/cover/${widget.initial!.coverImage}',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _imagePlaceholder('Couverture'),
+                                    ),
+                                  )
+                                : _imagePlaceholder('Couverture'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
               _Field(controller: _name, label: 'Nom *', validator: _required),
               _Field(
                   controller: _industry,
@@ -5082,6 +5257,121 @@ class _CompanyFormViewState extends State<CompanyFormView> {
               _Field(controller: _phone, label: 'Telephone'),
               _Field(controller: _email, label: 'Email'),
               _Field(controller: _keywords, label: 'Mots-cles (virgule)'),
+
+              // ── Verification section ──
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.dividerColor),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.verified_outlined,
+                            color: AppColors.primaryColor, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Verification de l\'entreprise',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: AppTheme.textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Ajoutez des documents justificatifs (registre de commerce, patente, etc.) pour faire verifier votre entreprise.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textMutedColor,
+                      ),
+                    ),
+                    if (_editing && widget.initial != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _verificationStatusColor(
+                                  widget.initial!.verificationStatus)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Statut: ${_verificationStatusLabel(widget.initial!.verificationStatus)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: _verificationStatusColor(
+                                widget.initial!.verificationStatus),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    _Field(
+                      controller: _verificationNotes,
+                      label: 'Notes de verification',
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _pickVerificationDocs,
+                      icon: const Icon(Icons.attach_file, size: 18),
+                      label: Text(_verificationDocs.isEmpty
+                          ? 'Joindre des documents'
+                          : '${_verificationDocs.length} document(s) selectionne(s)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryColor,
+                        side: BorderSide(color: AppColors.primaryColor.withValues(alpha: 0.5)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    if (_verificationDocs.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ...List.generate(_verificationDocs.length, (i) {
+                        final name = _verificationDocs[i].name;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.description_outlined,
+                                  size: 16, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() =>
+                                      _verificationDocs.removeAt(i));
+                                },
+                                child: const Icon(Icons.close,
+                                    size: 16, color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
@@ -5115,6 +5405,47 @@ class _CompanyFormViewState extends State<CompanyFormView> {
   String? _required(String? value) {
     if (value == null || value.trim().isEmpty) return 'Champ obligatoire';
     return null;
+  }
+
+  String _verificationStatusLabel(VerificationStatus status) {
+    switch (status) {
+      case VerificationStatus.verified:
+        return 'Verifiee';
+      case VerificationStatus.pending:
+        return 'En attente de verification';
+      case VerificationStatus.rejected:
+        return 'Refusee';
+      case VerificationStatus.notRequested:
+        return 'Non demandee';
+    }
+  }
+
+  Color _verificationStatusColor(VerificationStatus status) {
+    switch (status) {
+      case VerificationStatus.verified:
+        return const Color(0xFF2E7D32);
+      case VerificationStatus.pending:
+        return const Color(0xFFF57C00);
+      case VerificationStatus.rejected:
+        return const Color(0xFFC62828);
+      case VerificationStatus.notRequested:
+        return Colors.grey;
+    }
+  }
+
+  Widget _imagePlaceholder(String label) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate_outlined,
+            size: 28, color: AppTheme.textMutedColor),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: AppTheme.textMutedColor),
+        ),
+      ],
+    );
   }
 }
 

@@ -101,9 +101,6 @@ class _ProfileViewState extends State<ProfileView>
                   SliverToBoxAdapter(
                     child: _buildProfileCard(context, profileViewModel),
                   ),
-                  SliverToBoxAdapter(
-                    child: _buildCvButton(context),
-                  ),
                   SliverPersistentHeader(
                     pinned: true,
                     delegate: _SliverTabBarDelegate(
@@ -184,8 +181,9 @@ class _ProfileViewState extends State<ProfileView>
                   width: double.infinity,
                   height: 120,
                   errorBuilder: (context, error, stackTrace) {
-                    debugPrint('Cover image error: $error');
-                    debugPrint('Cover URL: ${viewModel.cover}');
+                    // Gracefully fall back when the cover image cannot be
+                    // decoded (e.g. corrupt file, unsupported format). We
+                    // intentionally stay silent to avoid console noise.
                     return const SizedBox.shrink();
                   },
                   loadingBuilder: (context, child, loadingProgress) {
@@ -285,65 +283,25 @@ class _ProfileViewState extends State<ProfileView>
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Avatar with Followers/Following stats on sides
+              // Instagram-style stats row: Posts | Followers | Following
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Followers (left side)
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          '${viewModel.followersCount}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Followers',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.textMutedColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildInlineStatColumn('${viewModel.followersCount}', 'Followers'),
                   // Avatar (center)
                   _buildAvatar(viewModel),
-                  // Following (right side)
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          '${viewModel.followingCount}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Following',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.textMutedColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildInlineStatColumn('${viewModel.followingCount}', 'Following'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Posts count row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildInlineStatColumn('${viewModel.postsCount}', AppLocalizations.of(context).posts),
                 ],
               ),
               const SizedBox(height: 16),
-              // Name
               Text(
                 viewModel.fullName,
                 style: const TextStyle(
@@ -722,25 +680,6 @@ class _ProfileViewState extends State<ProfileView>
             );
           }).toList(),
         ),
-        const SizedBox(height: 16),
-        Text(
-          'Statistiques',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.textMutedColor,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildStatCard('${viewModel.postsCount}', AppLocalizations.of(context).posts),
-            _buildStatCard('${viewModel.followersCount}', AppLocalizations.of(context).followers),
-            _buildStatCard('${viewModel.followingCount}', AppLocalizations.of(context).following),
-          ],
-        ),
       ],
     );
   }
@@ -754,6 +693,31 @@ class _ProfileViewState extends State<ProfileView>
           child: Text(
             value,
             style: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Instagram-style inline stat: bold number above small label.
+  Widget _buildInlineStatColumn(String count, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          count,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppTheme.textMutedColor,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -986,20 +950,9 @@ class _ProfileViewState extends State<ProfileView>
   }
 
   Widget _buildCvButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryColor,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-        ),
-        child: const Text('Télécharger le CV'),
-      ),
-    );
+    // Removed: "Télécharger le CV" button was not functional (empty onPressed).
+    // CV download is available through the dedicated CV views.
+    return const SizedBox.shrink();
   }
 
   /// ------------------ TEST IMAGE UPLOAD ------------------

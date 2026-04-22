@@ -59,7 +59,8 @@ class _ConversationBodyState extends State<_ConversationBody> {
   final _scrollController = ScrollController();
   Timer? _typingTimer;
   bool _isTypingEmitted = false;
-  
+  int _lastMessageCount = 0;
+
   // Edit mode
   String? _editingMessageId;
   bool get _isEditing => _editingMessageId != null;
@@ -195,13 +196,15 @@ class _ConversationBodyState extends State<_ConversationBody> {
     final vm = context.watch<ConversationViewModel>();
     final isDark = !AppTheme.isLight;
 
-    // Auto-scroll when new messages arrive
-    if (vm.messages.isNotEmpty) {
-      _scrollToBottom();
+    // Scroll to bottom when new messages arrive (outside of build tree).
+    final count = vm.messages.length;
+    if (count > _lastMessageCount) {
+      _lastMessageCount = count;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     }
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F0F23) : const Color(0xFFF1F5F9),
+      backgroundColor: isDark ? const Color(0xFF0A0E1F) : const Color(0xFFEDE8E3),
       appBar: _buildAppBar(context, vm, isDark),
       body: Column(
         children: [
@@ -343,6 +346,7 @@ class _ConversationBodyState extends State<_ConversationBody> {
 
     return ListView.builder(
       controller: _scrollController,
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       itemCount: vm.messages.length,
       itemBuilder: (context, index) {
@@ -505,12 +509,12 @@ class _ConversationBodyState extends State<_ConversationBody> {
             bottom: MediaQuery.of(context).padding.bottom + 8,
           ),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+            color: isDark ? const Color(0xFF141928) : Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, -1),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                blurRadius: 6,
+                offset: const Offset(0, -2),
               ),
             ],
           ),
@@ -533,7 +537,9 @@ class _ConversationBodyState extends State<_ConversationBody> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.07)
+                        : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: TextField(
@@ -613,13 +619,9 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final bgColor = isMine
         ? AppColors.primaryColor
-        : (isDark ? const Color(0xFF2A2A3E) : Colors.white);
-    final textColor = isMine
-        ? Colors.white
-        : AppTheme.textColor;
-    final metaColor = isMine
-        ? Colors.white70
-        : AppTheme.textMutedColor;
+        : (isDark ? const Color(0xFF1E2740) : Colors.white);
+    final textColor = isMine ? Colors.white : AppTheme.textColor;
+    final metaColor = isMine ? Colors.white60 : AppTheme.textMutedColor;
 
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,

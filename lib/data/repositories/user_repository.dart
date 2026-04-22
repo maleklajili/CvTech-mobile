@@ -173,17 +173,40 @@ class UserRepository {
 
   /// Récupérer les statistiques de l'utilisateur courant
   Future<Map<String, dynamic>> getUserStats() async {
-    return _getUserStatsFallback();
-  }
-
-  Future<Map<String, dynamic>> _getUserStatsFallback() async {
     try {
+      // First get current user ID
       final currentUserResponse = await _apiClient.dio.get(ApiEndpoints.currentUser);
       final currentUserData = currentUserResponse.data is Map &&
               currentUserResponse.data.containsKey('data')
           ? currentUserResponse.data['data'] as Map<String, dynamic>
           : currentUserResponse.data as Map<String, dynamic>;
 
+      final userId = currentUserData['_id']?.toString() ??
+          currentUserData['id']?.toString();
+
+      if (userId != null && userId.isNotEmpty) {
+        // Use dedicated stats endpoint: GET /users/:userId/stats
+        try {
+          final statsResponse = await _apiClient.dio.get(
+            '${ApiEndpoints.users}/$userId/stats',
+          );
+          final body = statsResponse.data;
+          final data = body is Map && body.containsKey('data')
+              ? body['data'] as Map<String, dynamic>
+              : body as Map<String, dynamic>;
+
+          return {
+            'followers': (data['followersCount'] as num?)?.toInt() ?? 0,
+            'following': (data['followingCount'] as num?)?.toInt() ?? 0,
+            'posts': (data['postsCount'] as num?)?.toInt() ?? 0,
+            'createdAt': currentUserData['createdAt'],
+          };
+        } catch (_) {
+          // Fall through to manual extraction from user object
+        }
+      }
+
+      // Fallback: extract from user object directly
       final followers = (currentUserData['followers'] as List?)?.length ??
           (currentUserData['followerCount'] as num?)?.toInt() ??
           0;
@@ -193,24 +216,21 @@ class UserRepository {
 
       int posts = 0;
       try {
-        final myPostsResponse = await _apiClient.dio.get(
-          ApiEndpoints.postFeed,
-          queryParameters: {
-            'filter': 'new',
-            'page': 1,
-            'limit': 200,
-          },
-        );
-        final feedData = myPostsResponse.data is Map &&
-                myPostsResponse.data.containsKey('data')
-            ? myPostsResponse.data['data']
-            : myPostsResponse.data;
-
-        if (feedData is Map && feedData['posts'] is List) {
-          posts = (feedData['posts'] as List).length;
-        } else if (myPostsResponse.data is Map &&
-            myPostsResponse.data['posts'] is List) {
-          posts = (myPostsResponse.data['posts'] as List).length;
+        if (userId != null && userId.isNotEmpty) {
+          final myPostsResponse = await _apiClient.dio.get(
+            '${ApiEndpoints.postByUser}$userId',
+          );
+          final body = myPostsResponse.data;
+          final data = body is Map && body.containsKey('data')
+              ? body['data']
+              : body;
+          if (data is List) {
+            posts = data.length;
+          } else if (data is Map && data['posts'] is List) {
+            posts = (data['posts'] as List).length;
+          } else if (data is Map && data['total'] is num) {
+            posts = (data['total'] as num).toInt();
+          }
         }
       } catch (_) {
         posts = 0;

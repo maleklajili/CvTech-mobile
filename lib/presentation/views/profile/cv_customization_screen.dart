@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'dart:io' show File;
@@ -44,20 +44,8 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
   bool _isDownloading = false;
 
   static const _languages = {
-    'fr': 'Français',
+    'fr': 'FranÃ§ais',
     'en': 'English',
-    'ar': 'العربية',
-    'es': 'Español',
-    'de': 'Deutsch',
-    'it': 'Italiano',
-    'pt': 'Português',
-    'tr': 'Türkçe',
-    'zh': '中文',
-    'ja': '日本語',
-    'ko': '한국어',
-    'ru': 'Русский',
-    'nl': 'Nederlands',
-    'hi': 'हिन्दी',
   };
 
   static const _templates = [
@@ -81,7 +69,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
     ),
     _TemplateOption(
       key: 'european',
-      label: 'Européen',
+      label: 'EuropÃ©en',
       icon: Icons.account_circle_outlined,
       color: Color(0xFF0f766e),
     ),
@@ -274,7 +262,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
                   Text(
                     t.label,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.normal,
                       color: isSelected ? t.color : null,
@@ -351,7 +339,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Aperçu en $font',
+                    'AperÃ§u en $font',
                     style: TextStyle(
                       fontFamily: font,
                       fontSize: 15,
@@ -395,7 +383,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
             child: Text(
               entry.value,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected ? _selectedColor : null,
               ),
@@ -487,3 +475,5 @@ class _TemplateOption {
     required this.color,
   });
 }
+
+

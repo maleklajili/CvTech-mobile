@@ -39,7 +39,7 @@ class MainView extends StatelessWidget {
         builder: (context, bottomNavViewModel, appBarViewModel, child) =>
             Scaffold(
           appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(40),
+            preferredSize: const Size.fromHeight(60),
             child: AppBarWidget(
               viewModel: appBarViewModel,
             ),
@@ -60,14 +60,23 @@ class MainView extends StatelessWidget {
             ),
           ),
           floatingActionButton:
-              _buildPostButton(context, visible: bottomNavViewModel.isNavVisibile),
+              _buildPostButton(context, bottomNavViewModel: bottomNavViewModel),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         ),
       ),
     );
   }
 
-  Widget _buildPostButton(BuildContext context, {required bool visible}) {
+  Widget _buildPostButton(
+    BuildContext context, {
+    required BottomNavigationBarViewModel bottomNavViewModel,
+  }) {
+    // The create-post FAB should only appear on Home (index 0) and
+    // Profile (index 4). On other tabs (Connections, Professional
+    // Profile, Jobs) it doesn't belong and confuses the UX.
+    final currentIndex = bottomNavViewModel.currentIndex;
+    final isPostableTab = currentIndex == 0 || currentIndex == 4;
+    final visible = isPostableTab && bottomNavViewModel.isNavVisibile;
     return Visibility(
       visible: visible,
       child: GestureDetector(

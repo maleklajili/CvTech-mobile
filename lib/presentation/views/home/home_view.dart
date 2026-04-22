@@ -66,8 +66,13 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.scrollController.addListener(_onScroll);
-    _loadMemberships();
-    _connectSocketForFeedHints();
+    // Delay non-critical loads to avoid flooding backend on startup
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        _loadMemberships();
+        _connectSocketForFeedHints();
+      }
+    });
     _startAutoRefresh();
   }
 
@@ -124,6 +129,9 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshNow();
+      _startAutoRefresh();
+    } else if (state == AppLifecycleState.paused) {
+      _autoRefreshTimer?.cancel();
     }
   }
 

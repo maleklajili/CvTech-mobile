@@ -60,8 +60,13 @@ class _DrawerWigetState extends State<DrawerWiget> {
   @override
   void initState() {
     super.initState();
-    _loadCurrentUser();
-    _initDynamicBadges();
+    // Delay drawer API calls to avoid flooding backend on app startup
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _loadCurrentUser();
+        _initDynamicBadges();
+      }
+    });
   }
 
   @override
@@ -130,7 +135,7 @@ class _DrawerWigetState extends State<DrawerWiget> {
 
   void _startBadgePolling() {
     _badgePollingTimer?.cancel();
-    _badgePollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _badgePollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       _refreshUnreadMessages(notifyOnIncrease: true);
     });
   }
@@ -441,13 +446,6 @@ class _DrawerWigetState extends State<DrawerWiget> {
               Icons.work,
               isActive: ModalRoute.of(context)?.settings.name == '/jobs',
               onTap: _navigateToJobs,
-            ),
-            _buildMenuItem(
-              context,
-              AppLocalizations.of(context).trending,
-              Icons.trending_up,
-              isActive: ModalRoute.of(context)?.settings.name == '/trends',
-              onTap: _navigateToTrends,
             ),
             const Divider(),
             // Utilisateur

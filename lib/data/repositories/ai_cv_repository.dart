@@ -30,6 +30,11 @@ class AiCvRepository {
       final response = await _apiClient.dio.post(
         ApiEndpoints.aiCvGenerate,
         data: body,
+        options: Options(
+          // LLM (llama3.2 on CPU) can take 300-600s — must exceed backend timeout
+          receiveTimeout: const Duration(seconds: 600),
+          sendTimeout: const Duration(seconds: 30),
+        ),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -59,6 +64,10 @@ class AiCvRepository {
       final response = await _apiClient.dio.post(
         '${ApiEndpoints.aiCvReformulate}$cvId',
         data: body,
+        options: Options(
+          receiveTimeout: const Duration(seconds: 600),
+          sendTimeout: const Duration(seconds: 30),
+        ),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -155,6 +164,26 @@ class AiCvRepository {
         return Map<String, dynamic>.from(data as Map);
       }
       throw Exception('Échec du chargement des infos CV');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Improve bio and classify skills using AI
+  Future<Map<String, dynamic>> improveBio() async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.aiCvImproveBio,
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return Map<String, dynamic>.from(data as Map);
+      }
+
+      throw Exception('Échec de l\'amélioration du profil');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }

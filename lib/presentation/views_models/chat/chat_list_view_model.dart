@@ -17,7 +17,6 @@ class ChatListViewModel extends SafeChangeNotifier {
   String? _currentUserId;
   StreamSubscription? _messageSub;
   StreamSubscription? _deletedConvSub;
-  Timer? _reloadDebounce;
 
   List<ChatPreview> get chats => _chats;
   bool get isLoading => _isLoading;
@@ -36,18 +35,12 @@ class ChatListViewModel extends SafeChangeNotifier {
 
   void _listenSocket() {
     _messageSub = _socket.onNewMessage.listen((data) {
-      // Debounce: burst of messages = one reload, not N reloads.
-      _scheduleReload();
+      // When a new message arrives, refresh the list
+      loadChats();
     });
 
+    // When a conversation is deleted, refresh the list
     _deletedConvSub = _socket.onConversationDeleted.listen((data) {
-      _scheduleReload();
-    });
-  }
-
-  void _scheduleReload() {
-    _reloadDebounce?.cancel();
-    _reloadDebounce = Timer(const Duration(milliseconds: 500), () {
       loadChats();
     });
   }
@@ -99,7 +92,6 @@ class ChatListViewModel extends SafeChangeNotifier {
 
   @override
   void dispose() {
-    _reloadDebounce?.cancel();
     _messageSub?.cancel();
     _deletedConvSub?.cancel();
     super.dispose();
