@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/data/models/notification_model.dart';
+import 'package:cv_tech/presentation/views/job/jobs_view.dart';
 import 'package:cv_tech/presentation/views_models/notification/notification_view_model.dart';
 
 class NotificationView extends StatefulWidget {
@@ -139,6 +140,12 @@ class _NotificationViewState extends State<NotificationView> {
     if (!n.read && n.id != null) {
       vm.markAsRead(n.id!);
     }
+    // Navigation pour les notifications d'offres d'emploi
+    if (n.type == 'job_application' || n.type == 'job_application_status') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const JobsView()),
+      );
+    }
   }
 }
 
@@ -266,6 +273,14 @@ class _NotificationTile extends StatelessWidget {
         return Icons.business;
       case 'job_application':
         return Icons.work;
+      case 'job_application_status':
+        return Icons.assignment_turned_in;
+      case 'share':
+        return Icons.share;
+      case 'company_verification':
+      case 'verification_request':
+      case 'verification_request_update':
+        return Icons.verified;
       default:
         return Icons.notifications;
     }
@@ -292,8 +307,33 @@ class _NotificationTile extends StatelessWidget {
         return Colors.amber.shade700;
       case 'job_application':
         return Colors.deepOrange;
+      case 'job_application_status':
+        return _statusColor(notification.metadata?['newStatus']?.toString());
+      case 'share':
+        return Colors.cyan;
+      case 'company_verification':
+      case 'verification_request':
+      case 'verification_request_update':
+        return Colors.lightBlue;
       default:
         return AppColors.textMutedColor;
+    }
+  }
+
+  Color _statusColor(String? status) {
+    switch (status) {
+      case 'accepted':
+      case 'shortlisted':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'viewed':
+        return Colors.blue;
+      case 'withdrawn':
+        return Colors.grey;
+      case 'pending':
+      default:
+        return Colors.orange;
     }
   }
 
