@@ -177,7 +177,7 @@ class HomeFeedViewModel extends SafeChangeNotifier {
     _feedItems = [];
 
     for (var i = 0; i < _posts.length; i++) {
-      _feedItems.add(PostFeedItem(_posts[i]));
+      _feedItems.add(PostFeedItem(_enrichPost(_posts[i])));
 
       // After 2nd post: insert job suggestions
       if (i == 1 && _jobMatches.isNotEmpty) {
@@ -194,6 +194,27 @@ class HomeFeedViewModel extends SafeChangeNotifier {
         _feedItems.add(SharedJobFeedItem(_jobMatches[3]));
       }
     }
+  }
+
+  /// Fills in author info for posts where the backend returned an un-populated
+  /// userId string. This handles the common case where the current user just
+  /// published a post and the create/feed response didn't include the author
+  /// object, causing the UI to display "Utilisateur" instead of the real name.
+  FeedPostModel _enrichPost(FeedPostModel post) {
+    if (_currentUserId == null || _currentUserId!.isEmpty) return post;
+    if (post.author.id != _currentUserId) return post;
+    // Already has a name – nothing to do
+    final hasName = (post.author.fullName != null && post.author.fullName!.isNotEmpty) ||
+        (post.author.userName != null && post.author.userName!.isNotEmpty);
+    if (hasName) return post;
+
+    return post.copyWith(
+      author: PostAuthor(
+        id: _currentUserId!,
+        fullName: _currentUserName,
+        image: _currentUserImage,
+      ),
+    );
   }
 
   // ── Data loading helpers ──

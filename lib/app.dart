@@ -151,8 +151,16 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           return const MainView();
         }
 
+        // Splash timer has elapsed – auth check is still in progress.
+        // Show a lightweight spinner so the full splash animation is not
+        // replayed; the BlocBuilder will rebuild as soon as auth resolves.
         if (state is AuthInitial || state is AuthLoading) {
-          return const SplashScreen();
+          return const Scaffold(
+            backgroundColor: Color(0xFF1A1A2E),
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFFF26E22)),
+            ),
+          );
         }
 
         return const LoginView();

@@ -85,7 +85,7 @@ class MainView extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (_) => ChangeNotifierProvider(
-                create: (_) => FeedViewModel()..loadFeed(),
+                create: (_) => FeedViewModel(),
                 child: const CreatePostView(),
               ),
             ),
