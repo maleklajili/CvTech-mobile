@@ -391,7 +391,7 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
-            create: (_) => FeedViewModel()..loadFeed(),
+            create: (_) => FeedViewModel(),
             child: PostDetailView(post: post),
           ),
         ),
@@ -402,7 +402,7 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
-            create: (_) => FeedViewModel()..loadFeed(),
+            create: (_) => FeedViewModel(),
             child: PostDetailView(post: post, focusComment: true),
           ),
         ),
@@ -417,7 +417,7 @@ class _HomeContentState extends State<_HomeContent> with WidgetsBindingObserver 
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
-            create: (_) => FeedViewModel()..loadFeed(),
+            create: (_) => FeedViewModel(),
             child: CreatePostView(post: post),
           ),
         ),

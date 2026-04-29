@@ -387,7 +387,24 @@ class FeedRepository {
         final data = response.data is Map && response.data.containsKey('data')
             ? response.data['data']
             : response.data;
-        return FeedPostModel.fromJson(data);
+        final created = FeedPostModel.fromJson(data);
+
+        // The backend may return the freshly-created post WITHOUT populating
+        // the author (userId stays as a raw ObjectId string), which causes the
+        // post to render as "Utilisateur" in the feed. Re-fetch the post by id
+        // to obtain the populated author info before returning it.
+        final createdId = created.id;
+        if (createdId != null && createdId.isNotEmpty &&
+            (created.author.fullName == null || created.author.fullName!.isEmpty) &&
+            (created.author.userName == null || created.author.userName!.isEmpty)) {
+          try {
+            return await getPostById(createdId);
+          } catch (_) {
+            // Fallback to the original response on any failure
+            return created;
+          }
+        }
+        return created;
       }
 
       throw Exception('Erreur lors de la création du post');
