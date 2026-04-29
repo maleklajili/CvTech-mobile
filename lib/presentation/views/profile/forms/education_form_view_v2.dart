@@ -51,11 +51,19 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
   // Skill selection
   String? _selectedCategory;
 
+  ProfessionalProfileViewModel? _viewModel;
+
   @override
   void initState() {
     super.initState();
     _initControllers();
     _loadExistingData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _viewModel ??= context.read<ProfessionalProfileViewModel>();
   }
 
   void _initControllers() {
@@ -189,7 +197,12 @@ class _EducationFormViewV2State extends State<EducationFormViewV2> {
 
     setState(() => _isLoading = true);
 
-    final viewModel = context.read<ProfessionalProfileViewModel>();
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      CustomToast.error(context, 'Session expirée, veuillez réessayer.');
+      setState(() => _isLoading = false);
+      return;
+    }
     final profileViewModel = context.read<ProfileViewModel>();
     final userId = profileViewModel.user?.id ?? '';
 

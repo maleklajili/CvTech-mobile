@@ -46,6 +46,8 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
   List<Map<String, dynamic>> _certificates = [];
   Map<String, bool> _expandedSkills = {};
 
+  ProfessionalProfileViewModel? _viewModel;
+
   // Skill categories matching Next.js
   final Map<String, List<String>> _skillsByCategory = {
     'Frontend': ['React', 'Vue.js', 'Angular', 'Next.js', 'TypeScript', 'JavaScript', 'HTML', 'CSS', 'Tailwind CSS', 'SASS'],
@@ -61,6 +63,12 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
     super.initState();
     _initControllers();
     _loadExistingData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _viewModel ??= context.read<ProfessionalProfileViewModel>();
   }
 
   void _initControllers() {
@@ -202,9 +210,14 @@ class _ExperienceFormViewState extends State<ExperienceFormView> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      CustomToast.error(context, 'Session expirée, veuillez réessayer.');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    final viewModel = context.read<ProfessionalProfileViewModel>();
     final userId = widget.userId ?? '';
 
     final experience = ExperienceModel(

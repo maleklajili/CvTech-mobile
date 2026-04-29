@@ -52,11 +52,19 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
   // String _skillSearchQuery = ''; // Supprimé car non utilisé
   final TextEditingController _skillSearchController = TextEditingController();
 
+  ProfessionalProfileViewModel? _viewModel;
+
   @override
   void initState() {
     super.initState();
     _initControllers();
     _loadExistingData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _viewModel ??= context.read<ProfessionalProfileViewModel>();
   }
 
   void _initControllers() {
@@ -203,7 +211,12 @@ class _ExperienceFormViewV2State extends State<ExperienceFormViewV2> {
 
     setState(() => _isLoading = true);
 
-    final viewModel = context.read<ProfessionalProfileViewModel>();
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      CustomToast.error(context, 'Session expirée, veuillez réessayer.');
+      setState(() => _isLoading = false);
+      return;
+    }
     final profileViewModel = context.read<ProfileViewModel>();
     final userId = profileViewModel.user?.id ?? '';
 

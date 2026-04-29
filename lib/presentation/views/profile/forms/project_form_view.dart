@@ -42,6 +42,8 @@ class _ProjectFormViewState extends State<ProjectFormView> {
   Uint8List? _selectedImageBytes;
   List<String> _technologies = [];
 
+  ProfessionalProfileViewModel? _viewModel;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +75,12 @@ class _ProjectFormViewState extends State<ProjectFormView> {
     _githubUrlController.dispose();
     _techSearchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _viewModel ??= context.read<ProfessionalProfileViewModel>();
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
@@ -137,7 +145,12 @@ class _ProjectFormViewState extends State<ProjectFormView> {
 
     setState(() => _isLoading = true);
 
-    final viewModel = context.read<ProfessionalProfileViewModel>();
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      CustomToast.error(context, 'Session expirée, veuillez réessayer.');
+      setState(() => _isLoading = false);
+      return;
+    }
 
     final project = ProjectModel(
       id: widget.project?.id,

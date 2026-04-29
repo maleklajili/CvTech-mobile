@@ -49,6 +49,8 @@ class _EducationFormViewState extends State<EducationFormView> {
   List<Map<String, dynamic>> _certificates = [];
   Map<String, bool> _expandedSkills = {};
 
+  ProfessionalProfileViewModel? _viewModel;
+
   // Grade options matching web
   final List<String> _gradeOptions = [
     'Passable',
@@ -89,6 +91,12 @@ class _EducationFormViewState extends State<EducationFormView> {
     super.initState();
     _initControllers();
     _loadExistingData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _viewModel ??= context.read<ProfessionalProfileViewModel>();
   }
 
   void _initControllers() {
@@ -219,9 +227,14 @@ class _EducationFormViewState extends State<EducationFormView> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      CustomToast.error(context, 'Session expirée, veuillez réessayer.');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    final viewModel = context.read<ProfessionalProfileViewModel>();
     final userId = widget.userId ?? '';
 
     final education = EducationModel(

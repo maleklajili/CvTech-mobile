@@ -111,11 +111,19 @@ class _SkillFormViewState extends State<SkillFormView> {
     },
   ];
 
+  ProfessionalProfileViewModel? _viewModel;
+
   @override
   void initState() {
     super.initState();
     _initControllers();
     _loadExistingData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _viewModel ??= context.read<ProfessionalProfileViewModel>();
   }
 
   void _initControllers() {
@@ -189,7 +197,12 @@ class _SkillFormViewState extends State<SkillFormView> {
 
     setState(() => _isLoading = true);
 
-    final viewModel = context.read<ProfessionalProfileViewModel>();
+    final viewModel = _viewModel;
+    if (viewModel == null) {
+      CustomToast.error(context, 'Session expirée, veuillez réessayer.');
+      setState(() => _isLoading = false);
+      return;
+    }
     final userId = widget.userId ?? '';
 
     final skill = SkillModel(
