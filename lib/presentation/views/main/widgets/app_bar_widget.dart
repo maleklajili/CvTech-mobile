@@ -33,22 +33,25 @@ class AppBarWidget extends StatelessWidget {
     return AppBar(
       centerTitle: false,
       elevation: 0.5,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: Image.asset(
-              'assets/logo/cvtech_logo.png',
-              width: 34,
-              height: 34,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      titleSpacing: 0,
+      title: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/logo/cvtech_logo.png',
+                width: 34,
+                height: 34,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Column(
+            const SizedBox(width: 10),
+            Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -75,8 +78,8 @@ class AppBarWidget extends StatelessWidget {
                   ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       leading: IconButton(
         icon: Icon(viewModel.isDrawerOpen ? Icons.menu_open : Icons.menu),

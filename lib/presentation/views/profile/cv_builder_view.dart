@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io' show File;
 import 'dart:typed_data';
 
@@ -18,14 +18,14 @@ import 'package:cv_tech/presentation/views_models/profile/manual_cv_view_model.d
 import 'package:cv_tech/presentation/widgets/common/custom_toast.dart';
 import 'package:cv_tech/theme/app_theme.dart';
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// CV Builder  â€”  5-screen guided flow
+// ══════════════════════════════════════════════════════════════════════════════
+// CV Builder  —  5-screen guided flow
 //   1. Import trigger
 //   2. Scan / progress
 //   3. Score CV
 //   3. Template + AI
 //   4. CV preview + export
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════════════════════════════════
 
 const _kBlue = Color(0xFFF26E22); // App primary orange
 const _kBlueBg = Color(0xFFFFF3EB); // Light orange bg
@@ -150,18 +150,18 @@ class _CvBuilderViewState extends State<CvBuilderView>
   static const _templates = [
     _Tpl('standard', 'Standard', 'ATS-friendly, mise en page classique', 'Classique',
         Color(0xFF1B2A4A), Color(0xFFC8973A), isDark: true, tier: 'free'),
-    _Tpl('modern', 'Moderne', 'Sidebar colorÃ©e, design contemporain', 'Moderne',
+    _Tpl('modern', 'Moderne', 'Sidebar colorée, design contemporain', 'Moderne',
         Color(0xFF0F172A), Color(0xFF3B82F6), isDark: true, tier: 'free'),
-    _Tpl('modern_dark', 'Dark Ã‰lÃ©gant', 'Fond sombre, accents dorÃ©s', 'Moderne',
-        Color(0xFF0F0F12), Color(0xFFC8A96E), isDark: true, tier: 'free'),
-    _Tpl('european', 'EuropÃ©en', 'Format Europass, sidebar foncÃ©e', 'Classique',
-        Color(0xFF1E293B), Color(0xFF60A5FA), isDark: true, tier: 'free'),
-    _Tpl('canadian', 'Canadien', 'Format nord-amÃ©ricain, optimisÃ© ATS', 'Classique',
-        Color(0xFF1E3A8A), Color(0xFF93C5FD), isDark: true, tier: 'free'),
-    _Tpl('latex', 'LaTeX AcadÃ©mique', 'Style universitaire, sobre et dense', 'AcadÃ©mique',
-        Color(0xFFF8F8F8), Color(0xFF0056A3), isDark: false, tier: 'free'),
-    _Tpl('minimal', 'Minimal', 'Ultra-Ã©purÃ©, typographie raffinÃ©e', 'Minimaliste',
-        Color(0xFFFAF9F7), Color(0xFF2D2D2D), isDark: false, tier: 'free'),
+    _Tpl('modern_dark', 'Dark Élégant', 'Fond sombre, accents dorés', 'Moderne',
+        Color(0xFF0F0F12), Color(0xFFC8A96E), isDark: true, tier: 'pro'),
+    _Tpl('european', 'Européen', 'Format Europass, sidebar foncée', 'Classique',
+        Color(0xFF1E293B), Color(0xFF60A5FA), isDark: true, tier: 'pro'),
+    _Tpl('canadian', 'Canadien', 'Format nord-américain, optimisé ATS', 'Classique',
+        Color(0xFF1E3A8A), Color(0xFF93C5FD), isDark: true, tier: 'pro'),
+    _Tpl('latex', 'LaTeX Académique', 'Style universitaire, sobre et dense', 'Académique',
+        Color(0xFFF8F8F8), Color(0xFF0056A3), isDark: false, tier: 'gold'),
+    _Tpl('minimal', 'Minimal', 'Ultra-épuré, typographie raffinée', 'Minimaliste',
+        Color(0xFFFAF9F7), Color(0xFF2D2D2D), isDark: false, tier: 'gold'),
   ];
 
   @override
@@ -188,7 +188,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
     setState(() => _step = p);
   }
 
-  // â”€â”€â”€ STEP 1 â†’ 2 : start import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── STEP 1 → 2 : start import ───────────────────────────────────
   Future<void> _startImport() async {
     _goTo(1);
     setState(() {
@@ -199,9 +199,9 @@ class _CvBuilderViewState extends State<CvBuilderView>
 
     final phases = [
       _ScanItem('Informations personnelles', Icons.person_outline_rounded),
-      _ScanItem('ExpÃ©riences', Icons.work_outline_rounded),
+      _ScanItem('Expériences', Icons.work_outline_rounded),
       _ScanItem('Formations', Icons.school_outlined),
-      _ScanItem('CompÃ©tences', Icons.psychology_outlined),
+      _ScanItem('Compétences', Icons.psychology_outlined),
       _ScanItem('Projets & certifications', Icons.folder_outlined),
     ];
 
@@ -243,7 +243,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
     }
   }
 
-  // â”€â”€â”€ STEP 3 : generate / customize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── STEP 3 : generate / customize ────────────────────────────────
   Future<void> _generateCv() async {
     final tpl = _templates[_selectedTpl];
 
@@ -261,7 +261,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
       if (widget.useAi || userPrompt.isNotEmpty) {
         final prompt = userPrompt.isNotEmpty
             ? userPrompt
-            : 'GÃ©nÃ¨re un CV professionnel complet et optimisÃ© Ã  partir des donnÃ©es du profil.';
+            : 'Génère un CV professionnel complet et optimisé à partir des données du profil.';
         final aiCv = await _aiRepo.generate(
           language: _selectedLang,
           section: 'full',
@@ -297,17 +297,24 @@ class _CvBuilderViewState extends State<CvBuilderView>
   String _colorHex(Color c) =>
       '#${c.value.toRadixString(16).padLeft(8, '0').substring(2)}';
 
-  // â”€â”€â”€ Premium helper widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Premium helper widgets ─────────────────────────────────────────
 
   Widget _tierBadge(String tier) {
+    // Ne pas afficher de badge pour les templates gratuits
+    if (tier == 'free') return const SizedBox.shrink();
+    
     final isPro = tier == 'pro';
+    final isGold = tier == 'gold';
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isPro
               ? [const Color(0xFF7C3AED), const Color(0xFF9333EA)]
-              : [const Color(0xFFD97706), const Color(0xFFF59E0B)],
+              : isGold
+                  ? [const Color(0xFFD97706), const Color(0xFFF59E0B)]
+                  : [Colors.grey, Colors.grey],
         ),
         borderRadius: BorderRadius.circular(99),
       ),
@@ -317,7 +324,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
           const Icon(Icons.lock_rounded, size: 8, color: Colors.white),
           const SizedBox(width: 3),
           Text(
-            isPro ? 'PRO' : 'GOLD',
+            isPro ? 'PRO' : (isGold ? 'GOLD' : 'FREE'),
             style: const TextStyle(
               fontSize: 8,
               fontWeight: FontWeight.w700,
@@ -349,8 +356,8 @@ class _CvBuilderViewState extends State<CvBuilderView>
           ],
         ),
         content: Text(
-          'Ce template nÃ©cessite un abonnement ${isPro ? "Pro" : "Gold"}.\n'
-          'Mettez Ã  niveau votre plan pour dÃ©bloquer ce template.',
+          'Ce template nécessite un abonnement ${isPro ? "Pro" : "Gold"}.\n'
+          'Mettez à niveau votre plan pour débloquer ce template.',
           style: const TextStyle(fontSize: 15),
         ),
         actions: [
@@ -375,7 +382,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                 ),
               );
             },
-            child: const Text('Mettre Ã  niveau'),
+            child: const Text('Mettre à niveau'),
           ),
         ],
       ),
@@ -396,7 +403,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
           ],
         ),
         content: Text(
-          'La gÃ©nÃ©ration coÃ»te $cost coins.\n'
+          'La génération coûte $cost coins.\n'
           'Votre solde actuel : $_userCoins coins.\n\n'
           'Rechargez vos coins pour continuer.',
           style: const TextStyle(fontSize: 15),
@@ -482,7 +489,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
     return name.isNotEmpty ? name[0].toUpperCase() : '?';
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -504,7 +511,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
     );
   }
 
-  // â”€â”€â”€ shared top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── shared top bar ────────────────────────────────────────────────
   Widget _topBar({String? left, required String title, String? right}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -545,15 +552,15 @@ class _CvBuilderViewState extends State<CvBuilderView>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // SCREEN 1 â€” Import trigger
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
+  // SCREEN 1 — Import trigger
+  // ═══════════════════════════════════════════════════════════════════
   Widget _screen1() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _topBar(left: 'â† Retour', title: widget.useAi ? 'CV avec IA' : 'Importer le Profil'),
+          _topBar(left: '← Retour', title: widget.useAi ? 'CV avec IA' : 'Importer le Profil'),
 
           // Hero card
           Container(
@@ -587,7 +594,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                 Text(
                   widget.useAi
                       ? 'Importez votre profil puis l\'IA\noptimisera votre CV automatiquement'
-                      : 'Vos informations seront importÃ©es\nautomatiquement en quelques secondes',
+                      : 'Vos informations seront importées\nautomatiquement en quelques secondes',
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 15, color: _kBlueMid, height: 1.4),
                 ),
@@ -627,7 +634,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Text('ConnectÃ©',
+                const Text('Connecté',
                     style: TextStyle(
                         fontSize: 9,
                         color: _kGreen,
@@ -640,11 +647,11 @@ class _CvBuilderViewState extends State<CvBuilderView>
           // Hint
           Text.rich(
             TextSpan(
-              text: 'DonnÃ©es de votre profil: ',
+              text: 'Données de votre profil: ',
               style: TextStyle(fontSize: 9, color: AppTheme.textMutedColor),
               children: const [
                 TextSpan(
-                    text: 'expÃ©riences, formations, compÃ©tences',
+                    text: 'expériences, formations, compétences',
                     style: TextStyle(color: _kBlue)),
               ],
             ),
@@ -709,9 +716,9 @@ class _CvBuilderViewState extends State<CvBuilderView>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // SCREEN 2 â€” Analyse en cours
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
+  // SCREEN 2 — Analyse en cours
+  // ═══════════════════════════════════════════════════════════════════
   Widget _screen2() {
     final doneCount =
         _scanItems.where((s) => s.status == _ScanStatus.done).length;
@@ -762,7 +769,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
           Text(
             _importError != null
                 ? 'Erreur'
-                : (_importing ? 'Lecture du profil...' : 'Import terminÃ© !'),
+                : (_importing ? 'Lecture du profil...' : 'Import terminé !'),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -812,7 +819,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                             if (_importedCv!.personalInfo.professionalTitle !=
                                 null)
                               Text(
-                                '${_importedCv!.personalInfo.professionalTitle}${_importedCv!.personalInfo.city != null ? ' Â· ${_importedCv!.personalInfo.city}' : ''}',
+                                '${_importedCv!.personalInfo.professionalTitle}${_importedCv!.personalInfo.city != null ? ' · ${_importedCv!.personalInfo.city}' : ''}',
                                 style: const TextStyle(
                                     fontSize: 15, color: _kBlueMid),
                               ),
@@ -847,7 +854,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Text('$pct% importÃ©',
+                  child: Text('$pct% importé',
                       style: const TextStyle(fontSize: 9, color: _kBlueMid)),
                 ),
               ],
@@ -864,7 +871,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
             TextButton.icon(
               onPressed: () => _goTo(0),
               icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('RÃ©essayer', style: TextStyle(fontSize: 14)),
+              label: const Text('Réessayer', style: TextStyle(fontSize: 14)),
               style: TextButton.styleFrom(foregroundColor: _kBlue),
             ),
           ],
@@ -908,7 +915,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                 style: const TextStyle(fontSize: 15, color: _kBlueDark)),
           ),
           if (isDone)
-            const Text('âœ“',
+            const Text('✓',
                 style: TextStyle(fontSize: 9, color: _kBlueMid))
           else if (isLoading)
             SizedBox(
@@ -918,7 +925,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                   strokeWidth: 1.5, color: _kBlue),
             )
           else
-            Text('â€”',
+            Text('—',
                 style: TextStyle(
                     fontSize: 9, color: _kBlueMid.withAlpha(100))),
         ],
@@ -952,7 +959,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
             ),
           ),
           const Spacer(),
-          Text('â€”',
+          Text('—',
               style:
                   TextStyle(fontSize: 9, color: _kBlueMid.withAlpha(100))),
         ],
@@ -960,9 +967,9 @@ class _CvBuilderViewState extends State<CvBuilderView>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
   // SCORE HELPERS
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
 
   IconData _sectionIcon(String key) {
     switch (key) {
@@ -1010,12 +1017,12 @@ class _CvBuilderViewState extends State<CvBuilderView>
       // Detect spaced-out letters pattern
       if (RegExp(r'\w\s\w\s\w\s\w').hasMatch(title) && title.length > 20) {
         infoTips.add(
-            'VÃ©rifiez la typographie du titre â€” les espaces artificiels viennent souvent d\'un export PDF mal paramÃ©trÃ©');
+            'Vérifiez la typographie du titre — les espaces artificiels viennent souvent d\'un export PDF mal paramétré');
       }
       // Detect common typos
       if (RegExp(r'develop{1,2}er', caseSensitive: false).hasMatch(title)) {
         infoTips.add(
-            'Corrigez l\'orthographe : Â« full stack developper Â» â†’ Â« DÃ©veloppeur Full Stack Â»');
+            'Corrigez l\'orthographe : « full stack developper » → « Développeur Full Stack »');
       }
     } else {
       infoTips.add('Ajoutez un titre professionnel');
@@ -1023,7 +1030,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
     if (pi.email != null && pi.email!.isNotEmpty) info += 3;
     else infoTips.add('Ajoutez votre email');
     if (pi.phone != null && pi.phone!.isNotEmpty) info += 3;
-    else infoTips.add('Ajoutez votre tÃ©lÃ©phone');
+    else infoTips.add('Ajoutez votre téléphone');
     if (pi.city != null && pi.city!.isNotEmpty) info += 2;
     else infoTips.add('Ajoutez votre ville');
     if (pi.country != null && pi.country!.isNotEmpty) info += 2;
@@ -1049,12 +1056,12 @@ class _CvBuilderViewState extends State<CvBuilderView>
       if (summary.length > 50) {
         bio += 5;
       } else {
-        bioTips.add('DÃ©veloppez votre rÃ©sumÃ© (min 50 caractÃ¨res)');
+        bioTips.add('Développez votre résumé (min 50 caractères)');
       }
       if (summary.length > 150) {
         bio += 5;
       } else if (summary.length > 50) {
-        bioTips.add('Un rÃ©sumÃ© dÃ©taillÃ© amÃ©liore votre score (>150 car.)');
+        bioTips.add('Un résumé détaillé améliore votre score (>150 car.)');
       }
       // Check if summary is duplicated in experience descriptions
       if (summary.length > 30) {
@@ -1066,15 +1073,15 @@ class _CvBuilderViewState extends State<CvBuilderView>
         );
         if (duplicated) {
           bioTips.add(
-              'Ne rÃ©pÃ©tez pas le rÃ©sumÃ© dans vos expÃ©riences â€” chaque section doit avoir un contenu unique');
+              'Ne répétez pas le résumé dans vos expériences — chaque section doit avoir un contenu unique');
         }
       }
     } else {
-      bioTips.add('Ajoutez un rÃ©sumÃ© professionnel');
+      bioTips.add('Ajoutez un résumé professionnel');
     }
     sections.add(_ScoreSection(
       key: 'bio',
-      name: 'RÃ©sumÃ© / Bio',
+      name: 'Résumé / Bio',
       icon: Icons.description_outlined,
       maxPoints: 15,
       earnedPoints: bio,
@@ -1082,13 +1089,13 @@ class _CvBuilderViewState extends State<CvBuilderView>
       tips: bioTips,
     ));
 
-    // 3. ExpÃ©riences (25 pts)
+    // 3. Expériences (25 pts)
     int exp = 0;
     final expTips = <String>[];
     if (cv.experiences.isNotEmpty) {
       exp += 8;
       if (cv.experiences.length >= 2) exp += 5;
-      else expTips.add('Ajoutez au moins 2 expÃ©riences');
+      else expTips.add('Ajoutez au moins 2 expériences');
       if (cv.experiences.length >= 3) exp += 4;
       final withDesc = cv.experiences
           .where((e) => e.description != null && e.description!.isNotEmpty)
@@ -1097,27 +1104,27 @@ class _CvBuilderViewState extends State<CvBuilderView>
         exp += 8;
       } else if (withDesc > 0) {
         exp += 4;
-        expTips.add('DÃ©crivez toutes vos expÃ©riences');
+        expTips.add('Décrivez toutes vos expériences');
       } else {
-        expTips.add('Ajoutez des descriptions Ã  vos expÃ©riences');
+        expTips.add('Ajoutez des descriptions à vos expériences');
       }
       // Date consistency: detect future dates
       final now = DateTime.now();
       final hasFutureDate = cv.experiences.any((e) {
         final end = e.endDate;
         if (end == null || end.isEmpty) return false;
-        if (RegExp(r'prÃ©sent|present|actuel', caseSensitive: false)
+        if (RegExp(r'présent|present|actuel', caseSensitive: false)
             .hasMatch(end)) return false;
         final d = DateTime.tryParse(end);
         return d != null && d.isAfter(now);
       });
       if (hasFutureDate) {
         expTips.add(
-            'Corrigez les dates futures dans vos expÃ©riences â€” utilisez le format MM/AAAA');
+            'Corrigez les dates futures dans vos expériences — utilisez le format MM/AAAA');
       }
       // Check descriptions use action verbs
       final actionVerbs = RegExp(
-          r'^(dÃ©velopp|conÃ§|crÃ©Ã©|gÃ©rÃ©|mis en|rÃ©alis|implÃ©ment|optimi|supervis|coordonn|analys|design|built|develop|managed|created|led|implement)',
+          r'^(développ|conç|créé|géré|mis en|réalis|implément|optimi|supervis|coordonn|analys|design|built|develop|managed|created|led|implement)',
           caseSensitive: false);
       final weakDescs = cv.experiences
           .where((e) =>
@@ -1127,14 +1134,14 @@ class _CvBuilderViewState extends State<CvBuilderView>
           .length;
       if (weakDescs > 0) {
         expTips.add(
-            'Utilisez des verbes d\'action : Â« DÃ©veloppement d\'un dashboard React â†’ rÃ©duction de 35% du temps de chargement Â»');
+            'Utilisez des verbes d\'action : « Développement d\'un dashboard React → réduction de 35% du temps de chargement »');
       }
     } else {
-      expTips.add('Ajoutez vos expÃ©riences professionnelles');
+      expTips.add('Ajoutez vos expériences professionnelles');
     }
     sections.add(_ScoreSection(
       key: 'experiences',
-      name: 'ExpÃ©riences',
+      name: 'Expériences',
       icon: Icons.work_outline_rounded,
       maxPoints: 25,
       earnedPoints: exp,
@@ -1142,26 +1149,26 @@ class _CvBuilderViewState extends State<CvBuilderView>
       tips: expTips,
     ));
 
-    // 4. CompÃ©tences (20 pts)
+    // 4. Compétences (20 pts)
     int skill = 0;
     final skillTips = <String>[];
     if (cv.skills.isNotEmpty) {
       skill += 5;
       if (cv.skills.length >= 3) skill += 5;
-      else skillTips.add('Ajoutez au moins 3 compÃ©tences');
+      else skillTips.add('Ajoutez au moins 3 compétences');
       if (cv.skills.length >= 5) skill += 5;
       else if (cv.skills.length >= 3) {
-        skillTips.add('5+ compÃ©tences rend votre profil plus complet');
+        skillTips.add('5+ compétences rend votre profil plus complet');
       }
       final withLevel = cv.skills
           .where((s) => s.level != null && s.level!.isNotEmpty)
           .length;
       if (withLevel == cv.skills.length) skill += 5;
-      else skillTips.add('PrÃ©cisez le niveau de chaque compÃ©tence');
+      else skillTips.add('Précisez le niveau de chaque compétence');
       // Suggest domain grouping when many skills
       if (cv.skills.length >= 5) {
         skillTips.add(
-            'Regroupez vos compÃ©tences par domaine : Mobile, Frameworks, Backend, DevOpsâ€¦');
+            'Regroupez vos compétences par domaine : Mobile, Frameworks, Backend, DevOps…');
       }
       // Detect awkward parenthesized formats
       final awkward = cv.skills.any(
@@ -1169,14 +1176,14 @@ class _CvBuilderViewState extends State<CvBuilderView>
       );
       if (awkward) {
         skillTips.add(
-            'Ã‰vitez les parenthÃ¨ses collÃ©es : Â« ci/cd(DevOps) Â» â†’ Â« CI/CD Â» dans le domaine DevOps');
+            'Évitez les parenthèses collées : « ci/cd(DevOps) » → « CI/CD » dans le domaine DevOps');
       }
     } else {
-      skillTips.add('Ajoutez vos compÃ©tences techniques');
+      skillTips.add('Ajoutez vos compétences techniques');
     }
     sections.add(_ScoreSection(
       key: 'skills',
-      name: 'CompÃ©tences',
+      name: 'Compétences',
       icon: Icons.psychology_outlined,
       maxPoints: 20,
       earnedPoints: skill,
@@ -1200,14 +1207,14 @@ class _CvBuilderViewState extends State<CvBuilderView>
       final hasFutureEdu = cv.educations.any((e) {
         final end = e.endDate;
         if (end == null || end.isEmpty) return false;
-        if (RegExp(r'prÃ©sent|present|actuel|en cours', caseSensitive: false)
+        if (RegExp(r'présent|present|actuel|en cours', caseSensitive: false)
             .hasMatch(end)) return false;
         final d = DateTime.tryParse(end);
         return d != null && d.isAfter(now);
       });
       if (hasFutureEdu) {
         eduTips.add(
-            'VÃ©rifiez les dates de formation â€” les dates futures doivent Ãªtre marquÃ©es Â« En cours Â»');
+            'Vérifiez les dates de formation — les dates futures doivent être marquées « En cours »');
       }
     } else {
       eduTips.add('Ajoutez vos formations');
@@ -1230,7 +1237,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
       if (cv.languages.length >= 2) lang += 2;
       else langTips.add('Ajoutez au moins 2 langues');
     } else {
-      langTips.add('Ajoutez les langues que vous maÃ®trisez');
+      langTips.add('Ajoutez les langues que vous maîtrisez');
     }
     sections.add(_ScoreSection(
       key: 'languages',
@@ -1260,10 +1267,10 @@ class _CvBuilderViewState extends State<CvBuilderView>
 
   String _scoreLabel(double pct) {
     if (pct >= 0.8) return 'Excellent !';
-    if (pct >= 0.7) return 'TrÃ¨s bien';
+    if (pct >= 0.7) return 'Très bien';
     if (pct >= 0.5) return 'Peut mieux faire';
     if (pct >= 0.3) return 'Incomplet';
-    return 'Ã€ complÃ©ter';
+    return 'À compléter';
   }
 
   Color _priorityColor(String p) {
@@ -1279,15 +1286,15 @@ class _CvBuilderViewState extends State<CvBuilderView>
   }
 
   String _priorityLabel(String p) {
-    if (p == 'ok') return 'âœ“ OK';
-    if (p == 'ameliorer') return 'â¬† AmÃ©liorer';
-    return 'âš  Urgent';
+    if (p == 'ok') return '✓ OK';
+    if (p == 'ameliorer') return '⬆ Améliorer';
+    return '⚠ Urgent';
   }
 
   void _fixWithAi(_ScoreSection section) {
     // Build a rich, context-aware prompt for each section
     final data = _sectionData(section.key);
-    final dataStr = data.isNotEmpty ? data.join(', ') : 'aucune donnÃ©e';
+    final dataStr = data.isNotEmpty ? data.join(', ') : 'aucune donnée';
     final tipsStr = section.tips.isNotEmpty
         ? section.tips.join('. ')
         : '';
@@ -1295,35 +1302,35 @@ class _CvBuilderViewState extends State<CvBuilderView>
 
     final base = <String, String>{
       'info':
-          'ComplÃ¨te et amÃ©liore les informations personnelles du CV.\n'
+          'Complète et améliore les informations personnelles du CV.\n'
           'Score actuel: $score.\n'
-          'DonnÃ©es existantes: $dataStr.\n'
-          '${tipsStr.isNotEmpty ? 'Ã€ corriger: $tipsStr.' : ''}',
+          'Données existantes: $dataStr.\n'
+          '${tipsStr.isNotEmpty ? 'À corriger: $tipsStr.' : ''}',
       'bio':
-          'RÃ©dige un rÃ©sumÃ© professionnel percutant et dÃ©taillÃ©.\n'
+          'Rédige un résumé professionnel percutant et détaillé.\n'
           'Score actuel: $score.\n'
-          'RÃ©sumÃ© existant: $dataStr.\n'
+          'Résumé existant: $dataStr.\n'
           '${tipsStr.isNotEmpty ? 'Conseils: $tipsStr.' : ''}',
       'experiences':
-          'AmÃ©liore et dÃ©taille les descriptions des expÃ©riences professionnelles.\n'
+          'Améliore et détaille les descriptions des expériences professionnelles.\n'
           'Score actuel: $score.\n'
-          'ExpÃ©riences existantes: $dataStr.\n'
-          '${tipsStr.isNotEmpty ? 'Ã€ amÃ©liorer: $tipsStr.' : ''}',
+          'Expériences existantes: $dataStr.\n'
+          '${tipsStr.isNotEmpty ? 'À améliorer: $tipsStr.' : ''}',
       'skills':
-          'Enrichis la liste des compÃ©tences avec des niveaux prÃ©cis.\n'
+          'Enrichis la liste des compétences avec des niveaux précis.\n'
           'Score actuel: $score.\n'
-          'CompÃ©tences existantes: $dataStr.\n'
-          '${tipsStr.isNotEmpty ? 'Ã€ amÃ©liorer: $tipsStr.' : ''}',
+          'Compétences existantes: $dataStr.\n'
+          '${tipsStr.isNotEmpty ? 'À améliorer: $tipsStr.' : ''}',
       'educations':
-          'ComplÃ¨te les informations de formation.\n'
+          'Complète les informations de formation.\n'
           'Score actuel: $score.\n'
           'Formations existantes: $dataStr.\n'
-          '${tipsStr.isNotEmpty ? 'Ã€ complÃ©ter: $tipsStr.' : ''}',
+          '${tipsStr.isNotEmpty ? 'À compléter: $tipsStr.' : ''}',
       'languages':
-          'Ajoute les langues maÃ®trisÃ©es avec les niveaux.\n'
+          'Ajoute les langues maîtrisées avec les niveaux.\n'
           'Score actuel: $score.\n'
           'Langues existantes: $dataStr.\n'
-          '${tipsStr.isNotEmpty ? 'Ã€ ajouter: $tipsStr.' : ''}',
+          '${tipsStr.isNotEmpty ? 'À ajouter: $tipsStr.' : ''}',
     };
 
     setState(() {
@@ -1358,7 +1365,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
         _expandedKey = null;
         if (sectionKey != null) _aiFixedSections.add(sectionKey);
       });
-      CustomToast.success(context, 'Section amÃ©liorÃ©e par l\'IA âœ“');
+      CustomToast.success(context, 'Section améliorée par l\'IA ✓');
     } catch (e) {
       if (!mounted) return;
       setState(() => _aiFixLoading = false);
@@ -1407,22 +1414,22 @@ class _CvBuilderViewState extends State<CvBuilderView>
           if (pi.fullName.isNotEmpty) 'Nom: ${pi.fullName}',
           if (pi.professionalTitle != null) 'Titre: ${pi.professionalTitle}',
           if (pi.email != null) 'Email: ${pi.email}',
-          if (pi.phone != null) 'TÃ©l: ${pi.phone}',
+          if (pi.phone != null) 'Tél: ${pi.phone}',
           if (pi.city != null) 'Ville: ${pi.city}',
           if (pi.country != null) 'Pays: ${pi.country}',
         ];
       case 'bio':
         final s = cv.personalInfo.summary ?? '';
-        return s.isNotEmpty ? [s] : ['Aucun rÃ©sumÃ©'];
+        return s.isNotEmpty ? [s] : ['Aucun résumé'];
       case 'experiences':
         return cv.experiences.isEmpty
-            ? ['Aucune expÃ©rience']
+            ? ['Aucune expérience']
             : cv.experiences
-                .map((e) => '${e.jobTitle} â€” ${e.company}')
+                .map((e) => '${e.jobTitle} — ${e.company}')
                 .toList();
       case 'skills':
         return cv.skills.isEmpty
-            ? ['Aucune compÃ©tence']
+            ? ['Aucune compétence']
             : cv.skills
                 .map((s) =>
                     '${s.name}${s.level != null ? ' (${s.level})' : ''}')
@@ -1430,7 +1437,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
       case 'educations':
         return cv.educations.isEmpty
             ? ['Aucune formation']
-            : cv.educations.map((e) => '${e.degree} â€” ${e.school}').toList();
+            : cv.educations.map((e) => '${e.degree} — ${e.school}').toList();
       case 'languages':
         return cv.languages.isEmpty
             ? ['Aucune langue']
@@ -1443,9 +1450,9 @@ class _CvBuilderViewState extends State<CvBuilderView>
     }
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
   // SCREEN 3 (Score CV)
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
   Widget _screenScore() {
     if (_importedCv == null) {
       return const Center(child: CircularProgressIndicator(color: _kBlue));
@@ -1487,9 +1494,9 @@ class _CvBuilderViewState extends State<CvBuilderView>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _topBar(left: 'â† Retour', title: 'Score CV', right: '3/5'),
+          _topBar(left: '← Retour', title: 'Score CV', right: '3/5'),
 
-          // â”€â”€ Score gauge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Score gauge ──────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -1538,7 +1545,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                         color: _scoreColor(pct))),
                 const SizedBox(height: 4),
                 const Text(
-                  'ComplÃ©tez les sections ci-dessous\npour amÃ©liorer votre score',
+                  'Complétez les sections ci-dessous\npour améliorer votre score',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 9, color: _kBlueMid, height: 1.3),
                 ),
@@ -1547,12 +1554,12 @@ class _CvBuilderViewState extends State<CvBuilderView>
           ),
           const SizedBox(height: 14),
 
-          // â”€â”€ Section breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Section breakdown ────────────────────────────
           ...sections.map(_buildScoreCard),
 
           const SizedBox(height: 14),
 
-          // â”€â”€ Continue button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Continue button ──────────────────────────────
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1565,7 +1572,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Choisir un template â†’',
+              child: const Text('Choisir un template →',
                   style:
                       TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
@@ -1787,7 +1794,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
             ),
           ],
 
-          // â”€â”€ Expanded: AI prompt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Expanded: AI prompt ────────────────────────
           if (isExpanded && _expandMode == 'ai') ...[
             const SizedBox(height: 10),
             Container(
@@ -1811,7 +1818,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                     style: TextStyle(
                         fontSize: 15, color: AppTheme.textColor),
                     decoration: InputDecoration(
-                      hintText: 'DÃ©crivez ce que l\'IA doit amÃ©liorer...',
+                      hintText: 'Décrivez ce que l\'IA doit améliorer...',
                       hintStyle: TextStyle(
                           fontSize: 15, color: AppTheme.textMutedColor),
                       isDense: true,
@@ -1869,7 +1876,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
             ),
           ],
 
-          // â”€â”€ Expanded: Current data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Expanded: Current data ─────────────────────
           if (isExpanded && _expandMode == 'edit') ...[
             const SizedBox(height: 10),
             Container(
@@ -1885,7 +1892,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('DonnÃ©es actuelles',
+                  Text('Données actuelles',
                       style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w600,
@@ -1896,7 +1903,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('â€¢  ',
+                            Text('•  ',
                                 style: TextStyle(
                                     fontSize: 9, color: _kBlue)),
                             Expanded(
@@ -1935,9 +1942,9 @@ class _CvBuilderViewState extends State<CvBuilderView>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // SCREEN 4 â€” Template + AI
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
+  // SCREEN 4 — Template + AI
+  // ═══════════════════════════════════════════════════════════════════
   Widget _screen3() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1945,7 +1952,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _topBar(
-              left: 'â† Retour',
+              left: '← Retour',
               title: 'Choisir un style',
               right: '4/5'),
 
@@ -1970,7 +1977,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                       color: Colors.white, size: 9),
                 ),
                 const SizedBox(width: 8),
-                const Text('Profil importÃ© avec succÃ¨s !',
+                const Text('Profil importé avec succès !',
                     style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -1983,7 +1990,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
           // Template grid title
           Row(
             children: [
-              Text('SÃ©lectionnez votre template',
+              Text('Sélectionnez votre template',
                   style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -1997,7 +2004,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
             height: 32,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: ['Tous', 'Classique', 'Moderne', 'AcadÃ©mique', 'Minimaliste']
+              children: ['Tous', 'Classique', 'Moderne', 'Académique', 'Minimaliste']
                   .map((cat) {
                 final active = _filterCategory == cat;
                 return GestureDetector(
@@ -2049,7 +2056,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
-                  child: Text('Aucun template dans cette catÃ©gorie',
+                  child: Text('Aucun template dans cette catégorie',
                       style: TextStyle(fontSize: 15, color: AppTheme.textMutedColor)),
                 ),
               );
@@ -2069,10 +2076,10 @@ class _CvBuilderViewState extends State<CvBuilderView>
             spacing: 6,
             runSpacing: 6,
             children: [
-              _langChip('FranÃ§ais', 'fr'),
+              _langChip('Français', 'fr'),
               _langChip('English', 'en'),
-              _langChip('Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©', 'ar'),
-              _langChip('EspaÃ±ol', 'es'),
+              _langChip('العربية', 'ar'),
+              _langChip('Español', 'es'),
             ],
           ),
           const SizedBox(height: 14),
@@ -2096,7 +2103,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                     color: _kBlueBg,
                     borderRadius: BorderRadius.circular(99),
                   ),
-                  child: const Text('DÃ©faut',
+                  child: const Text('Défaut',
                       style: TextStyle(
                           fontSize: 8,
                           fontWeight: FontWeight.w500,
@@ -2160,7 +2167,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                     color: _kBlueBg,
                     borderRadius: BorderRadius.circular(99),
                   ),
-                  child: const Text('DÃ©faut',
+                  child: const Text('Défaut',
                       style: TextStyle(
                           fontSize: 8,
                           fontWeight: FontWeight.w500,
@@ -2217,7 +2224,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textColor)),
                 const SizedBox(height: 3),
-                Text('DÃ©crivez ce que vous voulez gÃ©nÃ©rer ou modifier',
+                Text('Décrivez ce que vous voulez générer ou modifier',
                     style: TextStyle(
                         fontSize: 9, color: AppTheme.textMutedColor)),
                 const SizedBox(height: 8),
@@ -2228,7 +2235,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                   style: TextStyle(
                       fontSize: 15, color: AppTheme.textColor),
                   decoration: InputDecoration(
-                    hintText: 'Ex: Optimise pour poste Flutter, ajoute un rÃ©sumÃ© professionnel, reformule les expÃ©riences...',
+                    hintText: 'Ex: Optimise pour poste Flutter, ajoute un résumé professionnel, reformule les expériences...',
                     hintStyle: TextStyle(
                         fontSize: 15, color: AppTheme.textMutedColor),
                     isDense: true,
@@ -2282,10 +2289,10 @@ class _CvBuilderViewState extends State<CvBuilderView>
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('GÃ©nÃ©rer mon CV',
+                        const Text('Générer mon CV',
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w600)),
-                        const Text(' â†’',
+                        const Text(' →',
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w600)),
                       ],
@@ -2498,16 +2505,16 @@ class _CvBuilderViewState extends State<CvBuilderView>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // SCREEN 4 â€” CV Preview + Export
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ═══════════════════════════════════════════════════════════════════
+  // SCREEN 4 — CV Preview + Export
+  // ═══════════════════════════════════════════════════════════════════
   Widget _screen4() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _topBar(left: 'â† Modifier', title: 'Mon CV', right: null),
-          // PrÃªt badge
+          _topBar(left: '← Modifier', title: 'Mon CV', right: null),
+          // Prêt badge
           Align(
             alignment: Alignment.centerRight,
             child: Container(
@@ -2524,7 +2531,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                   Icon(Icons.check_circle_rounded,
                       size: 12, color: _kGreenDark),
                   SizedBox(width: 4),
-                  Text('PrÃªt',
+                  Text('Prêt',
                       style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w600,
@@ -2550,7 +2557,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                     CircularProgressIndicator(
                         strokeWidth: 2.5, color: _kBlue),
                     SizedBox(height: 12),
-                    Text('GÃ©nÃ©ration du PDF...',
+                    Text('Génération du PDF...',
                         style: TextStyle(fontSize: 15, color: _kBlueMid)),
                   ],
                 ),
@@ -2567,7 +2574,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                     color: AppTheme.dividerColor, width: 0.5),
               ),
               child: Center(
-                child: Text('AperÃ§u non disponible',
+                child: Text('Aperçu non disponible',
                     style: TextStyle(
                         fontSize: 15, color: AppTheme.textMutedColor)),
               ),
@@ -2599,7 +2606,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                         Icon(Icons.picture_as_pdf_rounded,
                             size: 14, color: Colors.white),
                         SizedBox(width: 5),
-                        Text('TÃ©lÃ©charger PDF',
+                        Text('Télécharger PDF',
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -2638,7 +2645,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
     );
   }
 
-  // â”€â”€â”€ CV Frame widget (matches mockup exactly) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── CV Frame widget (matches mockup exactly) ─────────────────────
   Widget _buildCvFrame() {
     final cv = _importedCv!;
     final pi = cv.personalInfo;
@@ -2680,7 +2687,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                               fontWeight: FontWeight.w600)),
                       if (pi.professionalTitle != null)
                         Text(
-                          '${pi.professionalTitle}${pi.city != null ? ' Â· ${pi.city}' : ''}',
+                          '${pi.professionalTitle}${pi.city != null ? ' · ${pi.city}' : ''}',
                           style: const TextStyle(
                               color: Color(0xFF85B7EB), fontSize: 9),
                         ),
@@ -2700,19 +2707,19 @@ class _CvBuilderViewState extends State<CvBuilderView>
               children: [
                 // Experience section
                 if (cv.experiences.isNotEmpty) ...[
-                  _cvSection('EXPÃ‰RIENCE'),
+                  _cvSection('EXPÉRIENCE'),
                   ...cv.experiences.take(3).map((e) => Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${e.jobTitle} â€” ${e.company}',
+                            Text('${e.jobTitle} — ${e.company}',
                                 style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w600,
                                     color: AppTheme.textColor)),
                             Text(
-                              '${e.startDate}${e.current ? ' â€“ PrÃ©sent' : (e.endDate != null ? ' â€“ ${e.endDate}' : '')}',
+                              '${e.startDate}${e.current ? ' – Présent' : (e.endDate != null ? ' – ${e.endDate}' : '')}',
                               style: TextStyle(
                                   fontSize: 8,
                                   color: AppTheme.textMutedColor),
@@ -2736,7 +2743,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
                                     fontSize: 9,
                                     fontWeight: FontWeight.w600,
                                     color: AppTheme.textColor)),
-                            Text('${e.school} Â· ${e.startDate}',
+                            Text('${e.school} · ${e.startDate}',
                                 style: TextStyle(
                                     fontSize: 8,
                                     color: AppTheme.textMutedColor)),
@@ -2748,7 +2755,7 @@ class _CvBuilderViewState extends State<CvBuilderView>
 
                 // Skills section
                 if (cv.skills.isNotEmpty) ...[
-                  _cvSection('COMPÃ‰TENCES'),
+                  _cvSection('COMPÉTENCES'),
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
@@ -2796,9 +2803,9 @@ class _CvBuilderViewState extends State<CvBuilderView>
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════════
 // Helper classes
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════════
 
 enum _ScanStatus { pending, loading, done }
 

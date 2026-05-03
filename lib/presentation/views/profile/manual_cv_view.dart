@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cv_tech/core/constants/app_colors.dart';
 import 'package:cv_tech/core/services/pdf_download_service.dart';
@@ -121,7 +121,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
                       child: Text(
-                        '${shown.length} CV${shown.length > 1 ? 's' : ''}${_searchQuery.isNotEmpty ? ' trouvÃ©${shown.length > 1 ? 's' : ''}' : ''}',
+                        '${shown.length} CV${shown.length > 1 ? 's' : ''}${_searchQuery.isNotEmpty ? ' trouvé${shown.length > 1 ? 's' : ''}' : ''}',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -142,7 +142,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
                           Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
                           const SizedBox(height: 12),
                           Text(
-                            'Aucun rÃ©sultat pour "$_searchQuery"',
+                            'Aucun résultat pour "$_searchQuery"',
                             style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                           ),
                         ],
@@ -179,7 +179,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
       child: ElevatedButton.icon(
         icon: const Icon(Icons.add_rounded, size: 22),
         label: const Text(
-          'CrÃ©er un CV',
+          'Créer un CV',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
@@ -219,7 +219,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Commencez par crÃ©er votre premier CV\npour mettre en valeur votre profil.',
+              'Commencez par créer votre premier CV\npour mettre en valeur votre profil.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey.shade600,
@@ -343,7 +343,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
                       size: 12, color: Colors.grey.shade500),
                   const SizedBox(width: 4),
                   Text(
-                    'ModifiÃ© le ${_formatDate(cv.updatedAt!)}',
+                    'Modifié le ${_formatDate(cv.updatedAt!)}',
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.grey.shade500,
@@ -454,7 +454,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
       final success = await vm.deleteCv(cv.id!);
       if (context.mounted) {
         if (success) {
-          CustomToast.success(context, 'CV supprimÃ©');
+          CustomToast.success(context, 'CV supprimé');
         } else {
           CustomToast.error(
               context, vm.error ?? 'Erreur lors de la suppression');
@@ -491,7 +491,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'TÃ©lÃ©charger le CV',
+                'Télécharger le CV',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
@@ -505,10 +505,10 @@ class _ManualCvContentState extends State<_ManualCvContent> {
                   ),
                   child: Icon(Icons.download, color: AppColors.primaryColor),
                 ),
-                title: const Text('Design par dÃ©faut',
+                title: const Text('Design par défaut',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text(
-                    'TÃ©lÃ©charger directement avec le template standard'),
+                    'Télécharger directement avec le template standard'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _quickDownload(context, cv);
@@ -529,7 +529,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
                 title: const Text('Personnaliser',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text(
-                    'Choisir template, couleur et police avant tÃ©lÃ©chargement'),
+                    'Choisir template, couleur et police avant téléchargement'),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -555,7 +555,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
 
   Future<void> _quickDownload(BuildContext context, ManualCvModel cv) async {
     try {
-      CustomToast.info(context, 'GÃ©nÃ©ration du PDF en cours...', title: 'PDF');
+      CustomToast.info(context, 'Génération du PDF en cours...', title: 'PDF');
       final repo = ManualCvRepository();
       final pdfBytes = await repo.downloadPdf(
         cv.id!,
@@ -571,7 +571,7 @@ class _ManualCvContentState extends State<_ManualCvContent> {
       await PdfDownloadService.shareOrSave(pdfBytes, filename);
 
       if (context.mounted) {
-        CustomToast.success(context, 'PDF gÃ©nÃ©rÃ© avec succÃ¨s');
+        CustomToast.success(context, 'PDF généré avec succès');
       }
     } catch (e) {
       if (context.mounted) {

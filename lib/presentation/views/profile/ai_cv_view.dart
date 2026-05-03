@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:cv_tech/core/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -93,14 +93,14 @@ class _AiCvContentState extends State<_AiCvContent> {
                 Icon(Icons.auto_awesome, color: AppColors.primaryColor),
                 const SizedBox(width: 8),
                 const Text(
-                  'GÃ©nÃ©rer un CV avec l\'IA',
+                  'Générer un CV avec l\'IA',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              'L\'IA analyse votre profil (formation, expÃ©rience, compÃ©tences, projets) et gÃ©nÃ¨re un CV professionnel.',
+              'L\'IA analyse votre profil (formation, expérience, compétences, projets) et génère un CV professionnel.',
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 16),
@@ -112,7 +112,7 @@ class _AiCvContentState extends State<_AiCvContent> {
               children: [
                 _buildIconChip(
                   icon: Icons.translate,
-                  label: 'FranÃ§ais',
+                  label: 'Français',
                   selected: vm.selectedLanguage == 'fr',
                   onTap: () => vm.setLanguage('fr'),
                 ),
@@ -129,7 +129,7 @@ class _AiCvContentState extends State<_AiCvContent> {
 
             // Section selector
             const Text(
-              'Section Ã  gÃ©nÃ©rer',
+              'Section à générer',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
@@ -143,12 +143,12 @@ class _AiCvContentState extends State<_AiCvContent> {
                   onTap: () => vm.setSection('full'),
                 ),
                 _buildChip(
-                  label: 'RÃ©sumÃ©',
+                  label: 'Résumé',
                   selected: vm.selectedSection == 'summary',
                   onTap: () => vm.setSection('summary'),
                 ),
                 _buildChip(
-                  label: 'ExpÃ©rience',
+                  label: 'Expérience',
                   selected: vm.selectedSection == 'experience',
                   onTap: () => vm.setSection('experience'),
                 ),
@@ -158,7 +158,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                   onTap: () => vm.setSection('education'),
                 ),
                 _buildChip(
-                  label: 'CompÃ©tences',
+                  label: 'Compétences',
                   selected: vm.selectedSection == 'skills',
                   onTap: () => vm.setSection('skills'),
                 ),
@@ -207,7 +207,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                 ),
                 _buildIconChip(
                   icon: Icons.account_circle_outlined,
-                  label: 'EuropÃ©en',
+                  label: 'Européen',
                   selected: vm.selectedFormat == 'european',
                   onTap: () => vm.setFormat('european'),
                 ),
@@ -221,7 +221,7 @@ class _AiCvContentState extends State<_AiCvContent> {
               maxLines: 3,
               decoration: InputDecoration(
                 hintText:
-                    'Instructions supplÃ©mentaires (optionnel)\nEx: "Mets l\'accent sur le dÃ©veloppement mobile"',
+                    'Instructions supplémentaires (optionnel)\nEx: "Mets l\'accent sur le développement mobile"',
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 contentPadding: const EdgeInsets.all(12),
@@ -254,7 +254,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                       )
                     : const Icon(Icons.auto_awesome),
                 label: Text(
-                  vm.isGenerating ? 'GÃ©nÃ©ration en cours...' : 'GÃ©nÃ©rer mon CV',
+                  vm.isGenerating ? 'Génération en cours...' : 'Générer mon CV',
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
@@ -309,7 +309,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                   size: 64, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                'Aucun CV gÃ©nÃ©rÃ©',
+                'Aucun CV généré',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[500],
@@ -318,7 +318,7 @@ class _AiCvContentState extends State<_AiCvContent> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Utilisez le bouton ci-dessus pour gÃ©nÃ©rer votre premier CV',
+                'Utilisez le bouton ci-dessus pour générer votre premier CV',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[400], fontSize: 15),
               ),
@@ -332,7 +332,7 @@ class _AiCvContentState extends State<_AiCvContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Mes CVs gÃ©nÃ©rÃ©s',
+          'Mes CVs générés',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -423,7 +423,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                       children: [
                         Icon(Icons.picture_as_pdf_outlined, size: 20),
                         SizedBox(width: 8),
-                        Text('TÃ©lÃ©charger PDF'),
+                        Text('Télécharger PDF'),
                       ],
                     ),
                   ),
@@ -481,7 +481,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                       ),
                     ),
                     Text(
-                      '${cv.status == 'reformulated' ? 'ReformulÃ©' : 'GÃ©nÃ©rÃ©'} â€¢ v${cv.version}',
+                      '${cv.status == 'reformulated' ? 'Reformulé' : 'Généré'} • v${cv.version}',
                       style: TextStyle(color: Colors.grey[500], fontSize: 14),
                     ),
                   ],
@@ -492,12 +492,12 @@ class _AiCvContentState extends State<_AiCvContent> {
                 tooltip: 'Copier',
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: cv.content));
-                  CustomToast.success(context, 'CV copiÃ© dans le presse-papiers');
+                  CustomToast.success(context, 'CV copié dans le presse-papiers');
                 },
               ),
               IconButton(
                 icon: const Icon(Icons.download),
-                tooltip: 'TÃ©lÃ©charger PDF',
+                tooltip: 'Télécharger PDF',
                 onPressed: () => _downloadAsPdf(context, cv),
               ),
               IconButton(
@@ -509,7 +509,7 @@ class _AiCvContentState extends State<_AiCvContent> {
           ),
         ),
 
-        // CV Content â€” Dynamic rendering (HTML or Markdown)
+        // CV Content — Dynamic rendering (HTML or Markdown)
         Expanded(
           child: _buildCvContent(cv.content),
         ),
@@ -682,7 +682,7 @@ class _AiCvContentState extends State<_AiCvContent> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        isReformulated ? 'ReformulÃ©' : 'GÃ©nÃ©rÃ©',
+        isReformulated ? 'Reformulé' : 'Généré',
         style: TextStyle(
           color: isReformulated ? Colors.blue.shade700 : Colors.green.shade700,
           fontSize: 14,
@@ -726,7 +726,7 @@ class _AiCvContentState extends State<_AiCvContent> {
       final success = await vm.deleteCv(cv.id!);
       if (context.mounted) {
         if (success) {
-          CustomToast.success(context, 'CV supprimÃ©');
+          CustomToast.success(context, 'CV supprimé');
         } else {
           CustomToast.error(
               context, vm.error ?? 'Erreur lors de la suppression');
@@ -740,8 +740,8 @@ class _AiCvContentState extends State<_AiCvContent> {
     final instructions = await CustomAlertDialog.showInput(
       context: context,
       title: 'Reformuler le CV',
-      message: 'L\'IA va amÃ©liorer et reformuler votre CV. Vous pouvez ajouter des instructions spÃ©cifiques.',
-      hintText: 'Instructions (optionnel)\nEx: "Ton plus formel", "Ajoute des mots-clÃ©s ATS"',
+      message: 'L\'IA va améliorer et reformuler votre CV. Vous pouvez ajouter des instructions spécifiques.',
+      hintText: 'Instructions (optionnel)\nEx: "Ton plus formel", "Ajoute des mots-clés ATS"',
       confirmText: 'Reformuler',
     );
     if (instructions != null && cv.id != null) {
@@ -781,7 +781,7 @@ class _AiCvContentState extends State<_AiCvContent> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'TÃ©lÃ©charger le CV',
+                'Télécharger le CV',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
@@ -795,9 +795,9 @@ class _AiCvContentState extends State<_AiCvContent> {
                   ),
                   child: Icon(Icons.download, color: AppColors.primaryColor),
                 ),
-                title: const Text('Design par dÃ©faut',
+                title: const Text('Design par défaut',
                     style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('TÃ©lÃ©charger directement avec le template standard'),
+                subtitle: const Text('Télécharger directement avec le template standard'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _quickDownload(context, cv);
@@ -816,7 +816,7 @@ class _AiCvContentState extends State<_AiCvContent> {
                 ),
                 title: const Text('Personnaliser',
                     style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Choisir template, couleur et police avant tÃ©lÃ©chargement'),
+                subtitle: const Text('Choisir template, couleur et police avant téléchargement'),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -842,7 +842,7 @@ class _AiCvContentState extends State<_AiCvContent> {
 
   Future<void> _quickDownload(BuildContext context, AiCvModel cv) async {
     try {
-      CustomToast.info(context, 'GÃ©nÃ©ration du PDF en cours...', title: 'PDF');
+      CustomToast.info(context, 'Génération du PDF en cours...', title: 'PDF');
       final repo = AiCvRepository();
       final pdfBytes = await repo.downloadPdf(
         cv.id!,
@@ -858,7 +858,7 @@ class _AiCvContentState extends State<_AiCvContent> {
       await PdfDownloadService.shareOrSave(pdfBytes, filename);
 
       if (context.mounted) {
-        CustomToast.success(context, 'PDF gÃ©nÃ©rÃ© avec succÃ¨s');
+        CustomToast.success(context, 'PDF généré avec succès');
       }
     } catch (e) {
       if (context.mounted) {

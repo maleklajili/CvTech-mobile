@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'dart:io' show File;
@@ -44,7 +44,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
   bool _isDownloading = false;
 
   static const _languages = {
-    'fr': 'FranÃ§ais',
+    'fr': 'Français',
     'en': 'English',
   };
 
@@ -69,7 +69,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
     ),
     _TemplateOption(
       key: 'european',
-      label: 'EuropÃ©en',
+      label: 'Européen',
       icon: Icons.account_circle_outlined,
       color: Color(0xFF0f766e),
     ),
@@ -339,7 +339,7 @@ class _CvCustomizationScreenState extends State<CvCustomizationScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'AperÃ§u en $font',
+                    'Aperçu en $font',
                     style: TextStyle(
                       fontFamily: font,
                       fontSize: 15,
