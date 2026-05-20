@@ -1,0 +1,13 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload APK to Play Store internal track"
+  lane :deploy do
+    upload_to_play_store(
+      package_name: "com.example.cv_tech",
+      apk: "../build/app/outputs/flutter-apk/app-release.apk",
+      track: "internal",
+      release_status: "draft"
+    )
+  end
+end
