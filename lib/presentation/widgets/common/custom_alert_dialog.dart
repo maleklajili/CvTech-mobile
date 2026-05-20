@@ -11,7 +11,121 @@ enum AlertType {
   info,
 }
 
-class CustomAlertDialog {
+class CustomAlertDialog extends StatelessWidget {
+  final String title;
+  final String message;
+  final String positiveButtonText;
+  final String? negativeButtonText;
+  final VoidCallback? onPositivePressed;
+  final VoidCallback? onNegativePressed;
+  final AlertType type;
+  final bool isDangerous;
+
+  const CustomAlertDialog({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.positiveButtonText,
+    this.negativeButtonText,
+    this.onPositivePressed,
+    this.onNegativePressed,
+    this.type = AlertType.confirmation,
+    this.isDangerous = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final config = _getAlertConfig(type, isDangerous);
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: config.color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(config.icon, color: config.color, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textMutedColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                if (negativeButtonText != null) ...[
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        onNegativePressed?.call();
+                        Navigator.of(context).pop();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        side: BorderSide(color: AppColors.dividerColor),
+                      ),
+                      child: Text(
+                        negativeButtonText!,
+                        style: TextStyle(color: AppColors.textColor),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      onPositivePressed?.call();
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: config.color,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      positiveButtonText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Show a themed confirmation dialog
   static Future<bool> showConfirmation({
     required BuildContext context,
