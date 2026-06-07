@@ -18,6 +18,12 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
+      - name: Configurer Java 17 (compatible Gradle/Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Installer Flutter
         uses: subosito/flutter-action@v2
         with:
