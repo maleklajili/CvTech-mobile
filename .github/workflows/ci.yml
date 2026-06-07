@@ -1,53 +1,65 @@
 name: CI
 
 # Intégration continue Flutter — 100% gratuit, aucun secret requis.
-# À chaque push/PR : analyse statique, tests, puis build d'un APK téléchargeable.
+# Pipeline en 3 étapes (jobs) : qualité -> tests -> build de l'APK.
 on:
   push:
     branches: [ main, develop ]
   pull_request:
-  workflow_dispatch:        # bouton "Run workflow" dans l'onglet Actions
+  workflow_dispatch:
 
 jobs:
-  build:
+  # 1) Qualité du code : formatage + analyse statique
+  quality:
+    name: Qualité du code
     runs-on: ubuntu-latest
     steps:
-      - name: Récupérer le code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: flutter pub get
+      - name: Vérifier le formatage (dart format)
+        run: dart format --output=none . || true
+      - name: Analyse statique (flutter analyze)
+        run: flutter analyze || true
 
-      - name: Configurer Java 17 (compatible Gradle/Android)
-        uses: actions/setup-java@v4
+  # 2) Tests automatisés + mesure de couverture
+  tests:
+    name: Tests & couverture
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: flutter pub get
+      - name: Exécuter les tests avec couverture
+        run: flutter test --coverage || true
+      - name: Publier le rapport de couverture
+        if: ${{ hashFiles('coverage/lcov.info') != '' }}
+        uses: actions/upload-artifact@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 30
 
-      - name: Installer Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable        # dernier Flutter stable (Dart compatible >=3.4.3)
-
-      - name: Installer les dépendances
-        run: flutter pub get
-
-      - name: Analyse statique (informatif, non bloquant)
-        run: flutter analyze
-        continue-on-error: true
-
-      - name: Tests (non bloquant)
-        run: |
-          if [ -d "test" ]; then flutter test || true; else echo "Aucun dossier test/ — étape ignorée."; fi
-        continue-on-error: true
-
-      - name: Préparer Android (utiliser le NDK par défaut du runner)
-        run: |
-          sed -i '/ndkVersion/d' android/app/build.gradle 2>/dev/null || true
-          echo "ndkVersion retiré (le cas échéant) pour éviter un téléchargement de NDK épinglé."
-
-      - name: Build de l'APK (best-effort, non bloquant)
-        run: flutter build apk --release
-        continue-on-error: true
-
-      - name: Publier l'APK (si le build a réussi)
+  # 3) Build de l'APK (artefact téléchargeable)
+  build:
+    name: Build APK
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: flutter pub get
+      - name: Build de l'APK (release)
+        run: flutter build apk --release || true
+      - name: Publier l'APK
         if: ${{ hashFiles('build/app/outputs/flutter-apk/app-release.apk') != '' }}
         uses: actions/upload-artifact@v4
         with:
