@@ -21,8 +21,7 @@ jobs:
       - name: Installer Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.3"
-          channel: stable
+          channel: stable        # dernier Flutter stable (Dart compatible >=3.4.3)
 
       - name: Installer les dépendances
         run: flutter pub get
