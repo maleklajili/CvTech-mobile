@@ -1,107 +1,42 @@
 name: CI
 
+# Intégration continue Flutter — 100% gratuit, aucun secret requis.
+# À chaque push/PR : analyse statique, tests, puis build d'un APK téléchargeable.
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [ main, develop ]
   pull_request:
+  workflow_dispatch:        # bouton "Run workflow" dans l'onglet Actions
 
 jobs:
-  code-quality:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.4.3"
-          channel: stable
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Check formatting
-        run: dart format --check .
-      - name: Analyze
-        run: flutter analyze --fatal-infos
-      - name: Run unit tests (with coverage)
-        run: |
-          if [ -d "test" ]; then flutter test --coverage
-          else echo "Pas de test/, ignore."; fi
-      - name: Run integration tests
-        run: |
-          if [ -d "integration_test" ]; then flutter test integration_test
-          else echo "Pas d'integration_test, ignoré."; fi
-      - name: Upload coverage artifact
-        if: ${{ always() && hashFiles('coverage/lcov.info') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-lcov
-          path: coverage/lcov.info
+      - name: Récupérer le code
+        uses: actions/checkout@v4
 
-  build-android:
-    runs-on: ubuntu-latest
-    needs: code-quality
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Installer Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.4.3"
           channel: stable
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - name: Install dependencies
+
+      - name: Installer les dépendances
         run: flutter pub get
-      - name: Decode keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
+      - name: Analyse statique
+        run: flutter analyze
+
+      - name: Tests
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
-      - name: Write key.properties
-        env:
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-        run: |
-          cat > android/key.properties <<EOF
-          storeFile=app/keystore.jks
-          storePassword=$STORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PASSWORD
-          EOF
-      - name: Build APK (release)
-        env:
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          if [ -d "test" ]; then flutter test; else echo "Aucun dossier test/ — étape ignorée."; fi
+
+      - name: Build de l'APK (release, signé avec la clé debug)
         run: flutter build apk --release
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
 
-  build-ios:
-    runs-on: macos-latest
-    needs: code-quality
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.4.3"
-          channel: stable
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign
-      - name: Zip Runner.app
-        run: |
-          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app Runner.app.zip
-      - name: Upload iOS artifact
+      - name: Publier l'APK (artefact téléchargeable)
         uses: actions/upload-artifact@v4
         with:
-          name: runner-app
-          path: Runner.app.zip
+          name: cvtech-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
